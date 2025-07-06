@@ -14,25 +14,39 @@ class ConductorScreen extends StatefulWidget {
 class _ConductorScreenState extends State<ConductorScreen> {
   bool _isActive = true;
   int _currentPassengers = 0;
-  int _maxPassengers = 20;
-  String _currentRoute = 'Lucena - SM City';
-  
+  final int _maxPassengers = 20;
+  final String _currentRoute = 'Lucena - SM City';
+
   final List<Map<String, dynamic>> _passengerList = [
-    {'name': 'John Doe', 'destination': 'SM City Lucena', 'status': 'confirmed'},
-    {'name': 'Jane Smith', 'destination': 'Lucena Grand Terminal', 'status': 'waiting'},
-    {'name': 'Mike Johnson', 'destination': 'Quezon Provincial Capitol', 'status': 'confirmed'},
+    {
+      'name': 'John Doe',
+      'destination': 'SM City Lucena',
+      'status': 'confirmed',
+    },
+    {
+      'name': 'Jane Smith',
+      'destination': 'Lucena Grand Terminal',
+      'status': 'waiting',
+    },
+    {
+      'name': 'Mike Johnson',
+      'destination': 'Quezon Provincial Capitol',
+      'status': 'confirmed',
+    },
   ];
 
   @override
   void initState() {
     super.initState();
-    _currentPassengers = _passengerList.where((p) => p['status'] == 'confirmed').length;
+    _currentPassengers = _passengerList
+        .where((p) => p['status'] == 'confirmed')
+        .length;
   }
 
   @override
   Widget build(BuildContext context) {
     final user = context.watch<UserProvider>().currentUser;
-    
+
     return Scaffold(
       body: Stack(
         children: [
@@ -44,7 +58,8 @@ class _ConductorScreenState extends State<ConductorScreen> {
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                urlTemplate:
+                    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
                 subdomains: ['a', 'b', 'c', 'd'],
               ),
               MarkerLayer(
@@ -53,7 +68,11 @@ class _ConductorScreenState extends State<ConductorScreen> {
                     width: 40.0,
                     height: 40.0,
                     point: LatLng(13.955785338622102, 121.16551093159686),
-                    child: Icon(Icons.directions_bus, color: const Color.fromRGBO(62, 71, 149, 1), size: 40),
+                    child: Icon(
+                      Icons.directions_bus,
+                      color: const Color.fromRGBO(62, 71, 149, 1),
+                      size: 40,
+                    ),
                   ),
                 ],
               ),
@@ -69,7 +88,13 @@ class _ConductorScreenState extends State<ConductorScreen> {
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
                 color: Colors.white,
-                boxShadow: [BoxShadow(color: Colors.grey, blurRadius: 5, offset: Offset(0, 2))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey,
+                    blurRadius: 5,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -86,7 +111,10 @@ class _ConductorScreenState extends State<ConductorScreen> {
                           'Conductor: ${user?.name ?? 'Driver'}',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        Text('Vehicle: ${user?.vehicleId ?? 'VEH001'}', style: TextStyle(color: Colors.grey)),
+                        Text(
+                          'Vehicle: ${user?.vehicleId ?? 'VEH001'}',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       ],
                     ),
                   ),
@@ -110,23 +138,41 @@ class _ConductorScreenState extends State<ConductorScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.grey, blurRadius: 5, offset: Offset(0, 2))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey,
+                    blurRadius: 5,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
               child: Column(
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Status', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text(
+                        'Status',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: _isActive ? Colors.green : Colors.red,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           _isActive ? 'ACTIVE' : 'INACTIVE',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -135,11 +181,19 @@ class _ConductorScreenState extends State<ConductorScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _buildStatusCard('Passengers', '$_currentPassengers/$_maxPassengers', Icons.people),
+                        child: _buildStatusCard(
+                          'Passengers',
+                          '$_currentPassengers/$_maxPassengers',
+                          Icons.people,
+                        ),
                       ),
                       SizedBox(width: 12),
                       Expanded(
-                        child: _buildStatusCard('Route', _currentRoute, Icons.route),
+                        child: _buildStatusCard(
+                          'Route',
+                          _currentRoute,
+                          Icons.route,
+                        ),
                       ),
                     ],
                   ),
@@ -158,7 +212,13 @@ class _ConductorScreenState extends State<ConductorScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.grey, blurRadius: 10, offset: Offset(0, -2))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey,
+                    blurRadius: 10,
+                    offset: Offset(0, -2),
+                  ),
+                ],
               ),
               child: Column(
                 children: [
@@ -166,7 +226,9 @@ class _ConductorScreenState extends State<ConductorScreen> {
                     padding: EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: const Color.fromRGBO(62, 71, 149, 1),
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(12),
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -174,7 +236,10 @@ class _ConductorScreenState extends State<ConductorScreen> {
                         SizedBox(width: 8),
                         Text(
                           'Passenger List (${_passengerList.length})',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -188,27 +253,31 @@ class _ConductorScreenState extends State<ConductorScreen> {
                         return Card(
                           child: ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: passenger['status'] == 'confirmed' 
-                                ? Colors.green 
-                                : Colors.orange,
+                              backgroundColor:
+                                  passenger['status'] == 'confirmed'
+                                  ? Colors.green
+                                  : Colors.orange,
                               child: Icon(Icons.person, color: Colors.white),
                             ),
                             title: Text(passenger['name']),
                             subtitle: Text(passenger['destination']),
                             trailing: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
-                                color: passenger['status'] == 'confirmed' 
-                                  ? Colors.green.withOpacity(0.2) 
-                                  : Colors.orange.withOpacity(0.2),
+                                color: passenger['status'] == 'confirmed'
+                                    ? Colors.green.withOpacity(0.2)
+                                    : Colors.orange.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
                                 passenger['status'].toUpperCase(),
                                 style: TextStyle(
-                                  color: passenger['status'] == 'confirmed' 
-                                    ? Colors.green 
-                                    : Colors.orange,
+                                  color: passenger['status'] == 'confirmed'
+                                      ? Colors.green
+                                      : Colors.orange,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -234,7 +303,13 @@ class _ConductorScreenState extends State<ConductorScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(15),
-                boxShadow: [BoxShadow(color: Colors.grey, blurRadius: 10, offset: Offset(0, 2))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey,
+                    blurRadius: 10,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -242,7 +317,12 @@ class _ConductorScreenState extends State<ConductorScreen> {
                   _buildNavItem(Icons.dashboard, 'Dashboard', true),
                   _buildNavItem(Icons.people, 'Passengers', false),
                   _buildNavItem(Icons.route, 'Routes', false),
-                  _buildNavItem(Icons.logout, 'Logout', false, onTap: () => context.read<UserProvider>().logout()),
+                  _buildNavItem(
+                    Icons.logout,
+                    'Logout',
+                    false,
+                    onTap: () => context.read<UserProvider>().logout(),
+                  ),
                 ],
               ),
             ),
@@ -264,13 +344,21 @@ class _ConductorScreenState extends State<ConductorScreen> {
           Icon(icon, color: const Color.fromRGBO(62, 71, 149, 1)),
           SizedBox(height: 4),
           Text(title, style: TextStyle(fontSize: 12, color: Colors.grey)),
-          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, bool isActive, {VoidCallback? onTap}) {
+  Widget _buildNavItem(
+    IconData icon,
+    String label,
+    bool isActive, {
+    VoidCallback? onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -278,7 +366,9 @@ class _ConductorScreenState extends State<ConductorScreen> {
         children: [
           Icon(
             icon,
-            color: isActive ? const Color.fromRGBO(62, 71, 149, 1) : Colors.grey,
+            color: isActive
+                ? const Color.fromRGBO(62, 71, 149, 1)
+                : Colors.grey,
             size: 24,
           ),
           SizedBox(height: 4),
@@ -286,11 +376,13 @@ class _ConductorScreenState extends State<ConductorScreen> {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: isActive ? const Color.fromRGBO(62, 71, 149, 1) : Colors.grey,
+              color: isActive
+                  ? const Color.fromRGBO(62, 71, 149, 1)
+                  : Colors.grey,
             ),
           ),
         ],
       ),
     );
   }
-} 
+}

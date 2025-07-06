@@ -42,7 +42,9 @@ class MyApp extends StatelessWidget {
                 secondary: Colors.blueGrey,
               ),
             ),
-            themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            themeMode: themeProvider.isDarkMode
+                ? ThemeMode.dark
+                : ThemeMode.light,
             home: AppWrapper(),
           );
         },
