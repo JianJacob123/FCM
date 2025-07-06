@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
+import 'providers/user_provider.dart';
+import 'screens/login_screen.dart';
+import 'screens/passenger_screen.dart';
+import 'screens/conductor_screen.dart';
+import 'models/user_role.dart';
 
 void main() => runApp(MyApp());
 
@@ -9,190 +13,69 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: Stack(
-          children: [
-            //Map Screen
-            Positioned.fill(child: MapScreen()),
-
-            // Search Field
-            Positioned(
-              top: 20,
-              left: 0,
-              right: 0,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [SearchField(), LocationSwitch()],
-              ),
-            ),
-
-            // Bottom Navigation Bar
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: const CustomBottomBar(),
-            ),
-          ],
+    return ChangeNotifierProvider(
+      create: (context) => UserProvider(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'FCM Transport',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          primaryColor: const Color.fromRGBO(62, 71, 149, 1),
         ),
+        home: AppWrapper(),
       ),
     );
   }
 }
 
-class SearchField extends StatelessWidget {
-  const SearchField({super.key});
+class AppWrapper extends StatefulWidget {
+  const AppWrapper({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: SizedBox(
-        width: 1000,
-        child: Container(
-          margin: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-          padding: EdgeInsets.all(2.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey,
-                spreadRadius: 2,
-                blurRadius: 5,
-                offset: Offset(0, 3), // changes position of shadow
-              ),
-            ],
-          ),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Where are you going to?',
-              prefixIcon: Icon(Icons.search),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(vertical: 17),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  State<AppWrapper> createState() => _AppWrapperState();
 }
 
-class LocationSwitch extends StatelessWidget {
-  const LocationSwitch({super.key});
-
+class _AppWrapperState extends State<AppWrapper> {
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 50,
-      width: 150, // fixed width
-      decoration: BoxDecoration(
-        color: const Color.fromRGBO(62, 71, 149, 1),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30),
-          bottomLeft: Radius.circular(30),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey,
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: Offset(0, -3),
-          ),
-        ],
-      ),
-      margin: EdgeInsets.symmetric(vertical: 20),
-      padding: EdgeInsets.symmetric(horizontal: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Switch(
-            value: true,
-            onChanged: (value) {},
-            activeColor: Colors.white,
-            activeTrackColor: Color.fromRGBO(130, 135, 188, 1),
-            inactiveTrackColor: Color.fromRGBO(206, 206, 214, 1),
-            inactiveThumbColor: Colors.white,
-          ),
-          Text(
-            'Location',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
+  void initState() {
+    super.initState();
+    // Initialize user data when app starts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<UserProvider>().initializeUser();
+    });
   }
-}
-
-class CustomBottomBar extends StatelessWidget {
-  const CustomBottomBar({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 60,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey,
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: Offset(0, -3), // changes position of shadow
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          Image.asset('assets/icons/notifications.png', width: 24, height: 24),
-          Image.asset('assets/icons/Heart.png', width: 24, height: 24),
-          Image.asset('assets/icons/location.png', width: 50, height: 50),
-          Image.asset('assets/icons/Clock.png', width: 24, height: 24),
-          Image.asset('assets/icons/person.png', width: 24, height: 24),
-        ],
-      ),
-    );
-  }
-}
-
-class MapScreen extends StatelessWidget {
-  const MapScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return FlutterMap(
-      options: MapOptions(
-        initialCenter: LatLng(13.955785338622102, 121.16551093159686),
-        initialZoom: 13.0,
-        interactiveFlags: InteractiveFlag.all,
-      ),
-      children: [
-        TileLayer(
-          urlTemplate:
-              'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-          subdomains: ['a', 'b', 'c', 'd'],
-        ),
-        MarkerLayer(
-          markers: [
-            Marker(
-              width: 40.0,
-              height: 40.0,
-              point: LatLng(13.955785338622102, 121.16551093159686),
-              child: Icon(
-                Icons.location_pin,
+    return Consumer<UserProvider>(
+      builder: (context, userProvider, child) {
+        if (userProvider.isLoading) {
+          return Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(
                 color: const Color.fromRGBO(62, 71, 149, 1),
-                size: 40,
               ),
             ),
-          ],
-        ),
-      ],
+          );
+        }
+
+        if (!userProvider.isLoggedIn) {
+          return LoginScreen();
+        }
+
+        // Show different screens based on user role
+        final user = userProvider.currentUser;
+        if (user == null) return LoginScreen();
+
+        switch (user.role) {
+          case UserRole.passenger:
+            return PassengerScreen();
+          case UserRole.conductor:
+            return ConductorScreen();
+          default:
+            return LoginScreen();
+        }
+      },
     );
   }
 }
