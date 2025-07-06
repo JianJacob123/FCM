@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/user_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/passenger_screen.dart';
 import 'screens/conductor_screen.dart';
@@ -13,16 +14,38 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => UserProvider(),
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'FCM Transport',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          primaryColor: const Color.fromRGBO(62, 71, 149, 1),
-        ),
-        home: AppWrapper(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => UserProvider()),
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+      ],
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'FCM Transport',
+            theme: ThemeData(
+              primarySwatch: Colors.blue,
+              primaryColor: const Color.fromRGBO(62, 71, 149, 1),
+              brightness: Brightness.light,
+            ),
+            darkTheme: ThemeData(
+              brightness: Brightness.dark,
+              primaryColor: const Color.fromRGBO(62, 71, 149, 1),
+              scaffoldBackgroundColor: const Color(0xFF181A20),
+              appBarTheme: const AppBarTheme(
+                backgroundColor: Color(0xFF23242B),
+                foregroundColor: Colors.white,
+              ),
+              colorScheme: ColorScheme.dark(
+                primary: const Color.fromRGBO(62, 71, 149, 1),
+                secondary: Colors.blueGrey,
+              ),
+            ),
+            themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            home: AppWrapper(),
+          );
+        },
       ),
     );
   }

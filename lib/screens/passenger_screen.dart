@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
+import '../providers/user_provider.dart';
 
 class PassengerScreen extends StatefulWidget {
   const PassengerScreen({super.key});
@@ -47,6 +50,7 @@ class SearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: SizedBox(
         width: 1000,
@@ -54,11 +58,11 @@ class SearchField extends StatelessWidget {
           margin: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
           padding: EdgeInsets.all(2.0),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? Color(0xFF23242B) : Colors.white,
             borderRadius: BorderRadius.circular(10),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey,
+                color: isDark ? Colors.black54 : Colors.grey,
                 spreadRadius: 2,
                 blurRadius: 5,
                 offset: Offset(0, 3),
@@ -66,9 +70,11 @@ class SearchField extends StatelessWidget {
             ],
           ),
           child: TextField(
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
             decoration: InputDecoration(
               hintText: 'Where are you going to?',
-              prefixIcon: Icon(Icons.search),
+              hintStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+              prefixIcon: Icon(Icons.search, color: isDark ? Colors.white70 : Colors.black54),
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(vertical: 17),
             ),
@@ -235,7 +241,14 @@ class CustomBottomBar extends StatelessWidget {
           Image.asset('assets/icons/Heart.png', width: 24, height: 24),
           Image.asset('assets/icons/location.png', width: 50, height: 50),
           Image.asset('assets/icons/Clock.png', width: 24, height: 24),
-          Image.asset('assets/icons/person.png', width: 24, height: 24),
+          IconButton(
+            icon: Icon(Icons.settings, size: 24, color: Color.fromRGBO(62, 71, 149, 1)),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => SettingsScreen()),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -276,4 +289,173 @@ class MapScreen extends StatelessWidget {
       ],
     );
   }
+}
+
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool notificationsEnabled = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Settings'),
+        backgroundColor: const Color.fromRGBO(62, 71, 149, 1),
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(24.0),
+        children: [
+          // Preferences
+          Text('Preferences', style: sectionStyle),
+          SwitchListTile(
+            title: const Text('Notifications'),
+            value: notificationsEnabled,
+            onChanged: (val) => setState(() => notificationsEnabled = val),
+          ),
+          SwitchListTile(
+            title: const Text('Dark Theme'),
+            value: themeProvider.isDarkMode,
+            onChanged: (val) => themeProvider.toggleTheme(val),
+          ),
+          const SizedBox(height: 24),
+
+          // Location
+          Text('Location', style: sectionStyle),
+          ListTile(
+            leading: const Icon(Icons.location_on),
+            title: const Text('Manage Location Permissions'),
+            onTap: () {
+              // Placeholder: Show a dialog or open settings
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Location Permissions'),
+                  content: const Text('This would open the location permissions settings.'),
+                  actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+
+          // Support
+          Text('Support', style: sectionStyle),
+          ListTile(
+            leading: const Icon(Icons.email),
+            title: const Text('Contact Us'),
+            onTap: () {
+              // Placeholder: Show a dialog or launch email
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Contact Us'),
+                  content: const Text('Email: support@fcmapp.com'),
+                  actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.help_outline),
+            title: const Text('FAQ'),
+            onTap: () {
+              // Placeholder: Show a dialog or navigate to FAQ
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('FAQ'),
+                  content: const Text('Frequently Asked Questions will be here.'),
+                  actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+
+          // About
+          Text('About', style: sectionStyle),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('App Version'),
+            subtitle: const Text('1.0.0'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('Developer'),
+            subtitle: const Text('FCM App Team'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.star_rate),
+            title: const Text('Rate the App'),
+            onTap: () {
+              // Placeholder: Show a dialog or open store
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Rate the App'),
+                  content: const Text('This would open the app store for rating.'),
+                  actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.share),
+            title: const Text('Share the App'),
+            onTap: () {
+              // Placeholder: Show a dialog or share
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Share the App'),
+                  content: const Text('This would open the share dialog.'),
+                  actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 32),
+
+          // Exit
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                context.read<UserProvider>().logout();
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Exit',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  TextStyle get sectionStyle => const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Color.fromRGBO(62, 71, 149, 1),
+        letterSpacing: 1,
+      );
 } 
