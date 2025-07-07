@@ -6,6 +6,8 @@ import 'screens/login_screen.dart';
 import 'screens/passenger_screen.dart';
 import 'screens/conductor_screen.dart';
 import 'models/user_role.dart';
+import 'screens/admin_login_screen.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 void main() => runApp(MyApp());
 
@@ -29,7 +31,7 @@ class MyApp extends StatelessWidget {
               primaryColor: const Color.fromRGBO(62, 71, 149, 1),
               brightness: Brightness.light,
             ),
-            home: const SplashScreen(),
+            home: kIsWeb ? const AdminLoginScreen() : const SplashScreen(),
           );
         },
       ),
