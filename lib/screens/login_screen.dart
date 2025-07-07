@@ -13,6 +13,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _driverPassword = "driver123";
   bool _showDriverLogin = false;
 
@@ -32,14 +33,30 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _loginAsDriver() {
+    final username = _usernameController.text.trim();
+    if (username.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your username.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    if (username.toLowerCase() != 'conductor') {
+      return;
+    }
     if (_passwordController.text == _driverPassword) {
       final user = UserModel(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: 'Driver',
+        name: username,
         role: UserRole.conductor,
         vehicleId: 'VEH001',
       );
       context.read<UserProvider>().loginUser(user);
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const AppWrapper()),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -175,6 +192,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF3E4795),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: _usernameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Username',
+                                border: OutlineInputBorder(),
                               ),
                             ),
                             const SizedBox(height: 16),

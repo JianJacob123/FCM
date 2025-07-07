@@ -381,14 +381,18 @@ class NotificationsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 24),
-            const Text(
-              'Notifications',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFF3E4795),
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Notifications',
+                  style: TextStyle(
+                    color: Color(0xFF3E4795),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             ...notifications.map(
