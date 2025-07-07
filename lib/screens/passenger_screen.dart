@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/user_provider.dart';
+import 'package:google_nav_bar/google_nav_bar.dart';
 
 class PassengerScreen extends StatefulWidget {
   const PassengerScreen({super.key});
@@ -13,6 +14,21 @@ class PassengerScreen extends StatefulWidget {
 }
 
 class _PassengerScreenState extends State<PassengerScreen> {
+  int _currentIndex = 2; // Default to MapScreen
+  final List<Widget> _screens = [
+    const NotificationsScreen(),
+    const SaveRoutesScreen(),
+    const MapScreen(),
+    const TripHistoryScreen(),
+    const SettingsScreen(),
+  ];
+
+  void _onTabChanged(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,32 +37,39 @@ class _PassengerScreenState extends State<PassengerScreen> {
         behavior: HitTestBehavior.opaque,
         onVerticalDragEnd: (details) {
           print('Swipe velocity: ${details.primaryVelocity}');
-          if (details.primaryVelocity != null && details.primaryVelocity! < -1) {
+          if (details.primaryVelocity != null &&
+              details.primaryVelocity! < -1) {
             _continueAsPassenger();
           }
         },
         child: Stack(
           children: [
             // Map Screen
-            Positioned.fill(child: MapScreen()),
+            Positioned.fill(
+              child: IndexedStack(index: _currentIndex, children: _screens),
+            ),
 
             // Search Field and Location Switch
-            Positioned(
-              top: 20,
-              left: 0,
-              right: 0,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [SearchField(), LocationSwitch()],
+            if (_currentIndex == 2) // Only show on MapScreen
+              Positioned(
+                top: 20,
+                left: 0,
+                right: 0,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [SearchField(), LocationSwitch()],
+                ),
               ),
-            ),
 
             // Bottom Navigation Bar
             Positioned(
               left: 0,
               right: 0,
               bottom: 0,
-              child: const CustomBottomBar(),
+              child: CustomBottomBar(
+                currentIndex: _currentIndex,
+                onTabChanged: _onTabChanged,
+              ),
             ),
           ],
         ),
@@ -87,8 +110,13 @@ class SearchField extends StatelessWidget {
             style: TextStyle(color: isDark ? Colors.white : Colors.black),
             decoration: InputDecoration(
               hintText: 'Where are you going to?',
-              hintStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
-              prefixIcon: Icon(Icons.search, color: isDark ? Colors.white70 : Colors.black54),
+              hintStyle: TextStyle(
+                color: isDark ? Colors.white70 : Colors.black54,
+              ),
+              prefixIcon: Icon(
+                Icons.search,
+                color: isDark ? Colors.white70 : Colors.black54,
+              ),
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(vertical: 17),
             ),
@@ -115,13 +143,19 @@ class _LocationSwitchState extends State<LocationSwitch> {
       barrierDismissible: false,
       builder: (context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.location_on, size: 80, color: Color.fromRGBO(62, 71, 149, 1)),
+                Icon(
+                  Icons.location_on,
+                  size: 80,
+                  color: Color.fromRGBO(62, 71, 149, 1),
+                ),
                 SizedBox(height: 24),
                 Text(
                   'Location Permission',
@@ -154,7 +188,11 @@ class _LocationSwitchState extends State<LocationSwitch> {
                     },
                     child: Text(
                       'TURN ON LOCATION SERVICES',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        letterSpacing: 1,
+                      ),
                     ),
                   ),
                 ),
@@ -230,7 +268,14 @@ class _LocationSwitchState extends State<LocationSwitch> {
 }
 
 class CustomBottomBar extends StatelessWidget {
-  const CustomBottomBar({super.key});
+  final int currentIndex;
+  final Function(int) onTabChanged;
+
+  const CustomBottomBar({
+    super.key,
+    required this.currentIndex,
+    required this.onTabChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -238,7 +283,10 @@ class CustomBottomBar extends StatelessWidget {
       height: 60,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(10),
+          topRight: Radius.circular(10),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.grey,
@@ -248,42 +296,67 @@ class CustomBottomBar extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          IconButton(
-            icon: Image.asset('assets/icons/notifications.png', width: 24, height: 24),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => NotificationsScreen()),
-              );
-            },
+      child: GNav(
+        gap: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        selectedIndex: currentIndex,
+        onTabChange: onTabChanged,
+        tabBackgroundColor: Colors.grey.shade200,
+        activeColor: Colors.red,
+        tabs: [
+          GButton(
+            icon: Icons.circle,
+            iconColor: Colors.transparent,
+            leading: Image.asset(
+              'assets/icons/notifications.png',
+              width: 24,
+              height: 24,
+            ),
           ),
-          IconButton(
-            icon: Image.asset('assets/icons/Heart.png', width: 24, height: 24),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => SaveRoutesScreen()),
-              );
-            },
+          GButton(
+            icon: Icons.circle,
+            iconColor: Colors.transparent,
+            leading: Image.asset(
+              'assets/icons/Heart.png',
+              width: 24,
+              height: 24,
+            ),
           ),
-          Image.asset('assets/icons/location.png', width: 50, height: 50),
-          IconButton(
-            icon: Image.asset('assets/icons/Clock.png', width: 24, height: 24),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => TripHistoryScreen()),
-              );
-            },
+          GButton(
+            icon: Icons.circle, // still required
+            iconColor: Colors.transparent, // hide built-in icon
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color.fromRGBO(
+                  62,
+                  71,
+                  149,
+                  1,
+                ), // circle background color
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Image.asset(
+                  'assets/icons/location.png',
+                  width: 24,
+                  height: 24,
+                ),
+              ),
+            ),
           ),
-          IconButton(
-            icon: Icon(Icons.settings, size: 24, color: Color.fromRGBO(62, 71, 149, 1)),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => SettingsScreen()),
-              );
-            },
+
+          GButton(
+            icon: Icons.circle,
+            iconColor: Colors.transparent,
+            leading: Image.asset(
+              'assets/icons/Clock.png',
+              width: 24,
+              height: 24,
+            ),
           ),
+          GButton(icon: Icons.settings),
         ],
       ),
     );
@@ -320,7 +393,10 @@ class NotificationsScreen extends StatelessWidget {
     ];
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Notifications',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.white,
         foregroundColor: Color.fromRGBO(62, 71, 149, 1),
         elevation: 0,
@@ -331,39 +407,51 @@ class NotificationsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 8),
-            ...notifications.map((notif) => Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Color(0xFFF3F3F3),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: ListTile(
-                  leading: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: notif['iconBg'] as Color,
-                      borderRadius: BorderRadius.circular(12),
+            ...notifications.map(
+              (notif) => Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF3F3F3),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: ListTile(
+                    leading: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: notif['iconBg'] as Color,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        notif['icon'] as IconData,
+                        color: Color.fromRGBO(62, 71, 149, 1),
+                        size: 28,
+                      ),
                     ),
-                    child: Icon(notif['icon'] as IconData, color: Color.fromRGBO(62, 71, 149, 1), size: 28),
+                    title: Text(
+                      notif['title'] as String,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    subtitle: Text(
+                      notif['subtitle'] as String,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    trailing: Text(
+                      notif['time'] as String,
+                      style: const TextStyle(fontSize: 13, color: Colors.grey),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
-                  title: Text(
-                    notif['title'] as String,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  subtitle: Text(
-                    notif['subtitle'] as String,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  trailing: Text(
-                    notif['time'] as String,
-                    style: const TextStyle(fontSize: 13, color: Colors.grey),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
               ),
-            )),
+            ),
           ],
         ),
       ),
@@ -373,7 +461,7 @@ class NotificationsScreen extends StatelessWidget {
 
 class MapScreen extends StatelessWidget {
   const MapScreen({super.key});
-  
+
   @override
   Widget build(BuildContext context) {
     return FlutterMap(
@@ -455,8 +543,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 context: context,
                 builder: (context) => AlertDialog(
                   title: const Text('Location Permissions'),
-                  content: const Text('This would open the location permissions settings.'),
-                  actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+                  content: const Text(
+                    'This would open the location permissions settings.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
                 ),
               );
             },
@@ -475,7 +570,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 builder: (context) => AlertDialog(
                   title: const Text('Contact Us'),
                   content: const Text('Email: support@fcmapp.com'),
-                  actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
                 ),
               );
             },
@@ -489,8 +589,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 context: context,
                 builder: (context) => AlertDialog(
                   title: const Text('FAQ'),
-                  content: const Text('Frequently Asked Questions will be here.'),
-                  actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+                  content: const Text(
+                    'Frequently Asked Questions will be here.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
                 ),
               );
             },
@@ -518,8 +625,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 context: context,
                 builder: (context) => AlertDialog(
                   title: const Text('Rate the App'),
-                  content: const Text('This would open the app store for rating.'),
-                  actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+                  content: const Text(
+                    'This would open the app store for rating.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
                 ),
               );
             },
@@ -534,7 +648,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 builder: (context) => AlertDialog(
                   title: const Text('Share the App'),
                   content: const Text('This would open the share dialog.'),
-                  actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
                 ),
               );
             },
@@ -569,11 +688,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   TextStyle get sectionStyle => const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Color.fromRGBO(62, 71, 149, 1),
-        letterSpacing: 1,
-      );
+    fontSize: 18,
+    fontWeight: FontWeight.bold,
+    color: Color.fromRGBO(62, 71, 149, 1),
+    letterSpacing: 1,
+  );
 }
 
 class TripHistoryScreen extends StatelessWidget {
@@ -645,18 +764,12 @@ class TripHistoryScreen extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   trip['route']!,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: Colors.black87,
-                  ),
+                  style: const TextStyle(fontSize: 15, color: Colors.black87),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   '${trip['date']} | ${trip['time']} | ${trip['duration']}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black54,
-                  ),
+                  style: const TextStyle(fontSize: 14, color: Colors.black54),
                 ),
               ],
             ),
@@ -702,38 +815,47 @@ class SaveRoutesScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         children: [
           const SizedBox(height: 12),
-          ...saveRoutes.map((route) => Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3F3F3),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                  child: Row(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFBFC6F7),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.all(8),
-                        child: const Icon(Icons.favorite, color: Color(0xFF3E4795), size: 22),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          route,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 17,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+          ...saveRoutes.map(
+            (route) => Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F3F3),
+                  borderRadius: BorderRadius.circular(24),
                 ),
-              )),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFBFC6F7),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.all(8),
+                      child: const Icon(
+                        Icons.favorite,
+                        color: Color(0xFF3E4795),
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        route,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
           const Text(
             'Favorite Locations',
@@ -744,40 +866,49 @@ class SaveRoutesScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          ...favoriteLocations.map((loc) => Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3F3F3),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                  child: Row(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFBFC6F7),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.all(8),
-                        child: const Icon(Icons.favorite, color: Color(0xFF3E4795), size: 22),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          loc,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 17,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+          ...favoriteLocations.map(
+            (loc) => Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F3F3),
+                  borderRadius: BorderRadius.circular(24),
                 ),
-              )),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFBFC6F7),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.all(8),
+                      child: const Icon(
+                        Icons.favorite,
+                        color: Color(0xFF3E4795),
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        loc,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
-} 
+}
