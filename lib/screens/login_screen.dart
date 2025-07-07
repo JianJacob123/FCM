@@ -49,8 +49,9 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onVerticalDragEnd: (details) {
-          if (details.primaryVelocity != null && details.primaryVelocity! < 0) {
+          if (details.primaryVelocity != null && details.primaryVelocity! < -20) {
             _continueAsPassenger();
           }
         },
