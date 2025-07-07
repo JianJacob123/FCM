@@ -52,21 +52,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GestureDetector(
-<<<<<<< HEAD
         behavior: HitTestBehavior.opaque,
         onVerticalDragEnd: (details) {
           if (details.primaryVelocity != null && details.primaryVelocity! < -20) {
-=======
-        onVerticalDragStart: (details) {
-          _dragStartY = details.globalPosition.dy;
-        },
-        onVerticalDragUpdate: (details) {
-          double dragDistance = _dragStartY - details.globalPosition.dy;
-          if (dragDistance > 100) {
->>>>>>> 6276f991f99de8a6ca35d90ae29fb398a285b382
             _continueAsPassenger();
           }
         },
@@ -77,7 +69,10 @@ class _LoginScreenState extends State<LoginScreen> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xFF8EA2F8), Color(0xFF3E4795)],
+              colors: [
+                Color(0xFF8EA2F8),
+                Color(0xFF3E4795),
+              ],
             ),
           ),
           child: Stack(
@@ -85,6 +80,8 @@ class _LoginScreenState extends State<LoginScreen> {
               Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Image.asset(
                       'assets/icons/splash_icon.png',
@@ -96,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 24.0),
                       child: RichText(
                         textAlign: TextAlign.center,
-                        text: const TextSpan(
+                        text: TextSpan(
                           children: [
                             TextSpan(
                               text: 'Swipe up',
@@ -135,11 +132,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 32),
                     GestureDetector(
                       onTap: _continueAsPassenger,
-                      child: const Icon(
-                        Icons.keyboard_double_arrow_up,
-                        size: 56,
-                        color: Colors.white,
-                      ),
+                      behavior: HitTestBehavior.opaque,
+                      child: const Icon(Icons.keyboard_double_arrow_up, size: 56, color: Colors.white),
                     ),
                   ],
                 ),
@@ -208,9 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: ElevatedButton(
-                                    onPressed: () => setState(
-                                      () => _showDriverLogin = false,
-                                    ),
+                                    onPressed: () => setState(() => _showDriverLogin = false),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.grey,
                                       foregroundColor: Colors.white,
