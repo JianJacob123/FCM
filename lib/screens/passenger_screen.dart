@@ -18,8 +18,10 @@ class _PassengerScreenState extends State<PassengerScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onVerticalDragEnd: (details) {
-          if (details.primaryVelocity != null && details.primaryVelocity! < -200) {
+          print('Swipe velocity: ${details.primaryVelocity}');
+          if (details.primaryVelocity != null && details.primaryVelocity! < -1) {
             _continueAsPassenger();
           }
         },
@@ -257,9 +259,23 @@ class CustomBottomBar extends StatelessWidget {
               );
             },
           ),
-          Image.asset('assets/icons/Heart.png', width: 24, height: 24),
+          IconButton(
+            icon: Image.asset('assets/icons/Heart.png', width: 24, height: 24),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => SaveRoutesScreen()),
+              );
+            },
+          ),
           Image.asset('assets/icons/location.png', width: 50, height: 50),
-          Image.asset('assets/icons/Clock.png', width: 24, height: 24),
+          IconButton(
+            icon: Image.asset('assets/icons/Clock.png', width: 24, height: 24),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => TripHistoryScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: Icon(Icons.settings, size: 24, color: Color.fromRGBO(62, 71, 149, 1)),
             onPressed: () {
@@ -558,4 +574,210 @@ class _SettingsScreenState extends State<SettingsScreen> {
         color: Color.fromRGBO(62, 71, 149, 1),
         letterSpacing: 1,
       );
+}
+
+class TripHistoryScreen extends StatelessWidget {
+  const TripHistoryScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final trips = [
+      {
+        'number': '12',
+        'route': 'Lipa City Terminal → Layayat, San Jose',
+        'date': 'April 15, 2025',
+        'time': '8:15 AM',
+        'duration': '45 mins',
+      },
+      {
+        'number': '05',
+        'route': 'Lipa City Terminal → Bauan',
+        'date': 'April 25, 2025',
+        'time': '10:15 AM',
+        'duration': '1 hour & 5 mins',
+      },
+      {
+        'number': '01',
+        'route': 'Lipa City Terminal → Bauan',
+        'date': 'April 30, 2025',
+        'time': '10:15 AM',
+        'duration': '1 hour & 5 mins',
+      },
+    ];
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: true,
+        iconTheme: const IconThemeData(color: Colors.black),
+        toolbarHeight: 70,
+        title: const Text(
+          'Trip History',
+          style: TextStyle(
+            color: Color(0xFF3E4795),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      body: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        itemCount: trips.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 16),
+        itemBuilder: (context, i) {
+          final trip = trips[i];
+          return Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F3F3),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'FCM No. ${trip['number']}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  trip['route']!,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${trip['date']} | ${trip['time']} | ${trip['duration']}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class SaveRoutesScreen extends StatelessWidget {
+  const SaveRoutesScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final saveRoutes = [
+      'Lipa City Terminal → Layayat, San Jose',
+      'Lipa City Terminal → Bauan City',
+      'Lipa City Terminal → Lumil, San Jose',
+    ];
+    final favoriteLocations = [
+      'Lalayat, San Jose Batangas',
+      'Lipa City Terminal',
+      'San Pascual, Batangas',
+    ];
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: true,
+        iconTheme: const IconThemeData(color: Colors.black),
+        toolbarHeight: 70,
+        title: const Text(
+          'My Save Routes',
+          style: TextStyle(
+            color: Color(0xFF3E4795),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        children: [
+          const SizedBox(height: 12),
+          ...saveRoutes.map((route) => Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F3F3),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFBFC6F7),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.all(8),
+                        child: const Icon(Icons.favorite, color: Color(0xFF3E4795), size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          route,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 17,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )),
+          const SizedBox(height: 24),
+          const Text(
+            'Favorite Locations',
+            style: TextStyle(
+              color: Color(0xFF3E4795),
+              fontWeight: FontWeight.bold,
+              fontSize: 32,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...favoriteLocations.map((loc) => Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F3F3),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFBFC6F7),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.all(8),
+                        child: const Icon(Icons.favorite, color: Color(0xFF3E4795), size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          loc,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 17,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )),
+        ],
+      ),
+    );
+  }
 } 
