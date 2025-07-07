@@ -345,7 +345,6 @@ class CustomBottomBar extends StatelessWidget {
   }
 }
 
-
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
@@ -375,22 +374,23 @@ class NotificationsScreen extends StatelessWidget {
       },
     ];
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Notifications',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Color.fromRGBO(62, 71, 149, 1),
-        elevation: 0,
-      ),
       backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 8),
+            const SizedBox(height: 24),
+            const Text(
+              'Notifications',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFF3E4795),
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+              ),
+            ),
+            const SizedBox(height: 16),
             ...notifications.map(
               (notif) => Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
@@ -492,24 +492,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: true,
-        iconTheme: const IconThemeData(color: Colors.black),
-        toolbarHeight: 70,
-        title: const Text(
-          'Settings',
-          style: TextStyle(
-            color: Color(0xFF3E4795),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
       backgroundColor: Colors.white,
       body: ListView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.fromLTRB(24, 40, 24, 120),
         children: [
+          const Text(
+            'Settings',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF3E4795),
+              fontWeight: FontWeight.bold,
+              fontSize: 24,
+            ),
+          ),
+          const SizedBox(height: 16),
           // Preferences
           Text('Preferences', style: sectionStyle),
           SwitchListTile(
@@ -712,26 +708,26 @@ class TripHistoryScreen extends StatelessWidget {
     ];
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: true,
-        iconTheme: const IconThemeData(color: Colors.black),
-        toolbarHeight: 70,
-        title: const Text(
-          'Trip History',
-          style: TextStyle(
-            color: Color(0xFF3E4795),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
       body: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        itemCount: trips.length,
+        itemCount: trips.length + 1,
         separatorBuilder: (_, __) => const SizedBox(height: 16),
         itemBuilder: (context, i) {
-          final trip = trips[i];
+          if (i == 0) {
+            return const Padding(
+              padding: EdgeInsets.only(top: 24, bottom: 8),
+              child: Text(
+                'Trip History',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF3E4795),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24,
+                ),
+              ),
+            );
+          }
+          final trip = trips[i - 1];
           return Container(
             decoration: BoxDecoration(
               color: const Color(0xFFF3F3F3),
@@ -784,24 +780,19 @@ class SaveRoutesScreen extends StatelessWidget {
     ];
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: true,
-        iconTheme: const IconThemeData(color: Colors.black),
-        toolbarHeight: 70,
-        title: const Text(
-          'My Save Routes',
-          style: TextStyle(
-            color: Color(0xFF3E4795),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         children: [
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
+          const Text(
+            'My Save Routes',
+            style: TextStyle(
+              color: Color(0xFF3E4795),
+              fontWeight: FontWeight.bold,
+              fontSize: 24,
+            ),
+          ),
+          const SizedBox(height: 16),
           ...saveRoutes.map(
             (route) => Padding(
               padding: const EdgeInsets.only(bottom: 14),
