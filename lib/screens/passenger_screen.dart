@@ -280,88 +280,71 @@ class CustomBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 60,
+      height: 90, // Increased height for better circle
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(10),
-          topRight: Radius.circular(10),
+          topLeft: Radius.circular(30),
+          topRight: Radius.circular(30),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey,
+            color: Colors.grey.withOpacity(0.2),
             spreadRadius: 2,
-            blurRadius: 5,
+            blurRadius: 10,
             offset: Offset(0, -3),
           ),
         ],
       ),
-      child: GNav(
-        gap: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        selectedIndex: currentIndex,
-        onTabChange: onTabChanged,
-        tabBackgroundColor: Colors.grey.shade200,
-        activeColor: Colors.red,
-        tabs: [
-          GButton(
-            icon: Icons.circle,
-            iconColor: Colors.transparent,
-            leading: Image.asset(
-              'assets/icons/notifications.png',
-              width: 24,
-              height: 24,
-            ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          IconButton(
+            icon: Icon(Icons.notifications_none_outlined,
+                color: Color(0xFF3E4795), size: 36),
+            onPressed: () => onTabChanged(0),
           ),
-          GButton(
-            icon: Icons.circle,
-            iconColor: Colors.transparent,
-            leading: Image.asset(
-              'assets/icons/Heart.png',
-              width: 24,
-              height: 24,
-            ),
+          IconButton(
+            icon: Icon(Icons.favorite_border,
+                color: Color(0xFF3E4795), size: 36),
+            onPressed: () => onTabChanged(1),
           ),
-          GButton(
-            icon: Icons.circle, // still required
-            iconColor: Colors.transparent, // hide built-in icon
-            leading: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color.fromRGBO(
-                  62,
-                  71,
-                  149,
-                  1,
-                ), // circle background color
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Image.asset(
-                  'assets/icons/location.png',
-                  width: 24,
-                  height: 24,
+          Container(
+            height: 72,
+            width: 72,
+            decoration: BoxDecoration(
+              color: Color(0xFF3E4795),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
                 ),
-              ),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(Icons.location_on,
+                  color: Colors.white, size: 40),
+              onPressed: () => onTabChanged(2),
             ),
           ),
-
-          GButton(
-            icon: Icons.circle,
-            iconColor: Colors.transparent,
-            leading: Image.asset(
-              'assets/icons/Clock.png',
-              width: 24,
-              height: 24,
-            ),
+          IconButton(
+            icon: Icon(Icons.access_time_outlined,
+                color: Color(0xFF3E4795), size: 36),
+            onPressed: () => onTabChanged(3),
           ),
-          GButton(icon: Icons.settings),
+          IconButton(
+            icon: Icon(Icons.settings_outlined,
+                color: Color(0xFF3E4795), size: 36),
+            onPressed: () => onTabChanged(4),
+          ),
         ],
       ),
     );
   }
 }
+
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -401,6 +384,7 @@ class NotificationsScreen extends StatelessWidget {
         foregroundColor: Color.fromRGBO(62, 71, 149, 1),
         elevation: 0,
       ),
+      backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -472,9 +456,8 @@ class MapScreen extends StatelessWidget {
       ),
       children: [
         TileLayer(
-          urlTemplate:
-              'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-          subdomains: ['a', 'b', 'c', 'd'],
+          urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          subdomains: ['a', 'b', 'c'],
         ),
         MarkerLayer(
           markers: [
@@ -510,11 +493,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
-        backgroundColor: const Color.fromRGBO(62, 71, 149, 1),
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: true,
+        iconTheme: const IconThemeData(color: Colors.black),
+        toolbarHeight: 70,
+        title: const Text(
+          'Settings',
+          style: TextStyle(
+            color: Color(0xFF3E4795),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
+      backgroundColor: Colors.white,
       body: ListView(
         padding: const EdgeInsets.all(24.0),
         children: [
@@ -524,11 +516,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Notifications'),
             value: notificationsEnabled,
             onChanged: (val) => setState(() => notificationsEnabled = val),
-          ),
-          SwitchListTile(
-            title: const Text('Dark Theme'),
-            value: themeProvider.isDarkMode,
-            onChanged: (val) => themeProvider.toggleTheme(val),
           ),
           const SizedBox(height: 24),
 
@@ -862,7 +849,7 @@ class SaveRoutesScreen extends StatelessWidget {
             style: TextStyle(
               color: Color(0xFF3E4795),
               fontWeight: FontWeight.bold,
-              fontSize: 32,
+              fontSize: 24,
             ),
           ),
           const SizedBox(height: 12),

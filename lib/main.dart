@@ -29,22 +29,6 @@ class MyApp extends StatelessWidget {
               primaryColor: const Color.fromRGBO(62, 71, 149, 1),
               brightness: Brightness.light,
             ),
-            darkTheme: ThemeData(
-              brightness: Brightness.dark,
-              primaryColor: const Color.fromRGBO(62, 71, 149, 1),
-              scaffoldBackgroundColor: const Color(0xFF181A20),
-              appBarTheme: const AppBarTheme(
-                backgroundColor: Color(0xFF23242B),
-                foregroundColor: Colors.white,
-              ),
-              colorScheme: ColorScheme.dark(
-                primary: const Color.fromRGBO(62, 71, 149, 1),
-                secondary: Colors.blueGrey,
-              ),
-            ),
-            themeMode: themeProvider.isDarkMode
-                ? ThemeMode.dark
-                : ThemeMode.light,
             home: const SplashScreen(),
           );
         },
@@ -98,7 +82,7 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _animation,
-      child: Container(
+        child: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
@@ -107,7 +91,7 @@ class _SplashScreenState extends State<SplashScreen>
             end: Alignment.bottomCenter,
             colors: [Color(0xFF8EA2F8), Color(0xFF3E4795)],
           ),
-        ),
+          ),
         child: Center(
           child: Image.asset(
             'assets/icons/splash_icon.png',
@@ -147,7 +131,7 @@ class _AppWrapperState extends State<AppWrapper> {
               child: CircularProgressIndicator(
                 color: const Color.fromRGBO(62, 71, 149, 1),
               ),
-            ),
+              ),
           );
         }
 
