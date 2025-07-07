@@ -237,7 +237,14 @@ class CustomBottomBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          Image.asset('assets/icons/notifications.png', width: 24, height: 24),
+          IconButton(
+            icon: Image.asset('assets/icons/notifications.png', width: 24, height: 24),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => NotificationsScreen()),
+              );
+            },
+          ),
           Image.asset('assets/icons/Heart.png', width: 24, height: 24),
           Image.asset('assets/icons/location.png', width: 50, height: 50),
           Image.asset('assets/icons/Clock.png', width: 24, height: 24),
@@ -250,6 +257,87 @@ class CustomBottomBar extends StatelessWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class NotificationsScreen extends StatelessWidget {
+  const NotificationsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final notifications = [
+      {
+        'icon': Icons.directions_bus,
+        'iconBg': Color(0xFFBFC6F7),
+        'title': 'FCM Incoming',
+        'subtitle': 'FCM No. 07 is now approaching your stop',
+        'time': '9:41 AM',
+      },
+      {
+        'icon': Icons.location_on,
+        'iconBg': Color(0xFFBFC6F7),
+        'title': 'Check Near FCMs',
+        'subtitle': "You're near your saved location",
+        'time': '7:50 AM',
+      },
+      {
+        'icon': Icons.star,
+        'iconBg': Color(0xFFBFC6F7),
+        'title': 'Rate the Ride',
+        'subtitle': "Don't forget to rate No. 22 from your recent trip!",
+        'time': '9:00 AM',
+      },
+    ];
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Notifications', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        foregroundColor: Color.fromRGBO(62, 71, 149, 1),
+        elevation: 0,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            ...notifications.map((notif) => Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Color(0xFFF3F3F3),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: ListTile(
+                  leading: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: notif['iconBg'] as Color,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(notif['icon'] as IconData, color: Color.fromRGBO(62, 71, 149, 1), size: 28),
+                  ),
+                  title: Text(
+                    notif['title'] as String,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  subtitle: Text(
+                    notif['subtitle'] as String,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  trailing: Text(
+                    notif['time'] as String,
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+              ),
+            )),
+          ],
+        ),
       ),
     );
   }
