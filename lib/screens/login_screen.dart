@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../models/user_role.dart';
+import '../main.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,6 +16,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _driverPassword = "driver123";
   bool _showDriverLogin = false;
 
+  double _dragStartY = 0;
+
   void _continueAsPassenger() {
     final user = UserModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -22,6 +25,10 @@ class _LoginScreenState extends State<LoginScreen> {
       role: UserRole.passenger,
     );
     context.read<UserProvider>().loginUser(user);
+
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const AppWrapper()));
   }
 
   void _loginAsDriver() {
@@ -35,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
       context.read<UserProvider>().loginUser(user);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Incorrect password. Please try again.'),
           backgroundColor: Colors.red,
         ),
@@ -45,12 +52,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GestureDetector(
-        onVerticalDragEnd: (details) {
-          if (details.primaryVelocity != null && details.primaryVelocity! < 0) {
+        onVerticalDragStart: (details) {
+          _dragStartY = details.globalPosition.dy;
+        },
+        onVerticalDragUpdate: (details) {
+          double dragDistance = _dragStartY - details.globalPosition.dy;
+          if (dragDistance > 100) {
             _continueAsPassenger();
           }
         },
@@ -61,10 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF8EA2F8),
-                Color(0xFF3E4795),
-              ],
+              colors: [Color(0xFF8EA2F8), Color(0xFF3E4795)],
             ),
           ),
           child: Stack(
@@ -72,8 +79,6 @@ class _LoginScreenState extends State<LoginScreen> {
               Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Image.asset(
                       'assets/icons/splash_icon.png',
@@ -85,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 24.0),
                       child: RichText(
                         textAlign: TextAlign.center,
-                        text: TextSpan(
+                        text: const TextSpan(
                           children: [
                             TextSpan(
                               text: 'Swipe up',
@@ -124,13 +129,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 32),
                     GestureDetector(
                       onTap: _continueAsPassenger,
-                      behavior: HitTestBehavior.opaque,
-                      child: const Icon(Icons.keyboard_double_arrow_up, size: 56, color: Colors.white),
+                      child: const Icon(
+                        Icons.keyboard_double_arrow_up,
+                        size: 56,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
               ),
-              // Login as Driver/Conductor link
               if (!_showDriverLogin)
                 Positioned(
                   right: 24,
@@ -147,7 +154,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-              // Driver login modal
               if (_showDriverLogin)
                 Positioned.fill(
                   child: Container(
@@ -196,7 +202,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: ElevatedButton(
-                                    onPressed: () => setState(() => _showDriverLogin = false),
+                                    onPressed: () => setState(
+                                      () => _showDriverLogin = false,
+                                    ),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.grey,
                                       foregroundColor: Colors.white,
@@ -218,4 +226,4 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-} 
+}

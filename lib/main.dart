@@ -60,7 +60,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -78,7 +79,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
             pageBuilder: (_, __, ___) => const LoginScreen(),
-            transitionsBuilder: (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
+            transitionsBuilder: (_, anim, __, child) =>
+                FadeTransition(opacity: anim, child: child),
             transitionDuration: const Duration(milliseconds: 700),
           ),
         );
@@ -103,10 +105,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF8EA2F8),
-              Color(0xFF3E4795),
-            ],
+            colors: [Color(0xFF8EA2F8), Color(0xFF3E4795)],
           ),
         ),
         child: Center(
