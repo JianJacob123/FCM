@@ -16,32 +16,44 @@ class _PassengerScreenState extends State<PassengerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // Map Screen
-          Positioned.fill(child: MapScreen()),
+      backgroundColor: Colors.transparent,
+      body: GestureDetector(
+        onVerticalDragEnd: (details) {
+          if (details.primaryVelocity != null && details.primaryVelocity! < -200) {
+            _continueAsPassenger();
+          }
+        },
+        child: Stack(
+          children: [
+            // Map Screen
+            Positioned.fill(child: MapScreen()),
 
-          // Search Field and Location Switch
-          Positioned(
-            top: 20,
-            left: 0,
-            right: 0,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [SearchField(), LocationSwitch()],
+            // Search Field and Location Switch
+            Positioned(
+              top: 20,
+              left: 0,
+              right: 0,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [SearchField(), LocationSwitch()],
+              ),
             ),
-          ),
 
-          // Bottom Navigation Bar
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: const CustomBottomBar(),
-          ),
-        ],
+            // Bottom Navigation Bar
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: const CustomBottomBar(),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  void _continueAsPassenger() {
+    // Implementation of _continueAsPassenger method
   }
 }
 
