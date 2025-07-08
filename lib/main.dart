@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
               primaryColor: const Color.fromRGBO(62, 71, 149, 1),
               brightness: Brightness.light,
             ),
-            home: kIsWeb ? const AdminLoginScreen() : const SplashScreen(),
+            home: kIsWeb ? const SplashScreen() : const SplashScreen(),
           );
         },
       ),
@@ -84,7 +84,7 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _animation,
-        child: Container(
+      child: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
@@ -93,7 +93,7 @@ class _SplashScreenState extends State<SplashScreen>
             end: Alignment.bottomCenter,
             colors: [Color(0xFF8EA2F8), Color(0xFF3E4795)],
           ),
-          ),
+        ),
         child: Center(
           child: Image.asset(
             'assets/icons/splash_icon.png',
@@ -133,7 +133,7 @@ class _AppWrapperState extends State<AppWrapper> {
               child: CircularProgressIndicator(
                 color: const Color.fromRGBO(62, 71, 149, 1),
               ),
-              ),
+            ),
           );
         }
 

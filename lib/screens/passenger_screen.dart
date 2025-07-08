@@ -300,13 +300,19 @@ class CustomBottomBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           IconButton(
-            icon: Icon(Icons.notifications_none_outlined,
-                color: Color(0xFF3E4795), size: 36),
+            icon: Icon(
+              Icons.notifications_none_outlined,
+              color: Color(0xFF3E4795),
+              size: 36,
+            ),
             onPressed: () => onTabChanged(0),
           ),
           IconButton(
-            icon: Icon(Icons.favorite_border,
-                color: Color(0xFF3E4795), size: 36),
+            icon: Icon(
+              Icons.favorite_border,
+              color: Color(0xFF3E4795),
+              size: 36,
+            ),
             onPressed: () => onTabChanged(1),
           ),
           Container(
@@ -324,19 +330,24 @@ class CustomBottomBar extends StatelessWidget {
               ],
             ),
             child: IconButton(
-              icon: Icon(Icons.location_on,
-                  color: Colors.white, size: 40),
+              icon: Icon(Icons.location_on, color: Colors.white, size: 40),
               onPressed: () => onTabChanged(2),
             ),
           ),
           IconButton(
-            icon: Icon(Icons.access_time_outlined,
-                color: Color(0xFF3E4795), size: 36),
+            icon: Icon(
+              Icons.access_time_outlined,
+              color: Color(0xFF3E4795),
+              size: 36,
+            ),
             onPressed: () => onTabChanged(3),
           ),
           IconButton(
-            icon: Icon(Icons.settings_outlined,
-                color: Color(0xFF3E4795), size: 36),
+            icon: Icon(
+              Icons.settings_outlined,
+              color: Color(0xFF3E4795),
+              size: 36,
+            ),
             onPressed: () => onTabChanged(4),
           ),
         ],
@@ -447,37 +458,302 @@ class NotificationsScreen extends StatelessWidget {
   }
 }
 
-class MapScreen extends StatelessWidget {
+class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
   @override
+  State<MapScreen> createState() => _MapScreenState();
+}
+
+class _MapScreenState extends State<MapScreen> {
+  bool _showVehicleInfo = false;
+  final MapController _mapController = MapController();
+
+  bool _showRoutePolyLine = false;
+
+  final List<LatLng> _routePoints = [
+    LatLng(13.9467729, 121.1555241),
+    LatLng(13.948197503981618, 121.15663127065292),
+    LatLng(13.950278979606711, 121.15838610642095),
+    LatLng(13.951033283494375, 121.15975747814403),
+    LatLng(13.952865846616918, 121.16308555449044),
+  ];
+
+  void _toggleVehicleInfoAndZoom() {
+    setState(() {
+      _showVehicleInfo = true;
+    });
+
+    // Animate map to a slightly higher position for better visibility
+    _mapController.move(LatLng(13.9465, 121.1555), 15.5);
+  }
+
+  void _hideVehicleInfo() {
+    setState(() {
+      _showVehicleInfo = false;
+      _showRoutePolyLine = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return FlutterMap(
-      options: MapOptions(
-        initialCenter: LatLng(13.955785338622102, 121.16551093159686),
-        initialZoom: 13.0,
-        interactiveFlags: InteractiveFlag.all,
-      ),
-      children: [
-        TileLayer(
-          urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-          subdomains: ['a', 'b', 'c'],
-        ),
-        MarkerLayer(
-          markers: [
-            Marker(
-              width: 40.0,
-              height: 40.0,
-              point: LatLng(13.955785338622102, 121.16551093159686),
-              child: Icon(
-                Icons.location_pin,
-                color: const Color.fromRGBO(62, 71, 149, 1),
-                size: 40,
+    return Scaffold(
+      body: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: LatLng(13.955785, 121.165510),
+              initialZoom: 13.0,
+              interactiveFlags: InteractiveFlag.all,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                subdomains: ['a', 'b', 'c', 'd'],
+              ),
+              if (_showRoutePolyLine)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: _routePoints,
+                      strokeWidth: 8.0,
+                      color: const Color.fromRGBO(62, 71, 149, 1),
+                    ),
+                  ],
+                ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    width: 40.0,
+                    height: 40.0,
+                    point: LatLng(13.9467729, 121.1555241),
+                    child: GestureDetector(
+                      onTap: _toggleVehicleInfoAndZoom,
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF3E4795), // background color
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.directions_bus_outlined,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  if (_showRoutePolyLine)
+                    Marker(
+                      point: _routePoints.last, // Final destination
+                      width: 40,
+                      height: 40,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF3E4795),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.location_pin,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+
+          // Bottom Sheet
+          if (_showVehicleInfo)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 90, // Adjust based on your navbar
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  constraints: const BoxConstraints(
+                    minHeight: 100,
+                    maxHeight: 260,
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 12,
+                        offset: const Offset(0, -4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'FCM No. 05',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF3E4795),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.grey,
+                                ),
+                                onPressed:
+                                    _hideVehicleInfo, // <-- closes the bottom sheet
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Plate & Route
+                      const Text(
+                        'Plate No: DAL 7674',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Bauan City → Lipa City Terminal',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // ETA and Current Location
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: const [
+                          Text(
+                            'Estimated Time of Arrival',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                          Text(
+                            '8:30 AM',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: const [
+                          Text(
+                            'Current Location',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                          Text(
+                            'Lalayat San Jose',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Driver Name + Track Button Side by Side
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                "Driver's Name",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Nelson Suarez',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _showRoutePolyLine = true;
+                              });
+
+                              // Optionally zoom into the route
+                              _mapController.fitBounds(
+                                LatLngBounds.fromPoints(_routePoints),
+                                options: const FitBoundsOptions(
+                                  padding: EdgeInsets.all(50),
+                                ),
+                              );
+                            },
+
+                            icon: const Icon(Icons.navigation, size: 16),
+                            label: const Text(
+                              'Track Trip',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3E4795),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              elevation: 0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -722,7 +998,7 @@ class TripHistoryScreen extends StatelessWidget {
               padding: EdgeInsets.only(top: 24, bottom: 8),
               child: Text(
                 'Trip History',
-                textAlign: TextAlign.center,
+                textAlign: TextAlign.left,
                 style: TextStyle(
                   color: Color(0xFF3E4795),
                   fontWeight: FontWeight.bold,
