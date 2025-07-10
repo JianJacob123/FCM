@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/user_provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
 import 'dart:convert';
 
 class PassengerScreen extends StatefulWidget {
@@ -507,6 +508,26 @@ class _MapScreenState extends State<MapScreen> {
     return 'Unknown location';
   }
 
+  bool isNearRoute(
+    LatLng pinnedLocation,
+    List<LatLng> routePoints, {
+    double maxDistance = 300,
+  }) {
+    final Distance distance = Distance();
+
+    for (final point in routePoints) {
+      final double meters = distance.as(
+        LengthUnit.Meter,
+        pinnedLocation,
+        point,
+      );
+      if (meters <= maxDistance) {
+        return true; // Close enough to the route
+      }
+    }
+    return false; // Too far from the route
+  }
+
   void _toggleVehicleInfoAndZoom() {
     setState(() {
       _showVehicleInfo = true;
@@ -609,11 +630,34 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                     ElevatedButton.icon(
                       onPressed: () {
+                        final isValid = isNearRoute(
+                          _pickedLocation!,
+                          _routePoints,
+                        );
+
+                        if (!isValid) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Selected pickup location is too far from the route.',
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+
                         Navigator.pop(context);
-                        // TODO: Set as destination logic
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Pick Up Location Set!'),
+                          ),
+                        );
+
+                        // Proceed with saving destination logic...
                       },
                       icon: const Icon(Icons.directions),
-                      label: const Text('Set Destination'),
+                      label: const Text('Set Pickup Location'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF3E4795),
                         foregroundColor: Colors.white,
