@@ -4,7 +4,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/user_provider.dart';
-import 'package:google_nav_bar/google_nav_bar.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class PassengerScreen extends StatefulWidget {
   const PassengerScreen({super.key});
@@ -466,9 +467,10 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
+  //Declare Variables
   bool _showVehicleInfo = false;
+  LatLng? _pickedLocation;
   final MapController _mapController = MapController();
-
   bool _showRoutePolyLine = false;
 
   final List<LatLng> _routePoints = [
@@ -478,6 +480,32 @@ class _MapScreenState extends State<MapScreen> {
     LatLng(13.951033283494375, 121.15975747814403),
     LatLng(13.952865846616918, 121.16308555449044),
   ];
+
+  Future<String> _getPlaceNameFromCoordinates(LatLng location) async {
+    final accessToken =
+        'INSERT TOKEN HERE'; // Replace with your Mapbox access token
+    final url = Uri.parse(
+      'https://api.mapbox.com/search/geocode/v6/reverse'
+      '?longitude=${location.longitude}&latitude=${location.latitude}'
+      '&access_token=$accessToken',
+    );
+
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final features = data['features'] as List;
+        if (features.isNotEmpty) {
+          final props = features[0]['properties'];
+          return props['name'] ?? props['full_address'] ?? 'Unnamed location';
+        }
+      }
+    } catch (e) {
+      print('Geocoding error: $e');
+    }
+
+    return 'Unknown location';
+  }
 
   void _toggleVehicleInfoAndZoom() {
     setState(() {
@@ -495,6 +523,119 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
+  void _showPinInfoModal(LatLng location, String placeName) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor:
+          Colors.transparent, // transparent to style inner container
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: 90, // adjust if you have a navbar
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title + Close in one row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        placeName,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF3E4795),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.close, color: Colors.grey),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 4),
+
+                // Distance
+                const Text(
+                  '5 km away',
+                  style: TextStyle(fontSize: 14, color: Colors.black87),
+                ),
+                const SizedBox(height: 16),
+
+                // Action Buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        // TODO: Add to favorites logic
+                      },
+                      icon: const Icon(Icons.favorite_border),
+                      label: const Text('Save Favorites'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF3E4795),
+                        side: const BorderSide(color: Color(0xFF3E4795)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        // TODO: Set as destination logic
+                      },
+                      icon: const Icon(Icons.directions),
+                      label: const Text('Set Destination'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3E4795),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -506,6 +647,14 @@ class _MapScreenState extends State<MapScreen> {
               initialCenter: LatLng(13.955785, 121.165510),
               initialZoom: 13.0,
               interactiveFlags: InteractiveFlag.all,
+              onTap: (tapPosition, latlng) async {
+                setState(() {
+                  _pickedLocation = latlng;
+                  _showVehicleInfo = false; // Hide vehicle info on map tap
+                });
+                final placeName = await _getPlaceNameFromCoordinates(latlng);
+                _showPinInfoModal(latlng, placeName); // Show pin info modal
+              },
             ),
             children: [
               TileLayer(
@@ -555,6 +704,26 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                     ),
                   ),
+
+                  if (_pickedLocation != null)
+                    Marker(
+                      point: _pickedLocation!,
+                      width: 40,
+                      height: 40,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF3E4795),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.location_pin,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                        ),
+                      ),
+                    ),
 
                   if (_showRoutePolyLine)
                     Marker(
