@@ -50,14 +50,14 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 children: [
                   Image.asset(
                     'assets/logo2.png',
-                    height: isWide ? 120 : 80,
+                    height: isWide ? 340 : 220,
                     fit: BoxFit.contain,
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 12),
                   Text(
                     'Welcome Admin!',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Color(0xFFBFC6F7),
                       fontWeight: FontWeight.bold,
                       fontSize: isWide ? 36 : 24,
                       letterSpacing: 1.2,
@@ -151,4 +151,4 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       ),
     );
   }
-} 
+}

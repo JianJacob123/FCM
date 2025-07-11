@@ -5,6 +5,20 @@ import 'admin_login_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+// Constants for the rotating schedule
+final List<String> kUnits = [
+  for (int i = 1; i <= 15; i++) 'Unit $i',
+];
+
+final List<String> kTimeSlots = List.generate(15, (i) {
+  final totalMinutes = 5 * 60 + i * 15;
+  final hour = totalMinutes ~/ 60;
+  final minute = totalMinutes % 60;
+  final period = hour < 12 ? 'AM' : 'PM';
+  final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+  return '${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
+});
+
 enum AdminSection { dashboard, analytics, notifications, schedules, activityLogs }
 
 class AdminScreen extends StatefulWidget {
@@ -147,12 +161,12 @@ class _AdminScreenState extends State<AdminScreen> {
         // Show only one bus marker and info, like the passenger map
         final busLocation = LatLng(13.9467729, 121.1555241);
         final busInfo = {
-          'busNo': 'FCM No. 05',
+            'busNo': 'FCM No. 05',
           'plateNo': 'DAL 7674',
-          'route': 'Lipa City to Bauan City',
-          'eta': '9:45 AM',
-          'location': 'Lalayat San Jose',
-          'driver': 'Nelson Suarez',
+            'route': 'Lipa City to Bauan City',
+            'eta': '9:45 AM',
+            'location': 'Lalayat San Jose',
+            'driver': 'Nelson Suarez',
         };
         bool _showChat = false;
         final List<_ChatMessage> _messages = [
@@ -186,7 +200,7 @@ class _AdminScreenState extends State<AdminScreen> {
                               color: const Color.fromRGBO(62, 71, 149, 1),
                             ),
                           ],
-                        ),
+                      ),
                       MarkerLayer(
                         markers: [
                           Marker(
@@ -1338,32 +1352,32 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        GestureDetector(
+                    GestureDetector(
                           onTap: () => _openCompose(),
-                          child: Container(
+                      child: Container(
                             width: 170,
                             height: 44,
                             padding: const EdgeInsets.symmetric(horizontal: 24),
-                            decoration: BoxDecoration(
+                        decoration: BoxDecoration(
                               color: Color(0xFFF0F3FF),
                               borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
                                 Icon(Icons.edit, color: Color(0xFF3E4795), size: 20),
                                 SizedBox(width: 10),
-                                Text(
-                                  'Compose',
-                                  style: TextStyle(
-                                    color: Color(0xFF3E4795),
-                                    fontWeight: FontWeight.w600,
+                            Text(
+                              'Compose',
+                              style: TextStyle(
+                                color: Color(0xFF3E4795),
+                                fontWeight: FontWeight.w600,
                                     fontSize: 17,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
+                          ],
+                        ),
+                      ),
                         ),
                       ],
                     ),
@@ -1383,7 +1397,7 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
             onEdit: (index) => _openCompose(index),
             onDelete: _deleteScheduledNotification,
             onClose: _closeScheduledModal,
-          ),
+        ),
         if (_showCompose)
           _ComposeNotificationModal(
             onSave: (notif) {
@@ -1787,49 +1801,55 @@ class _ScheduleWeekView extends StatefulWidget {
 }
 
 class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
-  DateTime _currentWeek = DateTime.now(); // Start at current week
+  DateTime _currentWeek = DateTime.now();
   bool _showModal = false;
-  bool _isEditMode = false; // Add edit mode state
-  
-  // Dummy schedule data for the week
-  final Map<String, List<Map<String, dynamic>>> _weeklySchedules = {
-    'Monday': [
-      {'driver': 'John Smith', 'unit': 'FCM No. 15', 'firstTrip': '06:00 AM', 'lastTrip': '07:00 AM'},
-      {'driver': 'Maria Garcia', 'unit': 'FCM No. 22', 'firstTrip': '06:15 AM', 'lastTrip': '07:15 AM'},
-      {'driver': 'David Wilson', 'unit': 'FCM No. 08', 'firstTrip': '06:30 AM', 'lastTrip': '07:30 AM'},
-      {'driver': 'Sarah Johnson', 'unit': 'FCM No. 33', 'firstTrip': '06:45 AM', 'lastTrip': '07:45 AM'},
-    ],
-    'Tuesday': [
-      {'driver': 'Michael Brown', 'unit': 'FCM No. 12', 'firstTrip': '06:00 AM', 'lastTrip': '07:00 AM'},
-      {'driver': 'Lisa Davis', 'unit': 'FCM No. 19', 'firstTrip': '06:15 AM', 'lastTrip': '07:15 AM'},
-      {'driver': 'Robert Taylor', 'unit': 'FCM No. 25', 'firstTrip': '06:30 AM', 'lastTrip': '07:30 AM'},
-    ],
-    'Wednesday': [
-      {'driver': 'John Smith', 'unit': 'FCM No. 15', 'firstTrip': '06:00 AM', 'lastTrip': '07:00 AM'},
-      {'driver': 'Emma Wilson', 'unit': 'FCM No. 28', 'firstTrip': '06:15 AM', 'lastTrip': '07:15 AM'},
-      {'driver': 'James Anderson', 'unit': 'FCM No. 11', 'firstTrip': '06:30 AM', 'lastTrip': '07:30 AM'},
-      {'driver': 'Maria Garcia', 'unit': 'FCM No. 22', 'firstTrip': '06:45 AM', 'lastTrip': '07:45 AM'},
-    ],
-    'Thursday': [
-      {'driver': 'David Wilson', 'unit': 'FCM No. 08', 'firstTrip': '06:00 AM', 'lastTrip': '07:00 AM'},
-      {'driver': 'Sarah Johnson', 'unit': 'FCM No. 33', 'firstTrip': '06:15 AM', 'lastTrip': '07:15 AM'},
-      {'driver': 'Michael Brown', 'unit': 'FCM No. 12', 'firstTrip': '06:30 AM', 'lastTrip': '07:30 AM'},
-    ],
-    'Friday': [
-      {'driver': 'John Smith', 'unit': 'FCM No. 15', 'firstTrip': '06:00 AM', 'lastTrip': '07:00 AM'},
-      {'driver': 'Lisa Davis', 'unit': 'FCM No. 19', 'firstTrip': '06:15 AM', 'lastTrip': '07:15 AM'},
-      {'driver': 'Robert Taylor', 'unit': 'FCM No. 25', 'firstTrip': '06:30 AM', 'lastTrip': '07:30 AM'},
-      {'driver': 'Emma Wilson', 'unit': 'FCM No. 28', 'firstTrip': '06:45 AM', 'lastTrip': '07:45 AM'},
-    ],
-    'Saturday': [
-      {'driver': 'James Anderson', 'unit': 'FCM No. 11', 'firstTrip': '07:00 AM', 'lastTrip': '08:00 AM'},
-      {'driver': 'Maria Garcia', 'unit': 'FCM No. 22', 'firstTrip': '07:15 AM', 'lastTrip': '08:15 AM'},
-    ],
-    'Sunday': [
-      {'driver': 'David Wilson', 'unit': 'FCM No. 08', 'firstTrip': '08:00 AM', 'lastTrip': '09:00 AM'},
-      {'driver': 'Sarah Johnson', 'unit': 'FCM No. 33', 'firstTrip': '08:15 AM', 'lastTrip': '09:15 AM'},
-    ],
-  };
+  bool _isEditMode = false;
+
+  // Store the order of units for each day in the current week
+  late Map<int, List<String>> _weekUnitOrders;
+
+  @override
+  void initState() {
+    super.initState();
+    _initWeekUnitOrders();
+  }
+
+  void _initWeekUnitOrders() {
+    // Use a fixed reference date (e.g., Jan 1, 2024)
+    final referenceDate = DateTime(2024, 1, 1);
+    _weekUnitOrders = {};
+    final weekStart = _currentWeek.subtract(Duration(days: _currentWeek.weekday % 7));
+    for (int i = 0; i < 7; i++) {
+      final day = weekStart.add(Duration(days: i));
+      final daysSinceStart = day.difference(referenceDate).inDays;
+      final offset = daysSinceStart % kUnits.length;
+      _weekUnitOrders[i] = [
+        ...kUnits.sublist(offset),
+        ...kUnits.sublist(0, offset),
+      ];
+    }
+  }
+
+  void _onReorder(int dayIndex, int oldIndex, int newIndex) {
+    setState(() {
+      final units = _weekUnitOrders[dayIndex]!;
+      if (newIndex > oldIndex) newIndex--;
+      final item = units.removeAt(oldIndex);
+      units.insert(newIndex, item);
+    });
+  }
+
+  List<Map<String, dynamic>> getScheduleForDay(int dayIndex) {
+    final units = _weekUnitOrders[dayIndex]!;
+    return List.generate(units.length, (i) {
+      final timeStr = kTimeSlots[i];
+      return {
+        'unit': units[i],
+        'startTime': timeStr,
+        'driver': 'Driver ${units[i].split(' ').last}',
+      };
+    });
+  }
 
   List<DateTime> get _weekDays {
     final start = _currentWeek.subtract(Duration(days: _currentWeek.weekday % 7));
@@ -1878,6 +1898,13 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
     return months[month];
+  }
+
+  // Helper to generate a dummy plate number for each unit
+  String getPlateNumber(String unit) {
+    // e.g., Unit 1 -> ABC 1001
+    final num = int.tryParse(unit.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+    return 'ABC ${1000 + num}';
   }
 
   @override
@@ -1943,7 +1970,7 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
                           icon: Icon(_isEditMode ? Icons.check_circle : Icons.edit, size: 20, color: Colors.white),
                           label: Text(_isEditMode ? 'Done Editing' : 'Edit Schedule', style: const TextStyle(color: Colors.white)),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1A237E),
+                            backgroundColor: _isEditMode ? Colors.green : const Color(0xFF1A237E),
                             foregroundColor: Colors.white,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -1975,132 +2002,142 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
                 const SizedBox(height: 16),
                 Expanded(
                   child: Row(
-                    children: weekDays.map((day) {
-                      final dayName = _getDayName(day.weekday);
-                      // Repeat dummy data for any week: use weekday index to pick from the dummy list
-                      final dummyList = _weeklySchedules[dayName] ?? [];
-                      final daySchedules = dummyList.isNotEmpty
-                        ? List.generate(dummyList.length, (i) => dummyList[i % dummyList.length])
-                        : [];
-                      final isToday = DateTime.now().year == day.year && DateTime.now().month == day.month && DateTime.now().day == day.day;
-                      return Expanded(
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                          decoration: BoxDecoration(
-                            border: Border(
-                              right: BorderSide(color: Colors.grey[200]!),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Time column
+                      Container(
+                        width: 44,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 36), // Header height
+                            ...List.generate(kUnits.length, (i) =>
+                              Container(
+                                height: 32,
+                                margin: const EdgeInsets.symmetric(vertical: 1, horizontal: 2),
+                                padding: const EdgeInsets.symmetric(horizontal: 0),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  kTimeSlots[i],
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 8, color: Color(0xFF3E4795)),
+                                  textAlign: TextAlign.center,
+                                  softWrap: false,
+                                  overflow: TextOverflow.visible,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
+                        ),
+                      ),
+                      ...weekDays.asMap().entries.map((entry) {
+                        final dayIdx = entry.key;
+                        final day = entry.value;
+                        final isToday = DateTime.now().year == day.year && DateTime.now().month == day.month && DateTime.now().day == day.day;
+                        final isPastDay = day.isBefore(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day));
+                        final daySchedules = getScheduleForDay(dayIdx);
+                        return Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text(
-                                '${_weekdayLabel(day.weekday)} ${day.day}',
-                                style: TextStyle(
-                                  color: isToday ? const Color(0xFF1A237E) : const Color(0xFF3E4795),
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 8),
-                              ...daySchedules.asMap().entries.map((entry) {
-                                final i = entry.key;
-                                final s = entry.value;
-                                final fcmNumber = s['unit'];
-                                final firstTripTime = s['firstTrip'];
-                                // Always show last trip as PM (e.g., 7:00 PM)
-                                String lastTripTime = s['lastTrip'];
-                                // Convert lastTripTime to PM if needed
-                                final lastTripParts = lastTripTime.split(' ');
-                                if (lastTripParts.length == 2 && lastTripParts[1] == 'AM') {
-                                  // Change to PM
-                                  final timeParts = lastTripParts[0].split(':');
-                                  int hour = int.tryParse(timeParts[0]) ?? 0;
-                                  final minute = timeParts[1];
-                                  if (hour < 12) hour += 12;
-                                  lastTripTime = '${hour > 12 ? hour - 12 : hour}:$minute PM';
-                                }
-                                final tripRange = '$firstTripTime - $lastTripTime';
-                                return GestureDetector(
-                                  onTap: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) => _UnitDetailsDialog(
-                                        driver: s['driver'],
-                                        unit: s['unit'],
-                                        date: day, // pass DateTime, not String
-                                        routeRuns: _isFutureDate(day) ? null : 3, // hide for future dates
-                                        passengers: _isFutureDate(day) ? null : 42, // hide for future dates
-                                        firstTrip: s['firstTrip'],
-                                        lastTrip: s['lastTrip'],
+                              // Header: day number on top, day name below, both centered
+                              Container(
+                                height: 36,
+                                width: 56,
+                                alignment: Alignment.center,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      '${day.day}',
+                                      style: TextStyle(
+                                        color: isToday ? const Color(0xFF1A237E) : const Color(0xFF3E4795),
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
                                       ),
-                                    );
-                                  },
-                                  child: Container(
-                                    margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    // No fixed height
-                                    decoration: BoxDecoration(
-                                      color: _isEditMode && _isFutureDate(day) ? Colors.grey[100] : const Color(0xFFE8EAFE),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: _isEditMode && _isFutureDate(day) 
-                                        ? Border.all(color: Colors.blue.withOpacity(0.3), width: 1)
-                                        : null,
+                                      textAlign: TextAlign.center,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    alignment: Alignment.center,
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Flexible(
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Text(
-                                                fcmNumber,
-                                                style: const TextStyle(
-                                                  color: Color(0xFF3E4795),
+                                    Text(
+                                      _weekdayLabel(day.weekday),
+                                      style: TextStyle(
+                                        color: isToday ? const Color(0xFF1A237E) : const Color(0xFF3E4795),
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 10,
+                                        letterSpacing: 1.2,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                child: ReorderableListView(
+                                  buildDefaultDragHandles: false,
+                                  onReorder: (oldIndex, newIndex) {
+                                    if (isPastDay) return; // Prevent reordering for past days
+                                    _onReorder(dayIdx, oldIndex, newIndex);
+                                  },
+                                  children: List.generate(kUnits.length, (i) {
+                                    final s = daySchedules[i];
+                                    return Container(
+                                      key: ValueKey(s['unit']),
+                                      height: 32,
+                                      margin: const EdgeInsets.symmetric(vertical: 1, horizontal: 2),
+                                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: isPastDay ? Colors.grey[300] : (isToday ? Colors.blue[50] : const Color(0xFFE8EAFE)),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                showDialog(
+                                                  context: context,
+                                                  builder: (context) => _UnitDetailsDialog(
+                                                    driver: s['driver'],
+                                                    unit: s['unit'],
+                                                    plateNo: getPlateNumber(s['unit']),
+                                                    date: day,
+                                                    routeRuns: 3,
+                                                    firstTrip: s['startTime'],
+                                                    lastTrip: isPastDay ? '07:30 PM' : '',
+                                                    isPast: isPastDay,
+                                                  ),
+                                                );
+                                              },
+                                              child: Text(
+                                                s['unit'],
+                                                style: TextStyle(
+                                                  color: isPastDay ? Colors.grey[600] : const Color(0xFF3E4795),
                                                   fontWeight: FontWeight.w500,
-                                                  fontSize: 13,
+                                                  fontSize: 10,
                                                 ),
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
                                                 textAlign: TextAlign.center,
                                               ),
-                                              FittedBox(
-                                                fit: BoxFit.scaleDown,
-                                                child: Text(
-                                                  _isFutureDate(day) ? firstTripTime : tripRange,
-                                                  style: TextStyle(
-                                                    color: isToday ? const Color(0xFF1A237E) : const Color(0xFF3E4795),
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 10.5,
-                                                  ),
-                                                  maxLines: 1,
-                                                  textAlign: TextAlign.center,
-                                                ),
-                                              ),
-                                            ],
+                                            ),
                                           ),
-                                        ),
-                                        if (_isEditMode && _isFutureDate(day))
-                                          const Icon(
-                                            Icons.edit,
-                                            size: 14,
-                                            color: Colors.blue,
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
+                                          if (!isPastDay && _isEditMode)
+                                            ReorderableDragStartListener(
+                                              index: i,
+                                              child: const Icon(Icons.drag_handle, size: 16, color: Colors.grey),
+                                            ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              ),
                             ],
                           ),
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      }).toList(),
+                    ],
                   ),
                 ),
               ],
@@ -2247,42 +2284,24 @@ class _AddDriverModalState extends State<_AddDriverModal> {
 class _UnitDetailsDialog extends StatelessWidget {
   final String driver;
   final String unit;
+  final String plateNo;
   final DateTime date;
   final int? routeRuns;
-  final int? passengers;
   final String firstTrip;
   final String lastTrip;
+  final bool isPast;
 
   const _UnitDetailsDialog({
     Key? key,
     required this.driver,
     required this.unit,
+    required this.plateNo,
     required this.date,
     this.routeRuns,
-    this.passengers,
     required this.firstTrip,
     required this.lastTrip,
+    required this.isPast,
   }) : super(key: key);
-
-  bool get _isFutureDate {
-    final now = DateTime.now();
-    return date.isAfter(DateTime(now.year, now.month, now.day));
-  }
-
-  String get lastTripPm {
-    // Always show last trip as PM
-    String lastTripTime = lastTrip;
-    final lastTripParts = lastTripTime.split(' ');
-    if (lastTripParts.length == 2 && lastTripParts[1] == 'AM') {
-      final timeParts = lastTripParts[0].split(':');
-      int hour = int.tryParse(timeParts[0]) ?? 0;
-      final minute = timeParts[1];
-      if (hour < 12) hour += 12;
-      lastTripTime = '${hour > 12 ? hour - 12 : hour}:$minute PM';
-    }
-    return lastTripTime;
-  }
-  String get tripRange => '$firstTrip - ${lastTripPm}';
 
   @override
   Widget build(BuildContext context) {
@@ -2308,10 +2327,8 @@ class _UnitDetailsDialog extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text('Driver: $driver', style: const TextStyle(fontSize: 15)),
+            Text('Plate Number: $plateNo', style: const TextStyle(fontSize: 15)),
             const SizedBox(height: 8),
-            Text('Date:  \t\t${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}', style: const TextStyle(fontSize: 14, color: Colors.black54)),
-            const Divider(height: 24),
             if (routeRuns != null) ...[
               Row(
                 children: [
@@ -2320,18 +2337,6 @@ class _UnitDetailsDialog extends StatelessWidget {
                   const Text('Route Runs:', style: TextStyle(fontWeight: FontWeight.w500)),
                   const Spacer(),
                   Text(routeRuns!.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
-                ],
-              ),
-              const SizedBox(height: 10),
-            ],
-            if (passengers != null) ...[
-              Row(
-                children: [
-                  const Icon(Icons.people, size: 18, color: Color(0xFF3E4795)),
-                  const SizedBox(width: 8),
-                  const Text('Passengers:', style: TextStyle(fontWeight: FontWeight.w500)),
-                  const Spacer(),
-                  Text(passengers!.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 10),
@@ -2345,7 +2350,7 @@ class _UnitDetailsDialog extends StatelessWidget {
                 Text(firstTrip, style: const TextStyle(fontWeight: FontWeight.bold)),
               ],
             ),
-            if (!_isFutureDate) ...[
+            if (isPast) ...[
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -2353,7 +2358,7 @@ class _UnitDetailsDialog extends StatelessWidget {
                   const SizedBox(width: 8),
                   const Text('Last Trip:', style: TextStyle(fontWeight: FontWeight.w500)),
                   const Spacer(),
-                  Text(lastTripPm, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text('07:30 PM', style: const TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
@@ -2363,3 +2368,4 @@ class _UnitDetailsDialog extends StatelessWidget {
     );
   }
 } 
+  
