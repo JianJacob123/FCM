@@ -34,7 +34,7 @@ class _AdminScreenState extends State<AdminScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: Image.asset(
                     'assets/logo.png',
-                    height: 100,
+                    height: 170,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -269,61 +269,7 @@ class _AdminScreenState extends State<AdminScreen> {
           },
         );
       case AdminSection.notifications:
-        return Center(
-          child: Container(
-            width: 700,
-            margin: const EdgeInsets.symmetric(vertical: 32),
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 24,
-                  offset: Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Notifications',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF3E4795),
-                      ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.edit, size: 20),
-                      label: const Text('Compose'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF3E4795),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                // Notification list
-                const Expanded(
-                  child: _NotificationList(),
-                ),
-              ],
-            ),
-          ),
-        );
+        return _NotificationsWithCompose();
       case AdminSection.activityLogs:
         return const _ActivityLogsPage();
       default:
@@ -1081,4 +1027,359 @@ class _ChatMessage {
   final bool isMe;
   final String text;
   _ChatMessage({this.name, this.isMe = false, required this.text});
+}
+
+class _NotificationsWithCompose extends StatefulWidget {
+  @override
+  State<_NotificationsWithCompose> createState() => _NotificationsWithComposeState();
+}
+
+class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
+  bool _showCompose = false;
+  bool _showSuccess = false;
+
+  void _openCompose() => setState(() => _showCompose = true);
+  void _closeCompose() => setState(() => _showCompose = false);
+  void _showSuccessDialog() => setState(() { _showCompose = false; _showSuccess = true; });
+  void _closeSuccessDialog() => setState(() => _showSuccess = false);
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Center(
+          child: Container(
+            width: 700,
+            margin: const EdgeInsets.symmetric(vertical: 32),
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 24,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Notifications',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF3E4795),
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: _openCompose,
+                      icon: const Icon(Icons.edit, size: 20),
+                      label: const Text('Compose'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3E4795),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                // Notification list
+                const Expanded(
+                  child: _NotificationList(),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_showCompose)
+          _ComposeNotificationModal(
+            onSave: _showSuccessDialog,
+            onCancel: _closeCompose,
+          ),
+        if (_showSuccess)
+          _NotificationSentDialog(onOk: _closeSuccessDialog),
+      ],
+    );
+  }
+}
+
+class _ComposeNotificationModal extends StatefulWidget {
+  final VoidCallback onSave;
+  final VoidCallback onCancel;
+  const _ComposeNotificationModal({required this.onSave, required this.onCancel});
+
+  @override
+  State<_ComposeNotificationModal> createState() => _ComposeNotificationModalState();
+}
+
+class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
+  final _formKey = GlobalKey<FormState>();
+  String? _title;
+  String? _type;
+  String? _content;
+  Set<String> _recipients = {'All Commuters', 'All FCM Unit'};
+  DateTime? _schedule;
+
+  final List<String> _types = [
+    'General Announcement',
+    'System Notification',
+    'Route Update',
+    'Service Maintenance',
+  ];
+  final List<String> _recipientOptions = [
+    'All Commuters',
+    'All FCM Unit',
+    'Specific FCM Unit',
+    'Specific User',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.08),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Container(
+              width: 420,
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 24,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: const [
+                        Text('Compose', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 32, color: Color(0xFF3E4795))),
+                        SizedBox(width: 8),
+                        Icon(Icons.edit, color: Color(0xFF3E4795), size: 28),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('Notification Title', style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF3E4795))),
+                    const SizedBox(height: 4),
+                    TextFormField(
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      ),
+                      onChanged: (v) => setState(() => _title = v),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text('Notification Type', style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF3E4795))),
+                    const SizedBox(height: 4),
+                    DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      ),
+                      items: _types.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
+                      onChanged: (v) => setState(() => _type = v),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text('Content', style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF3E4795))),
+                    const SizedBox(height: 4),
+                    TextFormField(
+                      minLines: 2,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      ),
+                      onChanged: (v) => setState(() => _content = v),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text('Recipient', style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF3E4795))),
+                    const SizedBox(height: 4),
+                    Column(
+                      children: _recipientOptions.map((r) => CheckboxListTile(
+                        value: _recipients.contains(r),
+                        onChanged: (val) {
+                          setState(() {
+                            if (val == true) {
+                              _recipients.add(r);
+                            } else {
+                              _recipients.remove(r);
+                            }
+                          });
+                        },
+                        title: Text(r),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                      )).toList(),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text('Schedule (Optional)', style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF3E4795))),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            readOnly: true,
+                            controller: TextEditingController(text: _schedule == null ? '' : '${_schedule!.month.toString().padLeft(2, '0')}/${_schedule!.day.toString().padLeft(2, '0')}/${_schedule!.year} -- ${_schedule!.hour.toString().padLeft(2, '0')}:${_schedule!.minute.toString().padLeft(2, '0')}'),
+                            decoration: InputDecoration(
+                              hintText: 'mm/dd/yyy -- : -- --',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.calendar_today, color: Color(0xFF3E4795)),
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2100),
+                            );
+                            if (picked != null) {
+                              final time = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay.now(),
+                              );
+                              if (time != null) {
+                                setState(() {
+                                  _schedule = DateTime(picked.year, picked.month, picked.day, time.hour, time.minute);
+                                });
+                              }
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            if (_formKey.currentState!.validate()) {
+                              widget.onSave();
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3E4795),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text('Save'),
+                        ),
+                        const SizedBox(width: 16),
+                        OutlinedButton(
+                          onPressed: widget.onCancel,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF3E4795),
+                            side: const BorderSide(color: Color(0xFF3E4795)),
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationSentDialog extends StatelessWidget {
+  final VoidCallback onOk;
+  const _NotificationSentDialog({required this.onOk});
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.08),
+        child: Center(
+          child: Container(
+            width: 420,
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 24,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'NOTIFICATION SENT',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 28,
+                    color: Color(0xFF3E4795),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Your action has been completed successfully. The notification is now live.',
+                  style: TextStyle(fontSize: 18),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: onOk,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF3E4795),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('OK', style: TextStyle(fontSize: 18)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 } 
