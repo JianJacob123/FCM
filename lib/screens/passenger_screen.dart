@@ -51,18 +51,6 @@ class _PassengerScreenState extends State<PassengerScreen> {
               child: IndexedStack(index: _currentIndex, children: _screens),
             ),
 
-            // Search Field and Location Switch
-            if (_currentIndex == 2) // Only show on MapScreen
-              Positioned(
-                top: 20,
-                left: 0,
-                right: 0,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [SearchField(), LocationSwitch()],
-                ),
-              ),
-
             // Bottom Navigation Bar
             Positioned(
               left: 0,
@@ -84,46 +72,153 @@ class _PassengerScreenState extends State<PassengerScreen> {
   }
 }
 
-class SearchField extends StatelessWidget {
-  const SearchField({super.key});
+class SearchField extends StatefulWidget {
+  final void Function(LatLng selectedLocation, String placeName)
+  onLocationSelected;
+
+  const SearchField({super.key, required this.onLocationSelected});
+
+  @override
+  State<SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<SearchField> {
+  final TextEditingController _controller = TextEditingController();
+  List<Map<String, dynamic>> _suggestions = [];
+
+  Future<void> _searchPlace(String query) async {
+    final accessToken =
+        'INSERT TOKEN HERE'; // Replace with your Mapbox access token
+    final encodedQuery = Uri.encodeComponent(query);
+
+    final url = Uri.parse(
+      'https://api.mapbox.com/geocoding/v5/mapbox.places/$encodedQuery.json'
+      '?access_token=$accessToken'
+      '&limit=5',
+    );
+
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final features = data['features'] as List;
+
+        setState(() {
+          _suggestions = features.cast<Map<String, dynamic>>();
+        });
+      } else {
+        print('Geocoding error: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Search error: $e');
+    }
+  }
+
+  void _selectSuggestion(Map<String, dynamic> feature) {
+    final name = feature['place_name'];
+    final coords = feature['geometry']['coordinates'];
+    final latLng = LatLng(coords[1], coords[0]); // [lon, lat]
+
+    widget.onLocationSelected(latLng, name);
+    setState(() {
+      _controller.text = name;
+      _suggestions = [];
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Center(
-      child: SizedBox(
-        width: 1000,
-        child: Container(
-          margin: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-          padding: EdgeInsets.all(2.0),
-          decoration: BoxDecoration(
-            color: isDark ? Color(0xFF23242B) : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: isDark ? Colors.black54 : Colors.grey,
-                spreadRadius: 2,
-                blurRadius: 5,
-                offset: Offset(0, 3),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 1000,
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+              padding: const EdgeInsets.all(2.0),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF23242B) : Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark ? Colors.black54 : Colors.grey,
+                    spreadRadius: 2,
+                    blurRadius: 5,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: TextField(
-            style: TextStyle(color: isDark ? Colors.white : Colors.black),
-            decoration: InputDecoration(
-              hintText: 'Where are you going to?',
-              hintStyle: TextStyle(
-                color: isDark ? Colors.white70 : Colors.black54,
+              child: TextField(
+                controller: _controller,
+                onChanged: (value) {
+                  if (value.trim().isNotEmpty) {
+                    _searchPlace(value.trim());
+                  } else {
+                    setState(() => _suggestions = []);
+                  }
+                },
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                decoration: InputDecoration(
+                  hintText: 'Where are you going to?',
+                  hintStyle: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.black54,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 17),
+                ),
               ),
-              prefixIcon: Icon(
-                Icons.search,
-                color: isDark ? Colors.white70 : Colors.black54,
-              ),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(vertical: 17),
             ),
           ),
-        ),
+
+          // Dropdown suggestion list
+          if (_suggestions.isNotEmpty)
+            Container(
+              width: 1000,
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF2D2E36) : Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark
+                        ? Colors.black38
+                        : Colors.grey.withOpacity(0.4),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: _suggestions.length,
+                separatorBuilder: (_, __) =>
+                    Divider(height: 1, color: Colors.grey.shade300),
+                itemBuilder: (context, index) {
+                  final feature = _suggestions[index];
+                  final name = feature['place_name'];
+
+                  return ListTile(
+                    leading: const Icon(Icons.location_on_outlined),
+                    title: Text(
+                      name,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    onTap: () => _selectSuggestion(feature),
+                  );
+                },
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -544,7 +639,11 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
-  void _showPinInfoModal(LatLng location, String placeName) {
+  void _showPinInfoModal(
+    LatLng location,
+    String placeName,
+    double distanceInKm,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor:
@@ -599,10 +698,11 @@ class _MapScreenState extends State<MapScreen> {
                 const SizedBox(height: 4),
 
                 // Distance
-                const Text(
-                  '5 km away',
-                  style: TextStyle(fontSize: 14, color: Colors.black87),
+                Text(
+                  '${distanceInKm.toStringAsFixed(2)} km away from bus location',
+                  style: const TextStyle(fontSize: 14, color: Colors.black87),
                 ),
+
                 const SizedBox(height: 16),
 
                 // Action Buttons
@@ -657,7 +757,7 @@ class _MapScreenState extends State<MapScreen> {
                         // Proceed with saving destination logic...
                       },
                       icon: const Icon(Icons.directions),
-                      label: const Text('Set Pickup Location'),
+                      label: const Text('Set Pickup'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF3E4795),
                         foregroundColor: Colors.white,
@@ -697,7 +797,21 @@ class _MapScreenState extends State<MapScreen> {
                   _showVehicleInfo = false; // Hide vehicle info on map tap
                 });
                 final placeName = await _getPlaceNameFromCoordinates(latlng);
-                _showPinInfoModal(latlng, placeName); // Show pin info modal
+                final Distance distance = Distance();
+                final busLocation = LatLng(
+                  13.947234252372729,
+                  121.15598193108184,
+                ); // bus location
+
+                final double distanceInMeters = distance.as(
+                  LengthUnit.Meter,
+                  busLocation,
+                  latlng, // or selectedLatLng
+                );
+                final double distanceInKm = distanceInMeters / 1000;
+
+                // Call modal with distance
+                _showPinInfoModal(latlng, placeName, distanceInKm);
               },
             ),
             children: [
@@ -791,6 +905,55 @@ class _MapScreenState extends State<MapScreen> {
                 ],
               ),
             ],
+          ),
+
+          Positioned(
+            top: 20,
+            left: 16,
+            right: 16,
+            child: SearchField(
+              onLocationSelected:
+                  (LatLng selectedLatLng, String placeName) async {
+                    final isValid = isNearRoute(selectedLatLng, _routePoints);
+
+                    setState(() {
+                      _pickedLocation = selectedLatLng;
+                      _showVehicleInfo = false;
+                    });
+
+                    final placeName = await _getPlaceNameFromCoordinates(
+                      selectedLatLng,
+                    );
+                    final Distance distance = Distance();
+                    final busLocation = LatLng(
+                      13.947234252372729,
+                      121.15598193108184,
+                    ); // bus location
+
+                    final double distanceInMeters = distance.as(
+                      LengthUnit.Meter,
+                      busLocation,
+                      selectedLatLng, // or selectedLatLng
+                    );
+                    final double distanceInKm = distanceInMeters / 1000;
+
+                    if (!isValid) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Selected location is too far from the route.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    // Call modal with distance
+                    _showPinInfoModal(selectedLatLng, placeName, distanceInKm);
+
+                    //_showPinInfoModal(selectedLatLng, placeName, distanceInKm);
+                  },
+            ),
           ),
 
           // Bottom Sheet
