@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
+import '../screens/login_screen.dart';
 
 class ConductorScreen extends StatefulWidget {
   const ConductorScreen({super.key});
@@ -247,18 +250,24 @@ class NotificationsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, String>> notifications = [
+    final notifications = [
       {
+        'icon': Icons.directions_bus,
+        'iconBg': Color(0xFFBFC6F7),
         'title': 'Passenger Pickup Alert',
         'message': 'You have a new pickup at P. Laurel Ave.',
         'time': '9:41 AM',
       },
       {
+        'icon': Icons.traffic,
+        'iconBg': Color(0xFFBFC6F7),
         'title': 'Route Update',
         'message': 'Heavy traffic detected ahead.',
         'time': '7:50 AM',
       },
       {
+        'icon': Icons.support_agent,
+        'iconBg': Color(0xFFBFC6F7),
         'title': 'Quick Assistance Alert Sent',
         'message': 'Admin support will reach out shortly.',
         'time': '9:00 AM',
@@ -266,35 +275,67 @@ class NotificationsTab extends StatelessWidget {
     ];
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 60, 16, 16),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            const SizedBox(height: 24),
+            Text(
               'Notifications',
               style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
                 color: Color(0xFF3E4795),
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
               ),
             ),
-            const SizedBox(height: 20),
-            ...notifications.map((item) => Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: Color(0xFFF1F1F1),
-                borderRadius: BorderRadius.circular(12),
+            const SizedBox(height: 16),
+            ...notifications.map(
+              (notif) => Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF3F3F3),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: ListTile(
+                    leading: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: notif['iconBg'] as Color,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        notif['icon'] as IconData,
+                        color: Color.fromRGBO(62, 71, 149, 1),
+                        size: 28,
+                      ),
+                    ),
+                    title: Text(
+                      notif['title'] as String,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    subtitle: Text(
+                      notif['message'] as String,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    trailing: Text(
+                      notif['time'] as String,
+                      style: const TextStyle(fontSize: 13, color: Colors.grey),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                  ),
+                ),
               ),
-              padding: const EdgeInsets.all(12),
-              child: ListTile(
-                leading: Icon(Icons.notification_important_outlined,
-                    color: Color(0xFF3E4795)),
-                title: Text(item['title']!, style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text(item['message']!),
-                trailing: Text(item['time']!),
-              ),
-            )),
+            ),
           ],
         ),
       ),
@@ -328,58 +369,96 @@ class PassengerPickupTab extends StatelessWidget {
     ];
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 60, 16, 16),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            const SizedBox(height: 24),
+            Text(
               'Passenger Pick-ups',
               style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
                 color: Color(0xFF3E4795),
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
               ),
             ),
             const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Color(0xFFF3F3F3),
                 borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 8,
-                    offset: Offset(0, 4),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'Passenger Capacity Status',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF3E4795),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    '2/20',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Can accommodate more passengers.',
+                    style: TextStyle(color: Colors.green, fontSize: 14),
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
-              child: const Column(
-                children: [
-                  Text('Passenger Capacity Status'),
-                  SizedBox(height: 6),
-                  Text('2/20', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 4),
-                  Text('Can accommodate more passengers.',
-                      style: TextStyle(color: Colors.green)),
-                ],
-              ),
             ),
-            const SizedBox(height: 20),
-            ...pickups.map((pickup) => Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: Color(0xFFF1F1F1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.all(12),
-              child: ListTile(
-                leading: Icon(Icons.location_on, color: Color(0xFF3E4795)),
-                title: Text(pickup['location']!,
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text('Location: ${pickup['coords']}'),
-                trailing: Text(pickup['time']!),
+            const SizedBox(height: 16),
+            ...pickups.map((pickup) => Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Color(0xFFF3F3F3),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: ListTile(
+                  leading: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Color(0xFFBFC6F7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.location_on,
+                      color: Color.fromRGBO(62, 71, 149, 1),
+                      size: 28,
+                    ),
+                  ),
+                  title: Text(
+                    pickup['location']!,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Location: ${pickup['coords']}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  trailing: Text(
+                    pickup['time']!,
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
               ),
             )),
           ],
@@ -419,62 +498,76 @@ class _MessagingTabState extends State<MessagingTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('FCM Admin'),
-        backgroundColor: const Color(0xFF3E4795),
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                final isMe = !msg['fromAdmin'];
-                return Align(
-                  alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isMe ? const Color(0xFF3E4795) : Colors.grey[200],
-                      borderRadius: BorderRadius.circular(16),
+      backgroundColor: Colors.white,
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 24),
+            Text(
+              'FCM Admin',
+              style: TextStyle(
+                color: Color(0xFF3E4795),
+                fontWeight: FontWeight.bold,
+                fontSize: 24,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  final msg = _messages[index];
+                  final isMe = !msg['fromAdmin'];
+                  return Align(
+                    alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isMe ? const Color(0xFF3E4795) : Color(0xFFF3F3F3),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        msg['text'],
+                        style: TextStyle(
+                          color: isMe ? Colors.white : Colors.black87,
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
-                    child: Text(
-                      msg['text'],
-                      style: TextStyle(
-                        color: isMe ? Colors.white : Colors.black87,
+                  );
+                },
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                color: Color(0xFFF3F3F3),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      decoration: const InputDecoration(
+                        hintText: 'Write a message',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: 'Write a message',
-                      border: OutlineInputBorder(),
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.send, color: Color(0xFF3E4795)),
+                    onPressed: _sendMessage,
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.send, color: Color(0xFF3E4795)),
-                  onPressed: _sendMessage,
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -482,8 +575,15 @@ class _MessagingTabState extends State<MessagingTab> {
 
 // ---------------- ProfileTab ----------------
 
-class ProfileTab extends StatelessWidget {
+class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
+
+  @override
+  State<ProfileTab> createState() => _ProfileTabState();
+}
+
+class _ProfileTabState extends State<ProfileTab> {
+  bool notificationsEnabled = true;
 
   @override
   Widget build(BuildContext context) {
@@ -493,79 +593,225 @@ class ProfileTab extends StatelessWidget {
     final String conductorEmail = "mixednames@gmail.com";
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F3F3),
+      backgroundColor: Colors.white,
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+        padding: const EdgeInsets.fromLTRB(24, 40, 24, 120),
         children: [
-          Column(
-            children: [
-              CircleAvatar(
-                radius: 40,
-                backgroundColor: const Color(0xFF3E4795),
-                child: const Icon(Icons.person, size: 48, color: Colors.white),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                busNumber,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 22,
-                  color: Color(0xFF3E4795),
-                ),
-              ),
-              Text(
-                plateNumber,
-                style: const TextStyle(fontSize: 16, color: Colors.black54),
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-          const Text(
-            'Account Information',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF3E4795)),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            readOnly: true,
-            decoration: InputDecoration(
-              labelText: "Driver's Name",
-              border: const OutlineInputBorder(),
-              filled: true,
-              fillColor: Colors.white,
-              hintText: driverName,
+          Text(
+            'Profile',
+            style: TextStyle(
+              color: Color(0xFF3E4795),
+              fontWeight: FontWeight.bold,
+              fontSize: 24,
             ),
-            controller: TextEditingController(text: driverName),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            readOnly: true,
-            decoration: InputDecoration(
-              labelText: "Conductor's Name",
-              border: const OutlineInputBorder(),
-              filled: true,
-              fillColor: Colors.white,
-              hintText: conductorEmail,
-            ),
-            controller: TextEditingController(text: conductorEmail),
+          const SizedBox(height: 16),
+          
+          // Account Information
+          Text('Account Information', style: sectionStyle),
+          ListTile(
+            leading: const Icon(Icons.directions_bus, color: Color(0xFF3E4795)),
+            title: const Text('Bus Number'),
+            subtitle: Text(busNumber),
+          ),
+          ListTile(
+            leading: const Icon(Icons.confirmation_number, color: Color(0xFF3E4795)),
+            title: const Text('Plate Number'),
+            subtitle: Text(plateNumber),
+          ),
+          ListTile(
+            leading: const Icon(Icons.person, color: Color(0xFF3E4795)),
+            title: const Text("Driver's Name"),
+            subtitle: Text(driverName),
+          ),
+          ListTile(
+            leading: const Icon(Icons.person, color: Color(0xFF3E4795)),
+            title: const Text("Conductor's Name"),
+            subtitle: Text(conductorEmail),
           ),
           const SizedBox(height: 24),
+
+          // Preferences
+          Text('Preferences', style: sectionStyle),
+          SwitchListTile(
+            title: const Text('Notifications'),
+            value: notificationsEnabled,
+            onChanged: (val) => setState(() => notificationsEnabled = val),
+          ),
+          const SizedBox(height: 24),
+
+          // Support
+          Text('Support', style: sectionStyle),
           ListTile(
             leading: const Icon(Icons.phone, color: Color(0xFF3E4795)),
             title: const Text('Call for Quick Assistance'),
-            onTap: () {},
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Quick Assistance'),
+                  content: const Text('Calling emergency support...'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           ListTile(
             leading: const Icon(Icons.star, color: Color(0xFF3E4795)),
             title: const Text('View Ratings'),
-            onTap: () {},
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('View Ratings'),
+                  content: const Text('Your current rating: 4.5/5 stars'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Logout', style: TextStyle(color: Colors.red)),
-            onTap: () {},
+            leading: const Icon(Icons.email, color: Color(0xFF3E4795)),
+            title: const Text('Contact Admin'),
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Contact Admin'),
+                  content: const Text('Email: admin@fcmapp.com'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+
+          // About
+          Text('About', style: sectionStyle),
+          ListTile(
+            leading: const Icon(Icons.info_outline, color: Color(0xFF3E4795)),
+            title: const Text('App Version'),
+            subtitle: const Text('1.0.0'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.person, color: Color(0xFF3E4795)),
+            title: const Text('Developer'),
+            subtitle: const Text('FCM App Team'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.star_rate, color: Color(0xFF3E4795)),
+            title: const Text('Rate the App'),
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Rate the App'),
+                  content: const Text(
+                    'This would open the app store for rating.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.share, color: Color(0xFF3E4795)),
+            title: const Text('Share the App'),
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Share the App'),
+                  content: const Text('This would open the share dialog.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 32),
+
+          // Logout
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Logout'),
+                    content: const Text('Are you sure you want to logout?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          // Logout user
+                          await context.read<UserProvider>().logout();
+                          // Navigate to login screen
+                          if (context.mounted) {
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (_) => const LoginScreen()),
+                              (route) => false,
+                            );
+                          }
+                        },
+                        child: const Text('Logout'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Logout',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+
+  TextStyle get sectionStyle => const TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.bold,
+    color: Color.fromRGBO(62, 71, 149, 1),
+    letterSpacing: 1,
+  );
 }
