@@ -16,6 +16,46 @@ class _AdminScreenState extends State<AdminScreen> {
   AdminSection _selectedSection = AdminSection.dashboard;
   int? _selectedBusIndex;
 
+  // Dummy schedule data for the week
+  final Map<String, List<Map<String, dynamic>>> _weeklySchedules = {
+    'Monday': [
+      {'driver': 'John Smith', 'unit': 'FCM No. 15', 'firstTrip': '06:00 AM', 'lastTrip': '07:00 AM'},
+      {'driver': 'Maria Garcia', 'unit': 'FCM No. 22', 'firstTrip': '06:15 AM', 'lastTrip': '07:15 AM'},
+      {'driver': 'David Wilson', 'unit': 'FCM No. 08', 'firstTrip': '06:30 AM', 'lastTrip': '07:30 AM'},
+      {'driver': 'Sarah Johnson', 'unit': 'FCM No. 33', 'firstTrip': '06:45 AM', 'lastTrip': '07:45 AM'},
+    ],
+    'Tuesday': [
+      {'driver': 'Michael Brown', 'unit': 'FCM No. 12', 'firstTrip': '06:00 AM', 'lastTrip': '07:00 AM'},
+      {'driver': 'Lisa Davis', 'unit': 'FCM No. 19', 'firstTrip': '06:15 AM', 'lastTrip': '07:15 AM'},
+      {'driver': 'Robert Taylor', 'unit': 'FCM No. 25', 'firstTrip': '06:30 AM', 'lastTrip': '07:30 AM'},
+    ],
+    'Wednesday': [
+      {'driver': 'John Smith', 'unit': 'FCM No. 15', 'firstTrip': '06:00 AM', 'lastTrip': '07:00 AM'},
+      {'driver': 'Emma Wilson', 'unit': 'FCM No. 28', 'firstTrip': '06:15 AM', 'lastTrip': '07:15 AM'},
+      {'driver': 'James Anderson', 'unit': 'FCM No. 11', 'firstTrip': '06:30 AM', 'lastTrip': '07:30 AM'},
+      {'driver': 'Maria Garcia', 'unit': 'FCM No. 22', 'firstTrip': '06:45 AM', 'lastTrip': '07:45 AM'},
+    ],
+    'Thursday': [
+      {'driver': 'David Wilson', 'unit': 'FCM No. 08', 'firstTrip': '06:00 AM', 'lastTrip': '07:00 AM'},
+      {'driver': 'Sarah Johnson', 'unit': 'FCM No. 33', 'firstTrip': '06:15 AM', 'lastTrip': '07:15 AM'},
+      {'driver': 'Michael Brown', 'unit': 'FCM No. 12', 'firstTrip': '06:30 AM', 'lastTrip': '07:30 AM'},
+    ],
+    'Friday': [
+      {'driver': 'John Smith', 'unit': 'FCM No. 15', 'firstTrip': '06:00 AM', 'lastTrip': '07:00 AM'},
+      {'driver': 'Lisa Davis', 'unit': 'FCM No. 19', 'firstTrip': '06:15 AM', 'lastTrip': '07:15 AM'},
+      {'driver': 'Robert Taylor', 'unit': 'FCM No. 25', 'firstTrip': '06:30 AM', 'lastTrip': '07:30 AM'},
+      {'driver': 'Emma Wilson', 'unit': 'FCM No. 28', 'firstTrip': '06:45 AM', 'lastTrip': '07:45 AM'},
+    ],
+    'Saturday': [
+      {'driver': 'James Anderson', 'unit': 'FCM No. 11', 'firstTrip': '07:00 AM', 'lastTrip': '08:00 AM'},
+      {'driver': 'Maria Garcia', 'unit': 'FCM No. 22', 'firstTrip': '07:15 AM', 'lastTrip': '08:15 AM'},
+    ],
+    'Sunday': [
+      {'driver': 'David Wilson', 'unit': 'FCM No. 08', 'firstTrip': '08:00 AM', 'lastTrip': '09:00 AM'},
+      {'driver': 'Sarah Johnson', 'unit': 'FCM No. 33', 'firstTrip': '08:15 AM', 'lastTrip': '09:15 AM'},
+    ],
+  };
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1088,18 +1128,31 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
                         color: Color(0xFF3E4795),
                       ),
                     ),
-                    ElevatedButton.icon(
-                      onPressed: _openCompose,
-                      icon: const Icon(Icons.edit, size: 20),
-                      label: const Text('Compose'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF3E4795),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                    GestureDetector(
+                      onTap: _openCompose,
+                      child: Container(
+                        width: 170, // match Add Driver button width
+                        height: 44, // match Add Driver button height
+                        padding: const EdgeInsets.symmetric(horizontal: 24), // match Add Driver button padding
+                        decoration: BoxDecoration(
+                          color: Color(0xFFF0F3FF), // keep current color
+                          borderRadius: BorderRadius.circular(10), // match Add Driver shape
                         ),
-                        textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.edit, color: Color(0xFF3E4795), size: 20), // match Add Driver icon size
+                            SizedBox(width: 10), // match Add Driver spacing
+                            Text(
+                              'Compose',
+                              style: TextStyle(
+                                color: Color(0xFF3E4795),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 17, // match Add Driver font size
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -1401,18 +1454,68 @@ class _ScheduleWeekView extends StatefulWidget {
 }
 
 class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
-  DateTime _currentWeek = DateTime(2025, 4, 13); // Start at Sun, April 13, 2025
+  DateTime _currentWeek = DateTime.now(); // Start at current week
   bool _showModal = false;
-  final List<Map<String, dynamic>> _schedules = [
-    {'date': DateTime(2025, 4, 13), 'driver': 'John Doe', 'unit': 'Unit 15'},
-    {'date': DateTime(2025, 4, 13), 'driver': 'Joselito V', 'unit': 'Unit 14'},
-    {'date': DateTime(2025, 4, 13), 'driver': 'Ronie Par', 'unit': 'Unit 13'},
-    {'date': DateTime(2025, 4, 13), 'driver': 'Rikson A.', 'unit': 'Unit 12'},
-  ];
+  bool _isEditMode = false; // Add edit mode state
+  
+  // Dummy schedule data for the week
+  final Map<String, List<Map<String, dynamic>>> _weeklySchedules = {
+    'Monday': [
+      {'driver': 'John Smith', 'unit': 'FCM No. 15', 'firstTrip': '06:00 AM', 'lastTrip': '07:00 AM'},
+      {'driver': 'Maria Garcia', 'unit': 'FCM No. 22', 'firstTrip': '06:15 AM', 'lastTrip': '07:15 AM'},
+      {'driver': 'David Wilson', 'unit': 'FCM No. 08', 'firstTrip': '06:30 AM', 'lastTrip': '07:30 AM'},
+      {'driver': 'Sarah Johnson', 'unit': 'FCM No. 33', 'firstTrip': '06:45 AM', 'lastTrip': '07:45 AM'},
+    ],
+    'Tuesday': [
+      {'driver': 'Michael Brown', 'unit': 'FCM No. 12', 'firstTrip': '06:00 AM', 'lastTrip': '07:00 AM'},
+      {'driver': 'Lisa Davis', 'unit': 'FCM No. 19', 'firstTrip': '06:15 AM', 'lastTrip': '07:15 AM'},
+      {'driver': 'Robert Taylor', 'unit': 'FCM No. 25', 'firstTrip': '06:30 AM', 'lastTrip': '07:30 AM'},
+    ],
+    'Wednesday': [
+      {'driver': 'John Smith', 'unit': 'FCM No. 15', 'firstTrip': '06:00 AM', 'lastTrip': '07:00 AM'},
+      {'driver': 'Emma Wilson', 'unit': 'FCM No. 28', 'firstTrip': '06:15 AM', 'lastTrip': '07:15 AM'},
+      {'driver': 'James Anderson', 'unit': 'FCM No. 11', 'firstTrip': '06:30 AM', 'lastTrip': '07:30 AM'},
+      {'driver': 'Maria Garcia', 'unit': 'FCM No. 22', 'firstTrip': '06:45 AM', 'lastTrip': '07:45 AM'},
+    ],
+    'Thursday': [
+      {'driver': 'David Wilson', 'unit': 'FCM No. 08', 'firstTrip': '06:00 AM', 'lastTrip': '07:00 AM'},
+      {'driver': 'Sarah Johnson', 'unit': 'FCM No. 33', 'firstTrip': '06:15 AM', 'lastTrip': '07:15 AM'},
+      {'driver': 'Michael Brown', 'unit': 'FCM No. 12', 'firstTrip': '06:30 AM', 'lastTrip': '07:30 AM'},
+    ],
+    'Friday': [
+      {'driver': 'John Smith', 'unit': 'FCM No. 15', 'firstTrip': '06:00 AM', 'lastTrip': '07:00 AM'},
+      {'driver': 'Lisa Davis', 'unit': 'FCM No. 19', 'firstTrip': '06:15 AM', 'lastTrip': '07:15 AM'},
+      {'driver': 'Robert Taylor', 'unit': 'FCM No. 25', 'firstTrip': '06:30 AM', 'lastTrip': '07:30 AM'},
+      {'driver': 'Emma Wilson', 'unit': 'FCM No. 28', 'firstTrip': '06:45 AM', 'lastTrip': '07:45 AM'},
+    ],
+    'Saturday': [
+      {'driver': 'James Anderson', 'unit': 'FCM No. 11', 'firstTrip': '07:00 AM', 'lastTrip': '08:00 AM'},
+      {'driver': 'Maria Garcia', 'unit': 'FCM No. 22', 'firstTrip': '07:15 AM', 'lastTrip': '08:15 AM'},
+    ],
+    'Sunday': [
+      {'driver': 'David Wilson', 'unit': 'FCM No. 08', 'firstTrip': '08:00 AM', 'lastTrip': '09:00 AM'},
+      {'driver': 'Sarah Johnson', 'unit': 'FCM No. 33', 'firstTrip': '08:15 AM', 'lastTrip': '09:15 AM'},
+    ],
+  };
 
   List<DateTime> get _weekDays {
     final start = _currentWeek.subtract(Duration(days: _currentWeek.weekday % 7));
     return List.generate(7, (i) => start.add(Duration(days: i)));
+  }
+
+  String _weekdayLabel(int weekday) {
+    const labels = ['', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    return labels[weekday];
+  }
+
+  String _getDayName(int weekday) {
+    const dayNames = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    return dayNames[weekday];
+  }
+
+  bool _isFutureDate(DateTime date) {
+    final now = DateTime.now();
+    return date.isAfter(DateTime(now.year, now.month, now.day));
   }
 
   void _nextWeek() {
@@ -1422,13 +1525,26 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
     setState(() => _currentWeek = _currentWeek.subtract(const Duration(days: 7)));
   }
   void _goToday() {
-    setState(() => _currentWeek = DateTime(2025, 4, 13));
+    setState(() => _currentWeek = DateTime.now());
   }
   void _addSchedule(Map<String, dynamic> sched) {
     setState(() {
-      _schedules.add(sched);
       _showModal = false;
     });
+  }
+
+  void _toggleEditMode() {
+    setState(() {
+      _isEditMode = !_isEditMode;
+    });
+  }
+
+  String _monthName(int month) {
+    const months = [
+      '', 'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month];
   }
 
   @override
@@ -1475,27 +1591,51 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
                       ],
                     ),
                     Text(
-                      'APRIL 2025',
+                      '${_weekDays.first.month == _weekDays.last.month
+                        ? _monthName(_weekDays.first.month)
+                        : _monthName(_weekDays.first.month) + ' / ' + _monthName(_weekDays.last.month)} ${_weekDays.first.year}',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 22,
                         color: Color(0xFF3E4795),
                       ),
                     ),
-                    ElevatedButton.icon(
-                      onPressed: () => setState(() => _showModal = true),
-                      icon: const Icon(Icons.add, size: 20),
-                      label: const Text('Add Driver'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE8EAFE),
-                        foregroundColor: const Color(0xFF3E4795),
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                    // Button row
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _toggleEditMode,
+                          icon: Icon(_isEditMode ? Icons.check_circle : Icons.edit, size: 20),
+                          label: Text(_isEditMode ? 'Done Editing' : 'Edit Schedule'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _isEditMode ? Colors.green : const Color(0xFFF0F3FF),
+                            foregroundColor: _isEditMode ? Colors.white : const Color(0xFF3E4795),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
-                        textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                        ElevatedButton.icon(
+                          onPressed: () => setState(() => _showModal = true),
+                          icon: const Icon(Icons.add, size: 20),
+                          label: const Text('Add Driver'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE8EAFE),
+                            foregroundColor: const Color(0xFF3E4795),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -1503,13 +1643,18 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
                 Expanded(
                   child: Row(
                     children: weekDays.map((day) {
-                      final daySchedules = _schedules.where((s) =>
-                        s['date'] is DateTime && (s['date'] as DateTime).year == day.year && (s['date'] as DateTime).month == day.month && (s['date'] as DateTime).day == day.day
-                      ).toList();
+                      final dayName = _getDayName(day.weekday);
+                      // Repeat dummy data for any week: use weekday index to pick from the dummy list
+                      final dummyList = _weeklySchedules[dayName] ?? [];
+                      final daySchedules = dummyList.isNotEmpty
+                        ? List.generate(dummyList.length, (i) => dummyList[i % dummyList.length])
+                        : [];
+                      final isToday = DateTime.now().year == day.year && DateTime.now().month == day.month && DateTime.now().day == day.day;
                       return Expanded(
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 2),
                           decoration: BoxDecoration(
+                            color: isToday ? const Color(0xFFD6E4FF) : null,
                             border: Border(
                               right: BorderSide(color: Colors.grey[200]!),
                             ),
@@ -1530,20 +1675,8 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
                               ...daySchedules.asMap().entries.map((entry) {
                                 final i = entry.key;
                                 final s = entry.value;
-                                final fcmNumber = 'FCM No. ' + s['unit'].toString().replaceAll(RegExp(r'Unit ?'), '');
-                                // Calculate first trip time with 15 min gap
-                                final baseTime = DateTime(0, 1, 1, 6, 0); // 6:00 AM
-                                final tripTime = baseTime.add(Duration(minutes: 15 * i));
-                                final hour = tripTime.hour > 12 ? tripTime.hour - 12 : tripTime.hour == 0 ? 12 : tripTime.hour;
-                                final minute = tripTime.minute.toString().padLeft(2, '0');
-                                final ampm = tripTime.hour >= 12 ? 'PM' : 'AM';
-                                final firstTripTime = '$hour:$minute $ampm';
-                                // Last trip is 1 hour after first trip
-                                final lastTripDateTime = tripTime.add(const Duration(hours: 1));
-                                final lastHour = lastTripDateTime.hour > 12 ? lastTripDateTime.hour - 12 : lastTripDateTime.hour == 0 ? 12 : lastTripDateTime.hour;
-                                final lastMinute = lastTripDateTime.minute.toString().padLeft(2, '0');
-                                final lastAmpm = lastTripDateTime.hour >= 12 ? 'PM' : 'AM';
-                                final lastTripTime = '$lastHour:$lastMinute $lastAmpm';
+                                final fcmNumber = s['unit'];
+                                final firstTripTime = s['firstTrip'];
                                 return GestureDetector(
                                   onTap: () {
                                     showDialog(
@@ -1551,80 +1684,83 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
                                       builder: (context) => _UnitDetailsDialog(
                                         driver: s['driver'],
                                         unit: s['unit'],
-                                        date: day,
-                                        routeRuns: 3, // dummy data
-                                        passengers: 42, // dummy data
-                                        firstTrip: firstTripTime,
-                                        lastTrip: lastTripTime,
+                                        date: day, // pass DateTime, not String
+                                        routeRuns: _isFutureDate(day) ? null : 3, // hide for future dates
+                                        passengers: _isFutureDate(day) ? null : 42, // hide for future dates
+                                        firstTrip: s['firstTrip'],
+                                        lastTrip: s['lastTrip'],
                                       ),
                                     );
                                   },
                                   child: Container(
-                                    margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    height: 38,
+                                    margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    // No fixed height
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFE8EAFE),
+                                      color: _isEditMode && _isFutureDate(day) ? Colors.grey[100] : const Color(0xFFE8EAFE),
                                       borderRadius: BorderRadius.circular(10),
+                                      border: _isEditMode && _isFutureDate(day) 
+                                        ? Border.all(color: Colors.blue.withOpacity(0.3), width: 1)
+                                        : null,
                                     ),
                                     alignment: Alignment.center,
-                                    child: Column(
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        Text(
-                                          fcmNumber,
-                                          style: const TextStyle(
-                                            color: Color(0xFF3E4795),
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 13,
+                                        Flexible(
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                fcmNumber,
+                                                style: const TextStyle(
+                                                  color: Color(0xFF3E4795),
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: 13,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                textAlign: TextAlign.center,
+                                              ),
+                                              Text(
+                                                firstTripTime,
+                                                style: const TextStyle(
+                                                  color: Color(0xFF3E4795),
+                                                  fontWeight: FontWeight.w400,
+                                                  fontSize: 11,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                textAlign: TextAlign.center,
+                                              ),
+                                              if (!_isFutureDate(day))
+                                                Text(
+                                                  s['lastTrip'],
+                                                  style: const TextStyle(
+                                                    color: Color(0xFF3E4795),
+                                                    fontWeight: FontWeight.w400,
+                                                    fontSize: 11,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                            ],
                                           ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.center,
                                         ),
-                                        Text(
-                                          firstTripTime,
-                                          style: const TextStyle(
-                                            color: Color(0xFF3E4795),
-                                            fontWeight: FontWeight.normal,
-                                            fontSize: 11,
+                                        if (_isEditMode && _isFutureDate(day))
+                                          const Icon(
+                                            Icons.edit,
+                                            size: 14,
+                                            color: Colors.blue,
                                           ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.center,
-                                        ),
                                       ],
                                     ),
                                   ),
                                 );
-                              }),
-                              if (daySchedules.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 12, left: 8, right: 8),
-                                  child: GestureDetector(
-                                    onTap: null, // TODO: Add edit functionality if needed
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: const [
-                                        Icon(Icons.edit, size: 16, color: Color(0xFF3E4795)),
-                                        SizedBox(width: 4),
-                                        Text(
-                                          'Edit Schedule',
-                                          style: TextStyle(
-                                            color: Color(0xFF3E4795),
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            decoration: TextDecoration.none,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                              }).toList(),
                             ],
                           ),
                         ),
@@ -1646,27 +1782,6 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
           ),
       ],
     );
-  }
-
-  String _weekdayLabel(int weekday) {
-    switch (weekday) {
-      case DateTime.sunday:
-        return 'Sun';
-      case DateTime.monday:
-        return 'Mon';
-      case DateTime.tuesday:
-        return 'Tues';
-      case DateTime.wednesday:
-        return 'Wed';
-      case DateTime.thursday:
-        return 'Thu';
-      case DateTime.friday:
-        return 'Fri';
-      case DateTime.saturday:
-        return 'Sat';
-      default:
-        return '';
-    }
   }
 }
 
@@ -1798,48 +1913,46 @@ class _UnitDetailsDialog extends StatelessWidget {
   final String driver;
   final String unit;
   final DateTime date;
-  final int routeRuns;
-  final int passengers;
+  final int? routeRuns;
+  final int? passengers;
   final String firstTrip;
   final String lastTrip;
+
   const _UnitDetailsDialog({
+    Key? key,
     required this.driver,
     required this.unit,
     required this.date,
-    required this.routeRuns,
-    required this.passengers,
+    this.routeRuns,
+    this.passengers,
     required this.firstTrip,
     required this.lastTrip,
-  });
+  }) : super(key: key);
+
+  bool get _isFutureDate {
+    final now = DateTime.now();
+    return date.isAfter(DateTime(now.year, now.month, now.day));
+  }
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         width: 340,
         padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'FCM No. ${unit.toString().replaceAll(RegExp(r'Unit ?'), '')}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    color: Color(0xFF3E4795),
-                  ),
-                ),
+                const Icon(Icons.directions_bus, color: Color(0xFF3E4795)),
+                const SizedBox(width: 8),
+                Text(unit, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF3E4795))),
+                const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.black54),
+                  icon: const Icon(Icons.close, size: 20),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
@@ -1847,47 +1960,53 @@ class _UnitDetailsDialog extends StatelessWidget {
             const SizedBox(height: 8),
             Text('Driver: $driver', style: const TextStyle(fontSize: 15)),
             const SizedBox(height: 8),
-            Text('Date: \t${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}', style: const TextStyle(fontSize: 14, color: Colors.black54)),
+            Text('Date: 	${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}', style: const TextStyle(fontSize: 14, color: Colors.black54)),
             const Divider(height: 24),
+            if (routeRuns != null) ...[
+              Row(
+                children: [
+                  const Icon(Icons.route, size: 18, color: Color(0xFF3E4795)),
+                  const SizedBox(width: 8),
+                  const Text('Route Runs:', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const Spacer(),
+                  Text(routeRuns!.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
+            if (passengers != null) ...[
+              Row(
+                children: [
+                  const Icon(Icons.people, size: 18, color: Color(0xFF3E4795)),
+                  const SizedBox(width: 8),
+                  const Text('Passengers:', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const Spacer(),
+                  Text(passengers!.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
             Row(
               children: [
-                const Icon(Icons.directions_bus, color: Color(0xFF3E4795)),
-                const SizedBox(width: 8),
-                const Text('Route Runs:', style: TextStyle(fontWeight: FontWeight.w500)),
-                const Spacer(),
-                Text(routeRuns.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(Icons.people, color: Color(0xFF3E4795)),
-                const SizedBox(width: 8),
-                const Text('Passengers:', style: TextStyle(fontWeight: FontWeight.w500)),
-                const Spacer(),
-                Text(passengers.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(Icons.access_time, color: Color(0xFF3E4795)),
+                const Icon(Icons.access_time, size: 18, color: Color(0xFF3E4795)),
                 const SizedBox(width: 8),
                 const Text('First Trip:', style: TextStyle(fontWeight: FontWeight.w500)),
                 const Spacer(),
                 Text(firstTrip, style: const TextStyle(fontWeight: FontWeight.bold)),
               ],
             ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                const Icon(Icons.schedule, color: Color(0xFF3E4795)),
-                const SizedBox(width: 8),
-                const Text('Last Trip:', style: TextStyle(fontWeight: FontWeight.w500)),
-                const Spacer(),
-                Text(lastTrip, style: const TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
+            if (!_isFutureDate) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(Icons.timelapse, size: 18, color: Color(0xFF3E4795)),
+                  const SizedBox(width: 8),
+                  const Text('Last Trip:', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const Spacer(),
+                  Text(lastTrip, style: const TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ],
           ],
         ),
       ),
