@@ -1607,11 +1607,11 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
                       children: [
                         ElevatedButton.icon(
                           onPressed: _toggleEditMode,
-                          icon: Icon(_isEditMode ? Icons.check_circle : Icons.edit, size: 20),
-                          label: Text(_isEditMode ? 'Done Editing' : 'Edit Schedule'),
+                          icon: Icon(_isEditMode ? Icons.check_circle : Icons.edit, size: 20, color: Colors.white),
+                          label: Text(_isEditMode ? 'Done Editing' : 'Edit Schedule', style: const TextStyle(color: Colors.white)),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _isEditMode ? Colors.green : const Color(0xFFF0F3FF),
-                            foregroundColor: _isEditMode ? Colors.white : const Color(0xFF3E4795),
+                            backgroundColor: const Color(0xFF1A237E),
+                            foregroundColor: Colors.white,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                             shape: RoundedRectangleBorder(
@@ -1622,11 +1622,11 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
                         ),
                         ElevatedButton.icon(
                           onPressed: () => setState(() => _showModal = true),
-                          icon: const Icon(Icons.add, size: 20),
-                          label: const Text('Add Driver'),
+                          icon: const Icon(Icons.add, size: 20, color: Colors.white),
+                          label: const Text('Add Driver', style: TextStyle(color: Colors.white)),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE8EAFE),
-                            foregroundColor: const Color(0xFF3E4795),
+                            backgroundColor: const Color(0xFF1A237E),
+                            foregroundColor: Colors.white,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                             shape: RoundedRectangleBorder(
@@ -1654,7 +1654,6 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 2),
                           decoration: BoxDecoration(
-                            color: isToday ? const Color(0xFFD6E4FF) : null,
                             border: Border(
                               right: BorderSide(color: Colors.grey[200]!),
                             ),
@@ -1664,9 +1663,9 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
                             children: [
                               Text(
                                 '${_weekdayLabel(day.weekday)} ${day.day}',
-                                style: const TextStyle(
-                                  color: Color(0xFF3E4795),
-                                  fontWeight: FontWeight.w500,
+                                style: TextStyle(
+                                  color: isToday ? const Color(0xFF1A237E) : const Color(0xFF3E4795),
+                                  fontWeight: FontWeight.w700,
                                   fontSize: 13,
                                 ),
                                 textAlign: TextAlign.center,
@@ -1677,6 +1676,19 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
                                 final s = entry.value;
                                 final fcmNumber = s['unit'];
                                 final firstTripTime = s['firstTrip'];
+                                // Always show last trip as PM (e.g., 7:00 PM)
+                                String lastTripTime = s['lastTrip'];
+                                // Convert lastTripTime to PM if needed
+                                final lastTripParts = lastTripTime.split(' ');
+                                if (lastTripParts.length == 2 && lastTripParts[1] == 'AM') {
+                                  // Change to PM
+                                  final timeParts = lastTripParts[0].split(':');
+                                  int hour = int.tryParse(timeParts[0]) ?? 0;
+                                  final minute = timeParts[1];
+                                  if (hour < 12) hour += 12;
+                                  lastTripTime = '${hour > 12 ? hour - 12 : hour}:$minute PM';
+                                }
+                                final tripRange = '$firstTripTime - $lastTripTime';
                                 return GestureDetector(
                                   onTap: () {
                                     showDialog(
@@ -1725,28 +1737,16 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
                                                 textAlign: TextAlign.center,
                                               ),
                                               Text(
-                                                firstTripTime,
-                                                style: const TextStyle(
-                                                  color: Color(0xFF3E4795),
-                                                  fontWeight: FontWeight.w400,
-                                                  fontSize: 11,
+                                                _isFutureDate(day) ? firstTripTime : tripRange,
+                                                style: TextStyle(
+                                                  color: isToday ? const Color(0xFF1A237E) : const Color(0xFF3E4795),
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 10.5,
                                                 ),
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
                                                 textAlign: TextAlign.center,
                                               ),
-                                              if (!_isFutureDate(day))
-                                                Text(
-                                                  s['lastTrip'],
-                                                  style: const TextStyle(
-                                                    color: Color(0xFF3E4795),
-                                                    fontWeight: FontWeight.w400,
-                                                    fontSize: 11,
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  textAlign: TextAlign.center,
-                                                ),
                                             ],
                                           ),
                                         ),
@@ -1934,6 +1934,21 @@ class _UnitDetailsDialog extends StatelessWidget {
     return date.isAfter(DateTime(now.year, now.month, now.day));
   }
 
+  String get lastTripPm {
+    // Always show last trip as PM
+    String lastTripTime = lastTrip;
+    final lastTripParts = lastTripTime.split(' ');
+    if (lastTripParts.length == 2 && lastTripParts[1] == 'AM') {
+      final timeParts = lastTripParts[0].split(':');
+      int hour = int.tryParse(timeParts[0]) ?? 0;
+      final minute = timeParts[1];
+      if (hour < 12) hour += 12;
+      lastTripTime = '${hour > 12 ? hour - 12 : hour}:$minute PM';
+    }
+    return lastTripTime;
+  }
+  String get tripRange => '$firstTrip - ${lastTripPm}';
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -1960,7 +1975,7 @@ class _UnitDetailsDialog extends StatelessWidget {
             const SizedBox(height: 8),
             Text('Driver: $driver', style: const TextStyle(fontSize: 15)),
             const SizedBox(height: 8),
-            Text('Date: 	${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}', style: const TextStyle(fontSize: 14, color: Colors.black54)),
+            Text('Date:  \t\t${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}', style: const TextStyle(fontSize: 14, color: Colors.black54)),
             const Divider(height: 24),
             if (routeRuns != null) ...[
               Row(
@@ -2003,7 +2018,7 @@ class _UnitDetailsDialog extends StatelessWidget {
                   const SizedBox(width: 8),
                   const Text('Last Trip:', style: TextStyle(fontWeight: FontWeight.w500)),
                   const Spacer(),
-                  Text(lastTrip, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(lastTripPm, style: const TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
