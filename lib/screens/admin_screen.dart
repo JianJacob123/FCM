@@ -270,6 +270,8 @@ class _AdminScreenState extends State<AdminScreen> {
         );
       case AdminSection.notifications:
         return _NotificationsWithCompose();
+      case AdminSection.schedules:
+        return _ScheduleWeekView();
       case AdminSection.activityLogs:
         return const _ActivityLogsPage();
       default:
@@ -596,7 +598,9 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                 ],
               ),
             ),
-            ...filteredLogs.map((log) => Container(
+            Expanded(
+              child: ListView(
+                children: filteredLogs.map((log) => Container(
                   decoration: const BoxDecoration(
                     border: Border(
                       bottom: BorderSide(color: Color(0xFFE0E0E0)),
@@ -609,7 +613,9 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                       _TableCell(log['entity']!),
                     ],
                   ),
-                )),
+                )).toList(),
+              ),
+            ),
           ],
         ),
       ),
@@ -641,15 +647,17 @@ class _TableHeaderCell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         child: Text(
           text,
           style: const TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 18,
+            fontSize: 15, // reduced font size
             color: Colors.white,
           ),
           textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
@@ -663,15 +671,18 @@ class _TableCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      child: Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6), // more compact
         child: Text(
           text,
           style: const TextStyle(
-            fontSize: 16,
+            fontSize: 13, // reduced font size
             color: Color(0xFF232A4D),
           ),
           textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
@@ -1049,7 +1060,7 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
       children: [
         Center(
           child: Container(
-            width: 700,
+            width: 900,
             margin: const EdgeInsets.symmetric(vertical: 32),
             padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
@@ -1378,6 +1389,506 @@ class _NotificationSentDialog extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScheduleWeekView extends StatefulWidget {
+  @override
+  State<_ScheduleWeekView> createState() => _ScheduleWeekViewState();
+}
+
+class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
+  DateTime _currentWeek = DateTime(2025, 4, 13); // Start at Sun, April 13, 2025
+  bool _showModal = false;
+  final List<Map<String, dynamic>> _schedules = [
+    {'date': DateTime(2025, 4, 13), 'driver': 'John Doe', 'unit': 'Unit 15'},
+    {'date': DateTime(2025, 4, 13), 'driver': 'Joselito V', 'unit': 'Unit 14'},
+    {'date': DateTime(2025, 4, 13), 'driver': 'Ronie Par', 'unit': 'Unit 13'},
+    {'date': DateTime(2025, 4, 13), 'driver': 'Rikson A.', 'unit': 'Unit 12'},
+  ];
+
+  List<DateTime> get _weekDays {
+    final start = _currentWeek.subtract(Duration(days: _currentWeek.weekday % 7));
+    return List.generate(7, (i) => start.add(Duration(days: i)));
+  }
+
+  void _nextWeek() {
+    setState(() => _currentWeek = _currentWeek.add(const Duration(days: 7)));
+  }
+  void _prevWeek() {
+    setState(() => _currentWeek = _currentWeek.subtract(const Duration(days: 7)));
+  }
+  void _goToday() {
+    setState(() => _currentWeek = DateTime(2025, 4, 13));
+  }
+  void _addSchedule(Map<String, dynamic> sched) {
+    setState(() {
+      _schedules.add(sched);
+      _showModal = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final weekDays = _weekDays;
+    return Stack(
+      children: [
+        Center(
+          child: Container(
+            width: 900,
+            margin: const EdgeInsets.symmetric(vertical: 32),
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 24,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF3E4795)),
+                          onPressed: _prevWeek,
+                        ),
+                        TextButton(
+                          onPressed: _goToday,
+                          child: const Text('Today', style: TextStyle(color: Color(0xFF3E4795), fontWeight: FontWeight.bold)),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_forward_ios, color: Color(0xFF3E4795)),
+                          onPressed: _nextWeek,
+                        ),
+                      ],
+                    ),
+                    Text(
+                      'APRIL 2025',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                        color: Color(0xFF3E4795),
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () => setState(() => _showModal = true),
+                      icon: const Icon(Icons.add, size: 20),
+                      label: const Text('Add Driver'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE8EAFE),
+                        foregroundColor: const Color(0xFF3E4795),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: Row(
+                    children: weekDays.map((day) {
+                      final daySchedules = _schedules.where((s) =>
+                        s['date'] is DateTime && (s['date'] as DateTime).year == day.year && (s['date'] as DateTime).month == day.month && (s['date'] as DateTime).day == day.day
+                      ).toList();
+                      return Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              right: BorderSide(color: Colors.grey[200]!),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                '${_weekdayLabel(day.weekday)} ${day.day}',
+                                style: const TextStyle(
+                                  color: Color(0xFF3E4795),
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              ...daySchedules.asMap().entries.map((entry) {
+                                final i = entry.key;
+                                final s = entry.value;
+                                final fcmNumber = 'FCM No. ' + s['unit'].toString().replaceAll(RegExp(r'Unit ?'), '');
+                                // Calculate first trip time with 15 min gap
+                                final baseTime = DateTime(0, 1, 1, 6, 0); // 6:00 AM
+                                final tripTime = baseTime.add(Duration(minutes: 15 * i));
+                                final hour = tripTime.hour > 12 ? tripTime.hour - 12 : tripTime.hour == 0 ? 12 : tripTime.hour;
+                                final minute = tripTime.minute.toString().padLeft(2, '0');
+                                final ampm = tripTime.hour >= 12 ? 'PM' : 'AM';
+                                final firstTripTime = '$hour:$minute $ampm';
+                                // Last trip is 1 hour after first trip
+                                final lastTripDateTime = tripTime.add(const Duration(hours: 1));
+                                final lastHour = lastTripDateTime.hour > 12 ? lastTripDateTime.hour - 12 : lastTripDateTime.hour == 0 ? 12 : lastTripDateTime.hour;
+                                final lastMinute = lastTripDateTime.minute.toString().padLeft(2, '0');
+                                final lastAmpm = lastTripDateTime.hour >= 12 ? 'PM' : 'AM';
+                                final lastTripTime = '$lastHour:$lastMinute $lastAmpm';
+                                return GestureDetector(
+                                  onTap: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => _UnitDetailsDialog(
+                                        driver: s['driver'],
+                                        unit: s['unit'],
+                                        date: day,
+                                        routeRuns: 3, // dummy data
+                                        passengers: 42, // dummy data
+                                        firstTrip: firstTripTime,
+                                        lastTrip: lastTripTime,
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    height: 38,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE8EAFE),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          fcmNumber,
+                                          style: const TextStyle(
+                                            color: Color(0xFF3E4795),
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 13,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        Text(
+                                          firstTripTime,
+                                          style: const TextStyle(
+                                            color: Color(0xFF3E4795),
+                                            fontWeight: FontWeight.normal,
+                                            fontSize: 11,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }),
+                              if (daySchedules.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12, left: 8, right: 8),
+                                  child: GestureDetector(
+                                    onTap: null, // TODO: Add edit functionality if needed
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: const [
+                                        Icon(Icons.edit, size: 16, color: Color(0xFF3E4795)),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'Edit Schedule',
+                                          style: TextStyle(
+                                            color: Color(0xFF3E4795),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            decoration: TextDecoration.none,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_showModal)
+          _AddDriverModal(
+            onSave: (driver, unit, date) {
+              _addSchedule({'driver': driver, 'unit': unit, 'date': date});
+            },
+            onCancel: () => setState(() => _showModal = false),
+            initialDate: weekDays[0],
+          ),
+      ],
+    );
+  }
+
+  String _weekdayLabel(int weekday) {
+    switch (weekday) {
+      case DateTime.sunday:
+        return 'Sun';
+      case DateTime.monday:
+        return 'Mon';
+      case DateTime.tuesday:
+        return 'Tues';
+      case DateTime.wednesday:
+        return 'Wed';
+      case DateTime.thursday:
+        return 'Thu';
+      case DateTime.friday:
+        return 'Fri';
+      case DateTime.saturday:
+        return 'Sat';
+      default:
+        return '';
+    }
+  }
+}
+
+class _AddDriverModal extends StatefulWidget {
+  final void Function(String driver, String unit, DateTime date) onSave;
+  final VoidCallback onCancel;
+  final DateTime initialDate;
+  const _AddDriverModal({required this.onSave, required this.onCancel, required this.initialDate});
+
+  @override
+  State<_AddDriverModal> createState() => _AddDriverModalState();
+}
+
+class _AddDriverModalState extends State<_AddDriverModal> {
+  final _formKey = GlobalKey<FormState>();
+  String? _driver;
+  String? _unit;
+  DateTime? _date;
+
+  @override
+  void initState() {
+    super.initState();
+    _date = widget.initialDate;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.08),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Container(
+              width: 420,
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 24,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Add Default Driver',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 32, color: Color(0xFF3E4795)),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Assigning a default driver ensures they are automatically included in the daily schedule. This can be updated anytime.',
+                      style: TextStyle(fontSize: 15, color: Colors.black38, fontWeight: FontWeight.w400),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('Full Name', style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF3E4795))),
+                    const SizedBox(height: 4),
+                    TextFormField(
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      ),
+                      onChanged: (v) => setState(() => _driver = v),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('Assign Unit Number', style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF3E4795))),
+                    const SizedBox(height: 4),
+                    TextFormField(
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      ),
+                      onChanged: (v) => setState(() => _unit = v),
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            if (_driver != null && _unit != null) {
+                              widget.onSave(_driver!, _unit!, _date ?? DateTime.now());
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3E4795),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text('Save'),
+                        ),
+                        const SizedBox(width: 16),
+                        OutlinedButton(
+                          onPressed: widget.onCancel,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF3E4795),
+                            side: const BorderSide(color: Color(0xFF3E4795)),
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UnitDetailsDialog extends StatelessWidget {
+  final String driver;
+  final String unit;
+  final DateTime date;
+  final int routeRuns;
+  final int passengers;
+  final String firstTrip;
+  final String lastTrip;
+  const _UnitDetailsDialog({
+    required this.driver,
+    required this.unit,
+    required this.date,
+    required this.routeRuns,
+    required this.passengers,
+    required this.firstTrip,
+    required this.lastTrip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        width: 340,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'FCM No. ${unit.toString().replaceAll(RegExp(r'Unit ?'), '')}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: Color(0xFF3E4795),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.black54),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text('Driver: $driver', style: const TextStyle(fontSize: 15)),
+            const SizedBox(height: 8),
+            Text('Date: \t${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}', style: const TextStyle(fontSize: 14, color: Colors.black54)),
+            const Divider(height: 24),
+            Row(
+              children: [
+                const Icon(Icons.directions_bus, color: Color(0xFF3E4795)),
+                const SizedBox(width: 8),
+                const Text('Route Runs:', style: TextStyle(fontWeight: FontWeight.w500)),
+                const Spacer(),
+                Text(routeRuns.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.people, color: Color(0xFF3E4795)),
+                const SizedBox(width: 8),
+                const Text('Passengers:', style: TextStyle(fontWeight: FontWeight.w500)),
+                const Spacer(),
+                Text(passengers.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.access_time, color: Color(0xFF3E4795)),
+                const SizedBox(width: 8),
+                const Text('First Trip:', style: TextStyle(fontWeight: FontWeight.w500)),
+                const Spacer(),
+                Text(firstTrip, style: const TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.schedule, color: Color(0xFF3E4795)),
+                const SizedBox(width: 8),
+                const Text('Last Trip:', style: TextStyle(fontWeight: FontWeight.w500)),
+                const Spacer(),
+                Text(lastTrip, style: const TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ],
         ),
       ),
     );
