@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'admin_login_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 enum AdminSection { dashboard, analytics, notifications, schedules, activityLogs }
 
@@ -15,6 +17,17 @@ class AdminScreen extends StatefulWidget {
 class _AdminScreenState extends State<AdminScreen> {
   AdminSection _selectedSection = AdminSection.dashboard;
   int? _selectedBusIndex;
+  bool _showRoutePolyLine = false;
+  final MapController _mapController = MapController();
+
+  // Route points for tracking
+  final List<LatLng> _routePoints = [
+    LatLng(13.9467729, 121.1555241),
+    LatLng(13.948197503981618, 121.15663127065292),
+    LatLng(13.950278979606711, 121.15838610642095),
+    LatLng(13.951033283494375, 121.15975747814403),
+    LatLng(13.952865846616918, 121.16308555449044),
+  ];
 
   // Dummy schedule data for the week
   final Map<String, List<Map<String, dynamic>>> _weeklySchedules = {
@@ -131,50 +144,20 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget _buildMainContent() {
     switch (_selectedSection) {
       case AdminSection.dashboard:
-        final busMarkers = [
-          {
-            'latlng': LatLng(13.0604, 80.2496),
-            'busNo': 'FCM No. 05',
-            'route': 'Lipa City to Bauan City',
-            'eta': '9:45 AM',
-            'location': 'Lalayat San Jose',
-            'runs': '3',
-            'rating': '4.8',
-            'ratingsCount': '100',
-            'driver': 'Nelson Suarez',
-            'status': 'ONBOARDING',
-          },
-          {
-            'latlng': LatLng(13.0650, 80.2500),
-            'busNo': 'FCM No. 06',
-            'route': 'Tanauan to Lipa City',
-            'eta': '10:10 AM',
-            'location': 'Tanauan Plaza',
-            'runs': '2',
-            'rating': '4.6',
-            'ratingsCount': '80',
-            'driver': 'Maria Lopez',
-            'status': 'ONBOARDING',
-          },
-          {
-            'latlng': LatLng(13.0580, 80.2450),
-            'busNo': 'FCM No. 07',
-            'route': 'Bauan City to Lipa City',
-            'eta': '9:55 AM',
-            'location': 'Bauan Terminal',
-            'runs': '4',
-            'rating': '4.9',
-            'ratingsCount': '120',
-            'driver': 'Juan Dela Cruz',
-            'status': 'ONBOARDING',
-          },
-        ];
+        // Show only one bus marker and info, like the passenger map
+        final busLocation = LatLng(13.9467729, 121.1555241);
+        final busInfo = {
+          'busNo': 'FCM No. 05',
+          'plateNo': 'DAL 7674',
+          'route': 'Lipa City to Bauan City',
+          'eta': '9:45 AM',
+          'location': 'Lalayat San Jose',
+          'driver': 'Nelson Suarez',
+        };
         bool _showChat = false;
         final List<_ChatMessage> _messages = [
           _ChatMessage(name: 'Nelson- FCM No. 5', isMe: false, text: 'Hello!'),
           _ChatMessage(name: 'Admin', isMe: true, text: 'Hi Nelson!'),
-          _ChatMessage(name: 'Joselito- FCM No. 12', isMe: false, text: 'Good morning!'),
-          _ChatMessage(name: 'Rickson- FCM No. 01', isMe: false, text: 'How are you?'),
         ];
         return StatefulBuilder(
           builder: (context, setState) {
@@ -183,9 +166,10 @@ class _AdminScreenState extends State<AdminScreen> {
                 // Map
                 Positioned.fill(
                   child: FlutterMap(
+                    mapController: _mapController,
                     options: MapOptions(
-                      center: LatLng(13.0604, 80.2496),
-                      zoom: 14.0,
+                      initialCenter: busLocation,
+                      initialZoom: 13.0,
                       interactiveFlags: InteractiveFlag.all,
                     ),
                     children: [
@@ -193,14 +177,24 @@ class _AdminScreenState extends State<AdminScreen> {
                         urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
                         subdomains: ['a', 'b', 'c', 'd'],
                       ),
+                      if (_showRoutePolyLine)
+                        PolylineLayer(
+                          polylines: [
+                            Polyline(
+                              points: _routePoints,
+                              strokeWidth: 8.0,
+                              color: const Color.fromRGBO(62, 71, 149, 1),
+                            ),
+                          ],
+                        ),
                       MarkerLayer(
                         markers: [
-                          ...List.generate(busMarkers.length, (i) => Marker(
+                          Marker(
                             width: 40.0,
                             height: 40.0,
-                            point: busMarkers[i]['latlng'] as LatLng,
+                            point: busLocation,
                             child: GestureDetector(
-                              onTap: () => setState(() => _selectedBusIndex = i),
+                              onTap: () => setState(() => _selectedBusIndex = 0),
                               child: Container(
                                 width: 50,
                                 height: 50,
@@ -224,7 +218,26 @@ class _AdminScreenState extends State<AdminScreen> {
                                 ),
                               ),
                             ),
-                          )),
+                          ),
+                          if (_showRoutePolyLine)
+                            Marker(
+                              point: _routePoints.last, // Final destination
+                              width: 40,
+                              height: 40,
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF3E4795),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.location_pin,
+                                    color: Colors.white,
+                                    size: 30,
+                                  ),
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ],
@@ -235,40 +248,33 @@ class _AdminScreenState extends State<AdminScreen> {
                   top: 24,
                   left: 32,
                   right: 32,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
+                  child: AdminSearchField(
+                    onLocationSelected: (LatLng selectedLatLng, String placeName) {
+                      // Handle location selection for admin
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Selected: $placeName'),
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.search, color: Colors.black54),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            decoration: const InputDecoration(
-                              hintText: 'What are you looking for?',
-                              border: InputBorder.none,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
                 if (_selectedBusIndex != null)
                   Center(
-                    child: _BusInfoCard(
-                      bus: busMarkers[_selectedBusIndex!] as Map<String, Object>,
+                    child: _AdminBusInfoCard(
+                      bus: busInfo,
                       onClose: () => setState(() => _selectedBusIndex = null),
+                      onTrackRoute: () {
+                        setState(() {
+                          _showRoutePolyLine = true;
+                        });
+                        _mapController.fitBounds(
+                          LatLngBounds.fromPoints(_routePoints),
+                          options: const FitBoundsOptions(
+                            padding: EdgeInsets.all(50),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 // Message button (bottom right)
@@ -317,6 +323,322 @@ class _AdminScreenState extends State<AdminScreen> {
       default:
         return const Center(child: Text('Section coming soon...', style: TextStyle(fontSize: 24)));
     }
+  }
+}
+
+// Admin Search Field similar to passenger search
+class AdminSearchField extends StatefulWidget {
+  final void Function(LatLng selectedLocation, String placeName) onLocationSelected;
+
+  const AdminSearchField({super.key, required this.onLocationSelected});
+
+  @override
+  State<AdminSearchField> createState() => _AdminSearchFieldState();
+}
+
+class _AdminSearchFieldState extends State<AdminSearchField> {
+  final TextEditingController _controller = TextEditingController();
+  List<Map<String, dynamic>> _suggestions = [];
+
+  Future<void> _searchPlace(String query) async {
+    final accessToken = 'INSERT TOKEN HERE'; // Replace with your Mapbox access token
+    final encodedQuery = Uri.encodeComponent(query);
+
+    final url = Uri.parse(
+      'https://api.mapbox.com/geocoding/v5/mapbox.places/$encodedQuery.json'
+      '?access_token=$accessToken'
+      '&limit=5',
+    );
+
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final features = data['features'] as List;
+
+        setState(() {
+          _suggestions = features.cast<Map<String, dynamic>>();
+        });
+      } else {
+        print('Geocoding error: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Search error: $e');
+    }
+  }
+
+  void _selectSuggestion(Map<String, dynamic> feature) {
+    final name = feature['place_name'];
+    final coords = feature['geometry']['coordinates'];
+    final latLng = LatLng(coords[1], coords[0]); // [lon, lat]
+
+    widget.onLocationSelected(latLng, name);
+    setState(() {
+      _controller.text = name;
+      _suggestions = [];
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Center(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 1000,
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+              padding: const EdgeInsets.all(2.0),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF23242B) : Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark ? Colors.black54 : Colors.grey,
+                    spreadRadius: 2,
+                    blurRadius: 5,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: _controller,
+                onChanged: (value) {
+                  if (value.trim().isNotEmpty) {
+                    _searchPlace(value.trim());
+                  } else {
+                    setState(() => _suggestions = []);
+                  }
+                },
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                decoration: InputDecoration(
+                  hintText: 'Search for vehicles, routes, or locations...',
+                  hintStyle: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.black54,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 17),
+                ),
+              ),
+            ),
+          ),
+
+          // Dropdown suggestion list
+          if (_suggestions.isNotEmpty)
+            Container(
+              width: 1000,
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF2D2E36) : Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark ? Colors.black38 : Colors.grey.withOpacity(0.4),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: _suggestions.length,
+                separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade300),
+                itemBuilder: (context, index) {
+                  final feature = _suggestions[index];
+                  final name = feature['place_name'];
+
+                  return ListTile(
+                    leading: const Icon(Icons.location_on_outlined),
+                    title: Text(
+                      name,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    onTap: () => _selectSuggestion(feature),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// Enhanced Admin Bus Info Card
+class _AdminBusInfoCard extends StatelessWidget {
+  final Map<String, Object> bus;
+  final VoidCallback onClose;
+  final VoidCallback onTrackRoute;
+
+  const _AdminBusInfoCard({
+    required this.bus,
+    required this.onClose,
+    required this.onTrackRoute,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      insetPadding: const EdgeInsets.all(24),
+      child: Container(
+        width: 400,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        bus['busNo'] as String,
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF3E4795),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        bus['route'] as String,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  margin: const EdgeInsets.only(left: 8, top: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3E4795),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Text(
+                    'ONBOARDING',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.grey, size: 28),
+                  onPressed: onClose,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Divider(),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.access_time, color: Color(0xFF3E4795)),
+                const SizedBox(width: 8),
+                const Text('Estimated Time of Arrival', style: TextStyle(fontSize: 16)),
+                const Spacer(),
+                Text(
+                  bus['eta'] as String,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.location_on, color: Color(0xFF3E4795)),
+                const SizedBox(width: 8),
+                const Text('Current Location', style: TextStyle(fontSize: 16)),
+                const Spacer(),
+                Text(
+                  bus['location'] as String,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.directions_bus, color: Color(0xFF3E4795)),
+                const SizedBox(width: 8),
+                const Text('Route Runs', style: TextStyle(fontSize: 16)),
+                const Spacer(),
+                const Text('3', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: onTrackRoute,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF3E4795),
+                  side: const BorderSide(color: Color(0xFF3E4795)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Track Live Trip'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.star, color: Color(0xFF3E4795)),
+                const SizedBox(width: 8),
+                const Text('4.8', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const SizedBox(width: 4),
+                const Text('(100 ratings)', style: TextStyle(fontSize: 16)),
+                const Spacer(),
+                const Text('Nelson Suarez', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: const [
+                Icon(Icons.directions_bus, color: Color(0xFF3E4795)),
+                SizedBox(width: 8),
+                Text('Average bus rating', style: TextStyle(fontSize: 16)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -729,174 +1051,6 @@ class _TableCell extends StatelessWidget {
   }
 }
 
-class _BusInfoCard extends StatelessWidget {
-  final Map<String, Object> bus;
-  final VoidCallback onClose;
-  const _BusInfoCard({required this.bus, required this.onClose});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        width: 400,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 24,
-              offset: Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.black54),
-                  onPressed: onClose,
-                  tooltip: 'Close',
-                ),
-              ],
-            ),
-            // Main info content below
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        bus['busNo'] as String,
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF3E4795),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        bus['route'] as String,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          color: Color(0xFF232A4D),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF3E4795),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    bus['status'] as String,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Icon(Icons.access_time, color: Color(0xFF3E4795)),
-                const SizedBox(width: 8),
-                const Text('Estimated Time of Arrival'),
-                const Spacer(),
-                Text(
-                  bus['eta'] as String,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.location_on, color: Color(0xFF3E4795)),
-                const SizedBox(width: 8),
-                const Text('Current Location'),
-                const Spacer(),
-                Text(
-                  bus['location'] as String,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.directions_bus, color: Color(0xFF3E4795)),
-                const SizedBox(width: 8),
-                const Text('Route Runs'),
-                const Spacer(),
-                Text(
-                  bus['runs'] as String,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {},
-                    child: const Text('Track Live Trip'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Color(0xFF3E4795),
-                      side: const BorderSide(color: Color(0xFF3E4795)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Divider(),
-            Row(
-              children: [
-                const Icon(Icons.star, color: Color(0xFF3E4795)),
-                const SizedBox(width: 4),
-                Text(
-                  bus['rating'] as String,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: Color(0xFF232A4D),
-                  ),
-                ),
-                Text('  (${bus['ratingsCount']} ratings)'),
-                const Spacer(),
-                Text(
-                  bus['driver'] as String,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            const Text('Average bus rating'),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _ChatSidebar extends StatefulWidget {
   final VoidCallback onClose;
   final List<_ChatMessage> messages;
@@ -1088,11 +1242,50 @@ class _NotificationsWithCompose extends StatefulWidget {
 class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
   bool _showCompose = false;
   bool _showSuccess = false;
+  bool _showScheduledModal = false;
+  int? _editingIndex;
 
-  void _openCompose() => setState(() => _showCompose = true);
+  // Store scheduled notifications
+  List<Map<String, dynamic>> _scheduledNotifications = [
+    // Example scheduled notification
+    // {
+    //   'title': 'System Maintenance',
+    //   'type': 'Service Maintenance',
+    //   'content': 'Scheduled downtime at 10pm.',
+    //   'recipients': {'All Commuters'},
+    //   'schedule': DateTime.now().add(Duration(days: 1)),
+    // },
+  ];
+
+  void _openCompose([int? index]) {
+    setState(() {
+      _editingIndex = index;
+      _showCompose = true;
+    });
+  }
   void _closeCompose() => setState(() => _showCompose = false);
   void _showSuccessDialog() => setState(() { _showCompose = false; _showSuccess = true; });
   void _closeSuccessDialog() => setState(() => _showSuccess = false);
+  void _openScheduledModal() => setState(() => _showScheduledModal = true);
+  void _closeScheduledModal() => setState(() => _showScheduledModal = false);
+
+  void _saveScheduledNotification(Map<String, dynamic> notif) {
+    setState(() {
+      if (_editingIndex != null) {
+        _scheduledNotifications[_editingIndex!] = notif;
+      } else {
+        _scheduledNotifications.add(notif);
+      }
+      _showCompose = false;
+      _editingIndex = null;
+    });
+  }
+
+  void _deleteScheduledNotification(int index) {
+    setState(() {
+      _scheduledNotifications.removeAt(index);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1128,37 +1321,55 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
                         color: Color(0xFF3E4795),
                       ),
                     ),
-                    GestureDetector(
-                      onTap: _openCompose,
-                      child: Container(
-                        width: 170, // match Add Driver button width
-                        height: 44, // match Add Driver button height
-                        padding: const EdgeInsets.symmetric(horizontal: 24), // match Add Driver button padding
-                        decoration: BoxDecoration(
-                          color: Color(0xFFF0F3FF), // keep current color
-                          borderRadius: BorderRadius.circular(10), // match Add Driver shape
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(Icons.edit, color: Color(0xFF3E4795), size: 20), // match Add Driver icon size
-                            SizedBox(width: 10), // match Add Driver spacing
-                            Text(
-                              'Compose',
-                              style: TextStyle(
-                                color: Color(0xFF3E4795),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 17, // match Add Driver font size
-                              ),
+                    Row(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: _openScheduledModal,
+                          icon: const Icon(Icons.schedule, color: Color(0xFF3E4795)),
+                          label: const Text('View Scheduled Notifications', style: TextStyle(color: Color(0xFF3E4795))),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF0F3FF),
+                            foregroundColor: const Color(0xFF3E4795),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 12),
+                        GestureDetector(
+                          onTap: () => _openCompose(),
+                          child: Container(
+                            width: 170,
+                            height: 44,
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            decoration: BoxDecoration(
+                              color: Color(0xFFF0F3FF),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(Icons.edit, color: Color(0xFF3E4795), size: 20),
+                                SizedBox(width: 10),
+                                Text(
+                                  'Compose',
+                                  style: TextStyle(
+                                    color: Color(0xFF3E4795),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 17,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
-                // Notification list
                 const Expanded(
                   child: _NotificationList(),
                 ),
@@ -1166,10 +1377,20 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
             ),
           ),
         ),
+        if (_showScheduledModal)
+          _ScheduledNotificationsModal(
+            notifications: _scheduledNotifications,
+            onEdit: (index) => _openCompose(index),
+            onDelete: _deleteScheduledNotification,
+            onClose: _closeScheduledModal,
+          ),
         if (_showCompose)
           _ComposeNotificationModal(
-            onSave: _showSuccessDialog,
+            onSave: (notif) {
+              _saveScheduledNotification(notif);
+            },
             onCancel: _closeCompose,
+            initialData: _editingIndex != null ? _scheduledNotifications[_editingIndex!] : null,
           ),
         if (_showSuccess)
           _NotificationSentDialog(onOk: _closeSuccessDialog),
@@ -1178,10 +1399,101 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
   }
 }
 
+// Modal for scheduled notifications
+class _ScheduledNotificationsModal extends StatelessWidget {
+  final List<Map<String, dynamic>> notifications;
+  final void Function(int) onEdit;
+  final void Function(int) onDelete;
+  final VoidCallback onClose;
+  const _ScheduledNotificationsModal({required this.notifications, required this.onEdit, required this.onDelete, required this.onClose});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.08),
+        child: Center(
+          child: Container(
+            width: 500,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 24,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Scheduled Notifications', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Color(0xFF3E4795))),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Color(0xFF3E4795)),
+                      onPressed: onClose,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (notifications.isEmpty)
+                  const Text('No scheduled notifications.', style: TextStyle(color: Colors.black54)),
+                if (notifications.isNotEmpty)
+                  ...notifications.asMap().entries.map((entry) {
+                    final i = entry.key;
+                    final notif = entry.value;
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      child: ListTile(
+                        title: Text(notif['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (notif['schedule'] != null)
+                              Text('Scheduled: ' + notif['schedule'].toString()),
+                            if (notif['type'] != null)
+                              Text('Type: ' + notif['type']),
+                            if (notif['content'] != null)
+                              Text('Content: ' + notif['content']),
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () => onEdit(i),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => onDelete(i),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Update ComposeNotificationModal to accept initialData for editing
 class _ComposeNotificationModal extends StatefulWidget {
-  final VoidCallback onSave;
+  final void Function(Map<String, dynamic>) onSave;
   final VoidCallback onCancel;
-  const _ComposeNotificationModal({required this.onSave, required this.onCancel});
+  final Map<String, dynamic>? initialData;
+  const _ComposeNotificationModal({required this.onSave, required this.onCancel, this.initialData});
 
   @override
   State<_ComposeNotificationModal> createState() => _ComposeNotificationModalState();
@@ -1207,6 +1519,18 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
     'Specific FCM Unit',
     'Specific User',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialData != null) {
+      _title = widget.initialData!['title'];
+      _type = widget.initialData!['type'];
+      _content = widget.initialData!['content'];
+      _recipients = Set<String>.from(widget.initialData!['recipients'] ?? []);
+      _schedule = widget.initialData!['schedule'];
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1246,6 +1570,7 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
                     const Text('Notification Title', style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF3E4795))),
                     const SizedBox(height: 4),
                     TextFormField(
+                      initialValue: _title,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -1256,6 +1581,7 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
                     const Text('Notification Type', style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF3E4795))),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<String>(
+                      value: _type,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -1267,6 +1593,7 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
                     const Text('Content', style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF3E4795))),
                     const SizedBox(height: 4),
                     TextFormField(
+                      initialValue: _content,
                       minLines: 2,
                       maxLines: 4,
                       decoration: InputDecoration(
@@ -1317,7 +1644,7 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
                           onPressed: () async {
                             final picked = await showDatePicker(
                               context: context,
-                              initialDate: DateTime.now(),
+                              initialDate: _schedule ?? DateTime.now(),
                               firstDate: DateTime(2020),
                               lastDate: DateTime(2100),
                             );
@@ -1343,7 +1670,13 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
                         ElevatedButton(
                           onPressed: () {
                             if (_formKey.currentState!.validate()) {
-                              widget.onSave();
+                              widget.onSave({
+                                'title': _title,
+                                'type': _type,
+                                'content': _content,
+                                'recipients': _recipients,
+                                'schedule': _schedule,
+                              });
                             }
                           },
                           style: ElevatedButton.styleFrom(
@@ -1736,16 +2069,18 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
                                                 overflow: TextOverflow.ellipsis,
                                                 textAlign: TextAlign.center,
                                               ),
-                                              Text(
-                                                _isFutureDate(day) ? firstTripTime : tripRange,
-                                                style: TextStyle(
-                                                  color: isToday ? const Color(0xFF1A237E) : const Color(0xFF3E4795),
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 10.5,
+                                              FittedBox(
+                                                fit: BoxFit.scaleDown,
+                                                child: Text(
+                                                  _isFutureDate(day) ? firstTripTime : tripRange,
+                                                  style: TextStyle(
+                                                    color: isToday ? const Color(0xFF1A237E) : const Color(0xFF3E4795),
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 10.5,
+                                                  ),
+                                                  maxLines: 1,
+                                                  textAlign: TextAlign.center,
                                                 ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                textAlign: TextAlign.center,
                                               ),
                                             ],
                                           ),
