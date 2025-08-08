@@ -4,9 +4,13 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/user_provider.dart';
+import '../widgets/vehicle_info_sheet.dart';
+import '../helpers/mapbox_services.dart';
+import '../helpers/distance_utils.dart';
+import '../helpers/geofence_utils.dart';
 import 'package:http/http.dart' as http;
-import 'package:latlong2/latlong.dart';
 import 'dart:convert';
+import 'dart:async';
 
 class PassengerScreen extends StatefulWidget {
   const PassengerScreen({super.key});
@@ -88,13 +92,13 @@ class _SearchFieldState extends State<SearchField> {
 
   Future<void> _searchPlace(String query) async {
     final accessToken =
-        'INSERT TOKEN HERE'; // Replace with your Mapbox access token
+        'pk.eyJ1Ijoia3lsbHVoaGgiLCJhIjoiY21jNzFrbjhnMWEzdTJqb21razJzMnNzZSJ9.mTR_W24uzbK1y3Z1Y4OjTA'; // Replace with your Mapbox access token
     final encodedQuery = Uri.encodeComponent(query);
 
     final url = Uri.parse(
       'https://api.mapbox.com/geocoding/v5/mapbox.places/$encodedQuery.json'
       '?access_token=$accessToken'
-      '&limit=5',
+      '&limit=5&country=ph',
     );
 
     try {
@@ -224,7 +228,7 @@ class _SearchFieldState extends State<SearchField> {
   }
 }
 
-class LocationSwitch extends StatefulWidget {
+/*class LocationSwitch extends StatefulWidget {
   const LocationSwitch({super.key});
 
   @override
@@ -362,7 +366,7 @@ class _LocationSwitchState extends State<LocationSwitch> {
       ),
     );
   }
-}
+}*/
 
 class CustomBottomBar extends StatelessWidget {
   final int currentIndex;
@@ -568,6 +572,7 @@ class _MapScreenState extends State<MapScreen> {
   LatLng? _pickedLocation;
   final MapController _mapController = MapController();
   bool _showRoutePolyLine = false;
+  bool _wasInsideGeofence = false;
 
   final List<LatLng> _routePoints = [
     LatLng(13.9467729, 121.1555241),
@@ -576,52 +581,6 @@ class _MapScreenState extends State<MapScreen> {
     LatLng(13.951033283494375, 121.15975747814403),
     LatLng(13.952865846616918, 121.16308555449044),
   ];
-
-  Future<String> _getPlaceNameFromCoordinates(LatLng location) async {
-    final accessToken =
-        'INSERT TOKEN HERE'; // Replace with your Mapbox access token
-    final url = Uri.parse(
-      'https://api.mapbox.com/search/geocode/v6/reverse'
-      '?longitude=${location.longitude}&latitude=${location.latitude}'
-      '&access_token=$accessToken',
-    );
-
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final features = data['features'] as List;
-        if (features.isNotEmpty) {
-          final props = features[0]['properties'];
-          return props['name'] ?? props['full_address'] ?? 'Unnamed location';
-        }
-      }
-    } catch (e) {
-      print('Geocoding error: $e');
-    }
-
-    return 'Unknown location';
-  }
-
-  bool isNearRoute(
-    LatLng pinnedLocation,
-    List<LatLng> routePoints, {
-    double maxDistance = 300,
-  }) {
-    final Distance distance = Distance();
-
-    for (final point in routePoints) {
-      final double meters = distance.as(
-        LengthUnit.Meter,
-        pinnedLocation,
-        point,
-      );
-      if (meters <= maxDistance) {
-        return true; // Close enough to the route
-      }
-    }
-    return false; // Too far from the route
-  }
 
   void _toggleVehicleInfoAndZoom() {
     setState(() {
@@ -780,6 +739,65 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  //Geofencing simulation for testing
+  List<LatLng> _geofencePoints = [
+    LatLng(13.94758263613753, 121.15624906847192),
+    LatLng(13.947770089296156, 121.1563622930869),
+    LatLng(13.948263911430017, 121.15673707937391),
+    LatLng(13.948482538852513, 121.15688566163013),
+  ];
+  int _currentMockIndex = 0;
+  LatLng _vehiclePosition = LatLng(13.947065523186177, 121.15588275354108);
+
+  void _startSimulation() {
+    Timer.periodic(Duration(seconds: 2), (timer) {
+      if (_currentMockIndex >= _geofencePoints.length) {
+        timer.cancel();
+        _currentMockIndex = 0;
+        _isSimulationRunning = false;
+        return;
+      }
+
+      setState(() {
+        _vehiclePosition = _geofencePoints[_currentMockIndex];
+        _currentMockIndex++;
+      });
+
+      _checkGeofence(); // Call geofence logic on each movement
+    });
+  }
+
+  bool _isSimulationRunning = false;
+  //geofencing
+  void _checkGeofence() {
+    bool isInside = isWithinGeofence(
+      point: _vehiclePosition, // Your vehicle location
+      center: _geofencePoints[1],
+      radiusInMeters: 10,
+    );
+
+    if (isInside && !_wasInsideGeofence) {
+      // Just entered geofence
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("🟢 Vehicle entered the destination area."),
+          duration: Duration(seconds: 5),
+        ),
+      );
+    } else if (!isInside && _wasInsideGeofence) {
+      // Just exited geofence
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("🔴 Vehicle exited the destination area."),
+          duration: Duration(seconds: 5),
+        ),
+      );
+    }
+
+    // Update tracking state
+    _wasInsideGeofence = isInside;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -796,7 +814,8 @@ class _MapScreenState extends State<MapScreen> {
                   _pickedLocation = latlng;
                   _showVehicleInfo = false; // Hide vehicle info on map tap
                 });
-                final placeName = await _getPlaceNameFromCoordinates(latlng);
+                final placeName =
+                    await MapboxService.getPlaceNameFromCoordinates(latlng);
                 final Distance distance = Distance();
                 final busLocation = LatLng(
                   13.947234252372729,
@@ -835,7 +854,8 @@ class _MapScreenState extends State<MapScreen> {
                   Marker(
                     width: 40.0,
                     height: 40.0,
-                    point: LatLng(13.9467729, 121.1555241),
+                    point:
+                        _vehiclePosition, // <-- Updated to use moving position
                     child: GestureDetector(
                       onTap: _toggleVehicleInfoAndZoom,
                       child: Container(
@@ -906,6 +926,30 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ],
           ),
+          //temporary button to start simulation
+          Positioned(
+            right: 16,
+            // If you have a bottom nav, lift it up a bit:
+            bottom: 100, // try 16 if no navbar; adjust as needed
+            child: SafeArea(
+              child: ElevatedButton.icon(
+                onPressed: _isSimulationRunning
+                    ? null
+                    : () {
+                        _startSimulation();
+                        setState(() => _isSimulationRunning = true);
+                      },
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Start Simulation'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ),
+          ),
 
           Positioned(
             top: 20,
@@ -921,9 +965,10 @@ class _MapScreenState extends State<MapScreen> {
                       _showVehicleInfo = false;
                     });
 
-                    final placeName = await _getPlaceNameFromCoordinates(
-                      selectedLatLng,
-                    );
+                    final placeName =
+                        await MapboxService.getPlaceNameFromCoordinates(
+                          selectedLatLng,
+                        );
                     final Distance distance = Distance();
                     final busLocation = LatLng(
                       13.947234252372729,
@@ -961,170 +1006,22 @@ class _MapScreenState extends State<MapScreen> {
             Positioned(
               left: 0,
               right: 0,
-              bottom: 90, // Adjust based on your navbar
+              bottom: 90,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Container(
-                  constraints: const BoxConstraints(
-                    minHeight: 100,
-                    maxHeight: 260,
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(24),
-                      topRight: Radius.circular(24),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 12,
-                        offset: const Offset(0, -4),
+                child: VehicleInfoSheet(
+                  onClose: _hideVehicleInfo,
+                  onTrackPressed: () {
+                    setState(() {
+                      _showRoutePolyLine = true;
+                    });
+                    _mapController.fitBounds(
+                      LatLngBounds.fromPoints(_routePoints),
+                      options: const FitBoundsOptions(
+                        padding: EdgeInsets.all(50),
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'FCM No. 05',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF3E4795),
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.close,
-                                  color: Colors.grey,
-                                ),
-                                onPressed:
-                                    _hideVehicleInfo, // <-- closes the bottom sheet
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Plate & Route
-                      const Text(
-                        'Plate No: DAL 7674',
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Bauan City → Lipa City Terminal',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // ETA and Current Location
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          Text(
-                            'Estimated Time of Arrival',
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
-                          ),
-                          Text(
-                            '8:30 AM',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          Text(
-                            'Current Location',
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
-                          ),
-                          Text(
-                            'Lalayat San Jose',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Driver Name + Track Button Side by Side
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text(
-                                "Driver's Name",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Nelson Suarez',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                _showRoutePolyLine = true;
-                              });
-
-                              // Optionally zoom into the route
-                              _mapController.fitBounds(
-                                LatLngBounds.fromPoints(_routePoints),
-                                options: const FitBoundsOptions(
-                                  padding: EdgeInsets.all(50),
-                                ),
-                              );
-                            },
-
-                            icon: const Icon(Icons.navigation, size: 16),
-                            label: const Text(
-                              'Track Trip',
-                              style: TextStyle(fontSize: 14),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF3E4795),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              elevation: 0,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
             ),
