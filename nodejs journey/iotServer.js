@@ -5,8 +5,8 @@ const app = express();
 const iotData = [
   {
     vehicle_id: 1,
-    lat: 14.5995,
-    lng: 120.9842,
+    lat: 13.95240,
+    lng: 121.16222,
     timestamp: "2025-08-11T14:30:00Z"
   },
   {

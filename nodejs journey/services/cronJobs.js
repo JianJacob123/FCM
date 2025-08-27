@@ -1,8 +1,8 @@
 const { startVehicleUpdater } = require('./vehicleUpdater');
 const { startPassengerTripJobs } = require('./passengerTripUpdater');
 
-function startCronJobs() {
-  startVehicleUpdater();
+function startCronJobs(io) {
+  startVehicleUpdater(io);
   startPassengerTripJobs();
 }
 

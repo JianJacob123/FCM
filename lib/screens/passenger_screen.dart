@@ -8,6 +8,8 @@ import '../widgets/vehicle_info_sheet.dart';
 import '../helpers/mapbox_services.dart';
 import '../helpers/distance_utils.dart';
 import '../helpers/geofence_utils.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import '../services/api.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
@@ -457,34 +459,37 @@ class CustomBottomBar extends StatelessWidget {
   }
 }
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  late Future<List<dynamic>> notifications;
+
+  @override
+  void initState() {
+    super.initState();
+    notifications = fetchNotifications();
+  }
+
+  IconData mapIcon(String iconName) {
+    switch (iconName) {
+      case "directions_bus":
+        return Icons.directions_bus;
+      case "location_on":
+        return Icons.location_on;
+      case "star":
+        return Icons.star;
+      default:
+        return Icons.notifications;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final notifications = [
-      {
-        'icon': Icons.directions_bus,
-        'iconBg': Color(0xFFBFC6F7),
-        'title': 'FCM Incoming',
-        'subtitle': 'FCM No. 07 is now approaching your stop',
-        'time': '9:41 AM',
-      },
-      {
-        'icon': Icons.location_on,
-        'iconBg': Color(0xFFBFC6F7),
-        'title': 'Check Near FCMs',
-        'subtitle': "You're near your saved location",
-        'time': '7:50 AM',
-      },
-      {
-        'icon': Icons.star,
-        'iconBg': Color(0xFFBFC6F7),
-        'title': 'Rate the Ride',
-        'subtitle': "Don't forget to rate No. 22 from your recent trip!",
-        'time': '9:00 AM',
-      },
-    ];
     return Scaffold(
       backgroundColor: Colors.white,
       body: Padding(
@@ -495,7 +500,7 @@ class NotificationsScreen extends StatelessWidget {
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+              children: const [
                 Text(
                   'Notifications',
                   style: TextStyle(
@@ -507,49 +512,66 @@ class NotificationsScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            ...notifications.map(
-              (notif) => Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Color(0xFFF3F3F3),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: ListTile(
-                    leading: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: notif['iconBg'] as Color,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        notif['icon'] as IconData,
-                        color: Color.fromRGBO(62, 71, 149, 1),
-                        size: 28,
-                      ),
-                    ),
-                    title: Text(
-                      notif['title'] as String,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    subtitle: Text(
-                      notif['subtitle'] as String,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    trailing: Text(
-                      notif['time'] as String,
-                      style: const TextStyle(fontSize: 13, color: Colors.grey),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                  ),
-                ),
+            Expanded(
+              child: FutureBuilder<List<dynamic>>(
+                future: notifications,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text("Error: ${snapshot.error}"));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text("No notifications"));
+                  } else {
+                    return ListView.builder(
+                      itemCount: snapshot.data!.length,
+                      itemBuilder: (context, index) {
+                        final notif = snapshot.data![index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF3F3F3),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: ListTile(
+                              leading: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFBFC6F7),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              title: Text(
+                                notif["notif_title"],
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              subtitle: Text(
+                                notif["content"],
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              trailing: Text(
+                                notif["notif_date"],
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }
+                },
               ),
             ),
           ],
@@ -563,240 +585,86 @@ class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
   @override
-  State<MapScreen> createState() => _MapScreenState();
+  _MapScreenState createState() => _MapScreenState();
 }
 
 class _MapScreenState extends State<MapScreen> {
-  //Declare Variables
-  bool _showVehicleInfo = false;
-  LatLng? _pickedLocation;
-  final MapController _mapController = MapController();
-  bool _showRoutePolyLine = false;
-  bool _wasInsideGeofence = false;
+  late IO.Socket vehicleSocket;
+  Map<int, Marker> _vehicleMarkers = {}; // vehicle_id to Marker
+  Map<String, dynamic>? _selectedVehicle; // selected vehicle info
+  @override
+  void initState() {
+    super.initState();
 
-  final List<LatLng> _routePoints = [
-    LatLng(13.9467729, 121.1555241),
-    LatLng(13.948197503981618, 121.15663127065292),
-    LatLng(13.950278979606711, 121.15838610642095),
-    LatLng(13.951033283494375, 121.15975747814403),
-    LatLng(13.952865846616918, 121.16308555449044),
-  ];
-
-  void _toggleVehicleInfoAndZoom() {
-    setState(() {
-      _showVehicleInfo = true;
-    });
-
-    // Animate map to a slightly higher position for better visibility
-    _mapController.move(LatLng(13.9465, 121.1555), 15.5);
-  }
-
-  void _hideVehicleInfo() {
-    setState(() {
-      _showVehicleInfo = false;
-      _showRoutePolyLine = false;
-    });
-  }
-
-  void _showPinInfoModal(
-    LatLng location,
-    String placeName,
-    double distanceInKm,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor:
-          Colors.transparent, // transparent to style inner container
-      isScrollControlled: true,
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: 90, // adjust if you have a navbar
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Title + Close in one row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        placeName,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF3E4795),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.close, color: Colors.grey),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 4),
-
-                // Distance
-                Text(
-                  '${distanceInKm.toStringAsFixed(2)} km away from bus location',
-                  style: const TextStyle(fontSize: 14, color: Colors.black87),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Action Buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        // TODO: Add to favorites logic
-                      },
-                      icon: const Icon(Icons.favorite_border),
-                      label: const Text('Save Favorites'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF3E4795),
-                        side: const BorderSide(color: Color(0xFF3E4795)),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        final isValid = isNearRoute(
-                          _pickedLocation!,
-                          _routePoints,
-                        );
-
-                        if (!isValid) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Selected pickup location is too far from the route.',
-                              ),
-                            ),
-                          );
-                          return;
-                        }
-
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Pick Up Location Set!'),
-                          ),
-                        );
-
-                        // Proceed with saving destination logic...
-                      },
-                      icon: const Icon(Icons.directions),
-                      label: const Text('Set Pickup'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF3E4795),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+    // --- Vehicle socket (no userId needed) ---
+    vehicleSocket = IO.io(
+      "http://localhost:8080/vehicles",
+      IO.OptionBuilder().setTransports(['websocket']).build(),
     );
-  }
 
-  //Geofencing simulation for testing
-  List<LatLng> _geofencePoints = [
-    LatLng(13.94758263613753, 121.15624906847192),
-    LatLng(13.947770089296156, 121.1563622930869),
-    LatLng(13.948263911430017, 121.15673707937391),
-    LatLng(13.948482538852513, 121.15688566163013),
-  ];
-  int _currentMockIndex = 0;
-  LatLng _vehiclePosition = LatLng(13.947065523186177, 121.15588275354108);
+    vehicleSocket.connect();
 
-  void _startSimulation() {
-    Timer.periodic(Duration(seconds: 2), (timer) {
-      if (_currentMockIndex >= _geofencePoints.length) {
-        timer.cancel();
-        _currentMockIndex = 0;
-        _isSimulationRunning = false;
-        return;
-      }
+    vehicleSocket.onConnect((_) {
+      print('✅ Connected to vehicle backend');
+      vehicleSocket.emit("subscribeVehicles"); // 🔑 join vehicleRoom
+    });
 
+    vehicleSocket.on('vehicleUpdate', (data) {
+      print('🚐 Vehicle update: $data');
+
+      // data is an array of vehicles
       setState(() {
-        _vehiclePosition = _geofencePoints[_currentMockIndex];
-        _currentMockIndex++;
-      });
+        for (var v in data) {
+          final id = v["vehicle_id"];
+          final lat = double.parse(v["lat"].toString());
+          final lng = double.parse(v["lng"].toString());
+          final route = v["route_name"];
 
-      _checkGeofence(); // Call geofence logic on each movement
+          _vehicleMarkers[id] = Marker(
+            point: LatLng(lat, lng),
+            width: 50,
+            height: 50,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedVehicle = v; // save the tapped vehicle info
+                  _showVehicleInfo = true;
+                });
+              },
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.directions_bus,
+                    color: Colors.blue,
+                    size: 30,
+                  ),
+                  Text(
+                    route,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      backgroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      });
+    });
+
+    vehicleSocket.onDisconnect((_) {
+      print('❌ Vehicle disconnected');
     });
   }
 
-  bool _isSimulationRunning = false;
-  //geofencing
-  void _checkGeofence() {
-    bool isInside = isWithinGeofence(
-      point: _vehiclePosition, // Your vehicle location
-      center: _geofencePoints[1],
-      radiusInMeters: 10,
-    );
+  final MapController _mapController = MapController();
 
-    if (isInside && !_wasInsideGeofence) {
-      // Just entered geofence
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("🟢 Vehicle entered the destination area."),
-          duration: Duration(seconds: 5),
-        ),
-      );
-    } else if (!isInside && _wasInsideGeofence) {
-      // Just exited geofence
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("🔴 Vehicle exited the destination area."),
-          duration: Duration(seconds: 5),
-        ),
-      );
-    }
+  // ✅ Keep: picked location for user search
+  LatLng? _pickedLocation;
 
-    // Update tracking state
-    _wasInsideGeofence = isInside;
-  }
+  // ✅ Keep: vehicle info modal logic
+  bool _showVehicleInfo = false;
 
   @override
   Widget build(BuildContext context) {
@@ -806,31 +674,13 @@ class _MapScreenState extends State<MapScreen> {
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: LatLng(13.955785, 121.165510),
-              initialZoom: 13.0,
-              interactiveFlags: InteractiveFlag.all,
-              onTap: (tapPosition, latlng) async {
+              center: LatLng(13.945, 121.163),
+              zoom: 14,
+              onTap: (_, __) {
                 setState(() {
-                  _pickedLocation = latlng;
-                  _showVehicleInfo = false; // Hide vehicle info on map tap
+                  _showVehicleInfo = false;
+                  _pickedLocation = null;
                 });
-                final placeName =
-                    await MapboxService.getPlaceNameFromCoordinates(latlng);
-                final Distance distance = Distance();
-                final busLocation = LatLng(
-                  13.947234252372729,
-                  121.15598193108184,
-                ); // bus location
-
-                final double distanceInMeters = distance.as(
-                  LengthUnit.Meter,
-                  busLocation,
-                  latlng, // or selectedLatLng
-                );
-                final double distanceInKm = distanceInMeters / 1000;
-
-                // Call modal with distance
-                _showPinInfoModal(latlng, placeName, distanceInKm);
               },
             ),
             children: [
@@ -839,189 +689,182 @@ class _MapScreenState extends State<MapScreen> {
                     'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
                 subdomains: ['a', 'b', 'c', 'd'],
               ),
-              if (_showRoutePolyLine)
-                PolylineLayer(
-                  polylines: [
-                    Polyline(
-                      points: _routePoints,
-                      strokeWidth: 8.0,
-                      color: const Color.fromRGBO(62, 71, 149, 1),
-                    ),
-                  ],
-                ),
+
               MarkerLayer(
                 markers: [
-                  Marker(
-                    width: 40.0,
-                    height: 40.0,
-                    point:
-                        _vehiclePosition, // <-- Updated to use moving position
-                    child: GestureDetector(
-                      onTap: _toggleVehicleInfoAndZoom,
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF3E4795), // background color
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.directions_bus_outlined,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
                   if (_pickedLocation != null)
                     Marker(
                       point: _pickedLocation!,
                       width: 40,
                       height: 40,
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF3E4795),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.location_pin,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                        ),
+                      child: const Icon(
+                        Icons.location_pin,
+                        color: Colors.green,
+                        size: 32,
                       ),
                     ),
-
-                  if (_showRoutePolyLine)
-                    Marker(
-                      point: _routePoints.last, // Final destination
-                      width: 40,
-                      height: 40,
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF3E4795),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.location_pin,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                        ),
-                      ),
-                    ),
+                  ..._vehicleMarkers.values.toList(),
                 ],
               ),
             ],
           ),
-          //temporary button to start simulation
-          Positioned(
-            right: 16,
-            // If you have a bottom nav, lift it up a bit:
-            bottom: 100, // try 16 if no navbar; adjust as needed
-            child: SafeArea(
-              child: ElevatedButton.icon(
-                onPressed: _isSimulationRunning
-                    ? null
-                    : () {
-                        _startSimulation();
-                        setState(() => _isSimulationRunning = true);
-                      },
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Start Simulation'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                ),
-              ),
-            ),
-          ),
 
+          // ✅ Keep: search field on top
           Positioned(
-            top: 20,
-            left: 16,
-            right: 16,
+            top: 40,
+            left: 20,
+            right: 20,
             child: SearchField(
-              onLocationSelected:
-                  (LatLng selectedLatLng, String placeName) async {
-                    final isValid = isNearRoute(selectedLatLng, _routePoints);
-
-                    setState(() {
-                      _pickedLocation = selectedLatLng;
-                      _showVehicleInfo = false;
-                    });
-
-                    final placeName =
-                        await MapboxService.getPlaceNameFromCoordinates(
-                          selectedLatLng,
-                        );
-                    final Distance distance = Distance();
-                    final busLocation = LatLng(
-                      13.947234252372729,
-                      121.15598193108184,
-                    ); // bus location
-
-                    final double distanceInMeters = distance.as(
-                      LengthUnit.Meter,
-                      busLocation,
-                      selectedLatLng, // or selectedLatLng
-                    );
-                    final double distanceInKm = distanceInMeters / 1000;
-
-                    if (!isValid) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Selected location is too far from the route.',
-                          ),
-                        ),
-                      );
-                      return;
-                    }
-
-                    // Call modal with distance
-                    _showPinInfoModal(selectedLatLng, placeName, distanceInKm);
-
-                    //_showPinInfoModal(selectedLatLng, placeName, distanceInKm);
-                  },
+              onLocationSelected: (latLng, placeName) {
+                setState(() {
+                  _pickedLocation = latLng;
+                  _mapController.move(latLng, 16);
+                });
+              },
             ),
           ),
 
-          // Bottom Sheet
+          // ✅ Keep: vehicle info bottom sheet
           if (_showVehicleInfo)
             Positioned(
-              left: 0,
-              right: 0,
-              bottom: 90,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: VehicleInfoSheet(
-                  onClose: _hideVehicleInfo,
-                  onTrackPressed: () {
-                    setState(() {
-                      _showRoutePolyLine = true;
-                    });
-                    _mapController.fitBounds(
-                      LatLngBounds.fromPoints(_routePoints),
-                      options: const FitBoundsOptions(
-                        padding: EdgeInsets.all(50),
-                      ),
-                    );
-                  },
+              bottom: 80,
+              left: 20,
+              right: 20,
+              child: Container(
+                constraints: const BoxConstraints(
+                  minHeight: 100,
+                  maxHeight: 260,
+                ),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 12,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'FCM No. 05',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF3E4795),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: () {
+                            setState(() => _showVehicleInfo = false);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Plate No: DAL 7674',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_selectedVehicle?["route_name"] ?? "Unknown"}',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text(
+                          'Estimated Time of Arrival',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        Text(
+                          '8:30 AM',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text(
+                          'Current Location',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        Text(
+                          'Lalayat San Jose',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              "Driver's Name",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Nelson Suarez',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            // Implement navigation to tracking screen
+                          },
+                          icon: const Icon(Icons.navigation, size: 16),
+                          label: const Text(
+                            'Track Trip',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3E4795),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),

@@ -11,6 +11,11 @@ const getVehicles = async (req, res) => {
     }
 }
 
+// This is for internal use (not req/res based)
+const getVehiclesDirect = async () => {
+  return await vehicleModel.getAllVehicles();
+};
+
 const updateCoordinatesLogic = async () => {
     try {
         const iotResponse = await coordinatesData.getIoTData();
@@ -43,6 +48,7 @@ const updateCoordinates = async (req, res) => {
 
 module.exports = {
     getVehicles,
+    getVehiclesDirect,
     updateCoordinates,
     updateCoordinatesLogic
 };

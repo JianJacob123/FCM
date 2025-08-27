@@ -1,5 +1,4 @@
 const client = require('../config/db'); //db connection file
-const { get } = require('../routes/vehicleRoutes');
 
 const getAllRequestsByPassengerId = async (passengerId) => {
     const sql = `SELECT * FROM passenger_trip WHERE passenger_id = $1`;

@@ -7,7 +7,7 @@ const client = require('../config/db'); //db connection file
 
 const getAllVehicles = async () => {
     try {
-        const res = await client.query('SELECT * FROM vehicles');
+        const res = await client.query('SELECT vehicle_id, lat, lng, route_name, end_lat, end_lat FROM vehicles INNER JOIN routes ON routes.route_id = vehicles.route_id');
         return res.rows;
     } catch (err) {
         console.error('Error fetching vehicles:', err);
