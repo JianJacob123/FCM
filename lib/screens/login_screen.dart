@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../models/user_role.dart';
 import '../main.dart';
 
@@ -14,14 +16,15 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _usernameController = TextEditingController();
-  final _driverPassword = "driver123";
   bool _showDriverLogin = false;
 
   double _dragStartY = 0;
 
   void _continueAsPassenger() {
+    final guestId =
+        context.read<UserProvider>().guestId ?? DateTime.now().toString();
     final user = UserModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: guestId,
       name: 'Passenger',
       role: UserRole.passenger,
     );
@@ -32,35 +35,64 @@ class _LoginScreenState extends State<LoginScreen> {
     ).pushReplacement(MaterialPageRoute(builder: (_) => const AppWrapper()));
   }
 
-  void _loginAsDriver() {
+  Future<void> _loginAsDriver() async {
     final username = _usernameController.text.trim();
-    if (username.isEmpty) {
+    final password = _passwordController.text.trim();
+
+    if (username.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter your username.'),
+          content: Text('Please enter your username and password.'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
-    if (username.toLowerCase() != 'conductor') {
-      return;
-    }
-    if (_passwordController.text == _driverPassword) {
-      final user = UserModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: username,
-        role: UserRole.conductor,
-        vehicleId: 'VEH001',
+
+    try {
+      // 1. Call your backend
+      final response = await http.post(
+        Uri.parse(
+          'http://localhost:8080/users/login',
+        ), // change to your endpoint
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({"username": username, "password": password}),
       );
-      context.read<UserProvider>().loginUser(user);
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const AppWrapper()),
-      );
-    } else {
+
+      // 2. Check if successful
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+
+        // 3. Build user from backend response
+        final user = UserModel(
+          id: responseData['data']['user_id'].toString(),
+          name: responseData['data']['full_name'],
+          role: responseData['data']['user_role'] == 'conductor'
+              ? UserRole.conductor
+              : UserRole.passenger,
+        );
+
+        // 4. Store in provider
+        context.read<UserProvider>().loginUser(user);
+
+        // 5. Navigate to wrapper
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const AppWrapper()),
+        );
+      } else {
+        final errorData = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorData['error'] ?? 'Login failed.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (err) {
+      print("Login error: $err");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Incorrect password. Please try again.'),
+          content: Text('Something went wrong. Please try again.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -75,7 +107,8 @@ class _LoginScreenState extends State<LoginScreen> {
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onVerticalDragEnd: (details) {
-          if (details.primaryVelocity != null && details.primaryVelocity! < -20) {
+          if (details.primaryVelocity != null &&
+              details.primaryVelocity! < -20) {
             _continueAsPassenger();
           }
         },
@@ -86,10 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF8EA2F8),
-                Color(0xFF3E4795),
-              ],
+              colors: [Color(0xFF8EA2F8), Color(0xFF3E4795)],
             ),
           ),
           child: Stack(
@@ -150,7 +180,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     GestureDetector(
                       onTap: _continueAsPassenger,
                       behavior: HitTestBehavior.opaque,
-                      child: const Icon(Icons.keyboard_double_arrow_up, size: 56, color: Colors.white),
+                      child: const Icon(
+                        Icons.keyboard_double_arrow_up,
+                        size: 56,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -227,7 +261,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: ElevatedButton(
-                                    onPressed: () => setState(() => _showDriverLogin = false),
+                                    onPressed: () => setState(
+                                      () => _showDriverLogin = false,
+                                    ),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.grey,
                                       foregroundColor: Colors.white,
@@ -250,4 +286,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
- 

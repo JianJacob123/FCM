@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_role.dart';
+import 'package:uuid/uuid.dart';
+import 'dart:convert';
 
 class UserProvider extends ChangeNotifier {
   UserModel? _currentUser;
+  String? _guestId;
   bool _isLoading = false;
 
   UserModel? get currentUser => _currentUser;
+  String? get guestId => _guestId;
   bool get isLoading => _isLoading;
   bool get isLoggedIn => _currentUser != null;
 
@@ -17,12 +21,21 @@ class UserProvider extends ChangeNotifier {
 
     try {
       final prefs = await SharedPreferences.getInstance();
+
+      // Load guest ID
+      String? storedGuestId = prefs.getString('guest_id');
+      if (storedGuestId == null) {
+        storedGuestId = const Uuid().v4();
+        await prefs.setString('guest_id', storedGuestId);
+      }
+
+      _guestId = storedGuestId;
+
+      //Load logged-in user if exists
       final userJson = prefs.getString('user');
-      
+
       if (userJson != null) {
-        final userData = Map<String, dynamic>.from(
-          userJson as Map<String, dynamic>
-        );
+        final userData = jsonDecode(userJson);
         _currentUser = UserModel.fromJson(userData);
       }
     } catch (e) {
@@ -80,4 +93,4 @@ class UserProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
-} 
+}

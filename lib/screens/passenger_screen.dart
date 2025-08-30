@@ -618,7 +618,6 @@ class _MapScreenState extends State<MapScreen> {
           final id = v["vehicle_id"];
           final lat = double.parse(v["lat"].toString());
           final lng = double.parse(v["lng"].toString());
-          final route = v["route_name"];
 
           _vehicleMarkers[id] = Marker(
             point: LatLng(lat, lng),
@@ -637,13 +636,6 @@ class _MapScreenState extends State<MapScreen> {
                     Icons.directions_bus,
                     color: Colors.blue,
                     size: 30,
-                  ),
-                  Text(
-                    route,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      backgroundColor: Colors.white,
-                    ),
                   ),
                 ],
               ),
@@ -725,7 +717,7 @@ class _MapScreenState extends State<MapScreen> {
           ),
 
           // ✅ Keep: vehicle info bottom sheet
-          if (_showVehicleInfo)
+          if (_showVehicleInfo && _selectedVehicle != null)
             Positioned(
               bottom: 80,
               left: 20,
@@ -756,8 +748,8 @@ class _MapScreenState extends State<MapScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'FCM No. 05',
+                        Text(
+                          'FCM No. ${_selectedVehicle?["vehicle_id"] ?? "Unknown"}',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -767,7 +759,10 @@ class _MapScreenState extends State<MapScreen> {
                         IconButton(
                           icon: const Icon(Icons.close, color: Colors.grey),
                           onPressed: () {
-                            setState(() => _showVehicleInfo = false);
+                            setState(() {
+                              _showVehicleInfo = false;
+                              _selectedVehicle = null;
+                            });
                           },
                         ),
                       ],
