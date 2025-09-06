@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'admin_login_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../services/vehicle_assignment_api.dart';
 
 // Constants for the rotating schedule
 final List<String> kUnits = [
@@ -19,7 +20,7 @@ final List<String> kTimeSlots = List.generate(15, (i) {
   return '${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
 });
 
-enum AdminSection { dashboard, analytics, userManagement, notifications, schedules, activityLogs }
+enum AdminSection { dashboard, analytics, notifications, schedules, vehicleAssignment, activityLogs }
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -33,7 +34,8 @@ class _AdminScreenState extends State<AdminScreen> {
   int? _selectedBusIndex;
   bool _showRoutePolyLine = false;
   final MapController _mapController = MapController();
-    bool _isEditMode = false;
+  bool _isEditMode = false;
+  bool _isSidebarOpen = false;
   
   // Controllers for editable fields
   final List<TextEditingController> _timeControllers = List.generate(15, (index) => TextEditingController());
@@ -173,82 +175,164 @@ class _AdminScreenState extends State<AdminScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+    
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: isMobile ? AppBar(
+        backgroundColor: const Color(0xFF3E4795),
+        foregroundColor: Colors.white,
+        title: const Text('FCM Admin'),
+        leading: IconButton(
+          icon: const Icon(Icons.menu),
+          onPressed: () => setState(() => _isSidebarOpen = !_isSidebarOpen),
+        ),
+      ) : null,
       body: Row(
         children: [
-          // Sidebar
-          Container(
-            width: 260,
-            color: Colors.white,
-            child: Column(
-              children: [
-                const SizedBox(height: 32),
-                // Logo
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Image.asset(
-                    'assets/logo.png',
-                    height: 170,
+          // Sidebar - responsive visibility
+          if (!isMobile || _isSidebarOpen) ...[
+            Container(
+              width: isMobile ? screenWidth * 0.8 : 260,
+              color: Colors.white,
+              child: Column(
+                children: [
+                  if (isMobile) ...[
+                    // Mobile header with close button
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'FCM Admin',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF3E4795),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Color(0xFF3E4795)),
+                            onPressed: () => setState(() => _isSidebarOpen = false),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 32),
+                  ],
+                  // Logo
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Image.asset(
+                      'assets/logo.png',
+                      height: isMobile ? 120 : 170,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
-                              _SidebarItem(
-                icon: Icons.map,
-                label: 'Live Tracking',
-                selected: _selectedSection == AdminSection.dashboard,
-                onTap: () => setState(() => _selectedSection = AdminSection.dashboard),
-              ),
-                _SidebarItem(
-                  icon: Icons.analytics,
-                  label: 'Analytics',
-                  selected: _selectedSection == AdminSection.analytics,
-                  onTap: () => setState(() => _selectedSection = AdminSection.analytics),
-                ),
-                _SidebarItem(
-                  icon: Icons.people,
-                  label: 'User Management',
-                  selected: _selectedSection == AdminSection.userManagement,
-                  onTap: () => setState(() => _selectedSection = AdminSection.userManagement),
-                ),
-                _SidebarItem(
-                  icon: Icons.notifications,
-                  label: 'Notifications',
-                  selected: _selectedSection == AdminSection.notifications,
-                  onTap: () => setState(() => _selectedSection = AdminSection.notifications),
-                ),
-                _SidebarItem(
-                  icon: Icons.calendar_today,
-                  label: 'Schedules',
-                  selected: _selectedSection == AdminSection.schedules,
-                  onTap: () => setState(() => _selectedSection = AdminSection.schedules),
-                ),
-                _SidebarItem(
-                  icon: Icons.access_time,
-                  label: 'Activity Logs',
-                  selected: _selectedSection == AdminSection.activityLogs,
-                  onTap: () => setState(() => _selectedSection = AdminSection.activityLogs),
-                ),
-                const Spacer(),
-                // Logout
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 24.0),
-                  child: ListTile(
-                    leading: const Icon(Icons.logout, color: Colors.red),
-                    title: const Text('Log out', style: TextStyle(color: Colors.red)),
+                  const SizedBox(height: 32),
+                  _SidebarItem(
+                    icon: Icons.map,
+                    label: 'Live Tracking',
+                    selected: _selectedSection == AdminSection.dashboard,
                     onTap: () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
-                      );
+                      setState(() {
+                        _selectedSection = AdminSection.dashboard;
+                        if (isMobile) _isSidebarOpen = false;
+                      });
                     },
                   ),
-                ),
-              ],
+                  _SidebarItem(
+                    icon: Icons.analytics,
+                    label: 'Analytics',
+                    selected: _selectedSection == AdminSection.analytics,
+                    onTap: () {
+                      setState(() {
+                        _selectedSection = AdminSection.analytics;
+                        if (isMobile) _isSidebarOpen = false;
+                      });
+                    },
+                  ),
+                  _SidebarItem(
+                    icon: Icons.notifications,
+                    label: 'Notifications',
+                    selected: _selectedSection == AdminSection.notifications,
+                    onTap: () {
+                      setState(() {
+                        _selectedSection = AdminSection.notifications;
+                        if (isMobile) _isSidebarOpen = false;
+                      });
+                    },
+                  ),
+                  _SidebarItem(
+                    icon: Icons.calendar_today,
+                    label: 'Schedules',
+                    selected: _selectedSection == AdminSection.schedules,
+                    onTap: () {
+                      setState(() {
+                        _selectedSection = AdminSection.schedules;
+                        if (isMobile) _isSidebarOpen = false;
+                      });
+                    },
+                  ),
+                  _SidebarItem(
+                    icon: Icons.directions_bus,
+                    label: 'Vehicle Assignment',
+                    selected: _selectedSection == AdminSection.vehicleAssignment,
+                    onTap: () {
+                      setState(() {
+                        _selectedSection = AdminSection.vehicleAssignment;
+                        if (isMobile) _isSidebarOpen = false;
+                      });
+                    },
+                  ),
+                  _SidebarItem(
+                    icon: Icons.access_time,
+                    label: 'Activity Logs',
+                    selected: _selectedSection == AdminSection.activityLogs,
+                    onTap: () {
+                      setState(() {
+                        _selectedSection = AdminSection.activityLogs;
+                        if (isMobile) _isSidebarOpen = false;
+                      });
+                    },
+                  ),
+                  const Spacer(),
+                  // Logout
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 24.0),
+                    child: ListTile(
+                      leading: const Icon(Icons.logout, color: Colors.red),
+                      title: const Text('Log out', style: TextStyle(color: Colors.red)),
+                      onTap: () {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
           // Main content
           Expanded(
-            child: _buildMainContent(),
+            child: Stack(
+              children: [
+                _buildMainContent(),
+                // Overlay for mobile when sidebar is open
+                if (isMobile && _isSidebarOpen)
+                  Positioned.fill(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _isSidebarOpen = false),
+                      child: Container(
+                        color: Colors.black.withOpacity(0.5),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -430,14 +514,23 @@ class _AdminScreenState extends State<AdminScreen> {
         );
       case AdminSection.analytics:
         return _AnalyticsPage();
-      case AdminSection.userManagement:
-        return _UserManagementPage();
+      case AdminSection.vehicleAssignment:
+        return Container(
+          color: Colors.grey[100],
+          child: _UserManagementPage(),
+        );
       case AdminSection.notifications:
-        return _NotificationsWithCompose();
+        return Container(
+          color: Colors.grey[100],
+          child: _NotificationsWithCompose(),
+        );
       case AdminSection.schedules:
         return _DailyScheduleView();
       case AdminSection.activityLogs:
-        return const _ActivityLogsPage();
+        return Container(
+          color: Colors.grey[100],
+          child: const _ActivityLogsPage(),
+        );
       default:
         return const Center(child: Text('Section coming soon...', style: TextStyle(fontSize: 24)));
     }
@@ -513,6 +606,7 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget _UserManagementPage() {
     return Container(
       color: Colors.white,
+      child: const _VehicleAssignmentManagement(),
     );
   }
 
@@ -2611,5 +2705,512 @@ class _UnitDetailsDialog extends StatelessWidget {
       ),
     );
   }
-} 
+}
+
+// Vehicle Assignment Management Widget
+class _VehicleAssignmentManagement extends StatefulWidget {
+  const _VehicleAssignmentManagement();
+
+  @override
+  State<_VehicleAssignmentManagement> createState() => _VehicleAssignmentManagementState();
+}
+
+class _VehicleAssignmentManagementState extends State<_VehicleAssignmentManagement> {
+  List<VehicleAssignment> _assignments = [];
+  List<Vehicle> _vehicles = [];
+  bool _isLoading = false;
+  int _currentPage = 1;
+  int _totalPages = 1;
+  bool _showAddForm = false;
+  VehicleAssignment? _editingAssignment;
+
+  final _formKey = GlobalKey<FormState>();
+  final _driverController = TextEditingController();
+  final _conductorController = TextEditingController();
+  int? _selectedVehicleId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAssignments();
+    _loadVehicles();
+  }
+
+  @override
+  void dispose() {
+    _driverController.dispose();
+    _conductorController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAssignments() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await VehicleAssignmentApi.getAssignments(page: _currentPage);
+      if (response.success && response.data != null) {
+        setState(() {
+          _assignments = response.data!;
+          if (response.pagination != null) {
+            _totalPages = response.pagination!.totalPages;
+          }
+        });
+      } else {
+        _showErrorSnackBar(response.message ?? 'Failed to load assignments');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error loading assignments: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadVehicles() async {
+    try {
+      final response = await VehicleAssignmentApi.getAllVehicles();
+      if (response.success && response.data != null) {
+        setState(() {
+          _vehicles = response.data!;
+        });
+      }
+    } catch (e) {
+      print('Error loading vehicles: $e');
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  void _showAddFormDialog() {
+    setState(() {
+      _showAddForm = true;
+      _editingAssignment = null;
+      _driverController.clear();
+      _conductorController.clear();
+      _selectedVehicleId = null;
+    });
+  }
+
+  void _showEditFormDialog(VehicleAssignment assignment) {
+    setState(() {
+      _showAddForm = true;
+      _editingAssignment = assignment;
+      _driverController.text = assignment.driver;
+      _conductorController.text = assignment.conductor;
+      _selectedVehicleId = assignment.vehicleId;
+    });
+  }
+
+  void _closeForm() {
+    setState(() {
+      _showAddForm = false;
+      _editingAssignment = null;
+      _driverController.clear();
+      _conductorController.clear();
+      _selectedVehicleId = null;
+    });
+  }
+
+  Future<void> _saveAssignment() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedVehicleId == null) {
+      _showErrorSnackBar('Please select a vehicle');
+      return;
+    }
+
+    final assignment = VehicleAssignment(
+      assignmentId: _editingAssignment?.assignmentId,
+      vehicleId: _selectedVehicleId!,
+      driver: _driverController.text.trim(),
+      conductor: _conductorController.text.trim(),
+    );
+
+    try {
+      ApiResponse response;
+      if (_editingAssignment != null) {
+        response = await VehicleAssignmentApi.updateAssignment(
+          _editingAssignment!.assignmentId!,
+          assignment,
+        );
+      } else {
+        response = await VehicleAssignmentApi.createAssignment(assignment);
+      }
+
+      if (response.success) {
+        _showSuccessSnackBar(response.message ?? 'Assignment saved successfully');
+        _closeForm();
+        _loadAssignments();
+      } else {
+        _showErrorSnackBar(response.message ?? 'Failed to save assignment');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error saving assignment: $e');
+    }
+  }
+
+  Future<void> _deleteAssignment(VehicleAssignment assignment) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Assignment'),
+        content: Text('Are you sure you want to delete the assignment for ${assignment.unitNumber ?? 'Vehicle ${assignment.vehicleId}'}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final response = await VehicleAssignmentApi.deleteAssignment(assignment.assignmentId!);
+        if (response.success) {
+          _showSuccessSnackBar(response.message ?? 'Assignment deleted successfully');
+          _loadAssignments();
+        } else {
+          _showErrorSnackBar(response.message ?? 'Failed to delete assignment');
+        }
+      } catch (e) {
+        _showErrorSnackBar('Error deleting assignment: $e');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Vehicle Assignment Management',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF3E4795),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _showAddFormDialog,
+                    icon: const Icon(Icons.add, color: Colors.white),
+                    label: const Text('Add Assignment', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF3E4795),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Table
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      // Table Header
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF3E4795),
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12),
+                          ),
+                        ),
+                        child: const Row(
+                          children: [
+                            Expanded(flex: 2, child: Text('Vehicle', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                            Expanded(flex: 2, child: Text('Driver', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                            Expanded(flex: 2, child: Text('Conductor', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                            Expanded(flex: 1, child: Text('Actions', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                          ],
+                        ),
+                      ),
+                      
+                      // Table Content
+                      Expanded(
+                        child: _isLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : _assignments.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      'No assignments found',
+                                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    itemCount: _assignments.length,
+                                    itemBuilder: (context, index) {
+                                      final assignment = _assignments[index];
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                        decoration: BoxDecoration(
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: Colors.grey.withOpacity(0.2),
+                                              width: 1,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              flex: 2,
+                                              child: Text(
+                                                assignment.unitNumber ?? 'Vehicle ${assignment.vehicleId}',
+                                                style: const TextStyle(fontWeight: FontWeight.w500),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              flex: 2,
+                                              child: Text(assignment.driver),
+                                            ),
+                                            Expanded(
+                                              flex: 2,
+                                              child: Text(assignment.conductor),
+                                            ),
+                                            Expanded(
+                                              flex: 1,
+                                              child: Row(
+                                                children: [
+                                                  IconButton(
+                                                    icon: const Icon(Icons.edit, color: Colors.blue),
+                                                    onPressed: () => _showEditFormDialog(assignment),
+                                                    tooltip: 'Edit',
+                                                  ),
+                                                  IconButton(
+                                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                                    onPressed: () => _deleteAssignment(assignment),
+                                                    tooltip: 'Delete',
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                      ),
+                      
+                      // Pagination
+                      if (_totalPages > 1)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.chevron_left),
+                                onPressed: _currentPage > 1
+                                    ? () {
+                                        setState(() => _currentPage--);
+                                        _loadAssignments();
+                                      }
+                                    : null,
+                              ),
+                              Text(
+                                'Page $_currentPage of $_totalPages',
+                                style: const TextStyle(fontWeight: FontWeight.w500),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.chevron_right),
+                                onPressed: _currentPage < _totalPages
+                                    ? () {
+                                        setState(() => _currentPage++);
+                                        _loadAssignments();
+                                      }
+                                    : null,
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        // Add/Edit Form Modal
+        if (_showAddForm)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.5),
+              child: Center(
+                child: Container(
+                  width: 500,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _editingAssignment != null ? 'Edit Assignment' : 'Add Assignment',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF3E4795),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: _closeForm,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Vehicle Selection
+                        const Text('Vehicle', style: TextStyle(fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<int>(
+                          value: _selectedVehicleId,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          items: _vehicles.map((vehicle) {
+                            return DropdownMenuItem<int>(
+                              value: vehicle.vehicleId,
+                              child: Text(vehicle.unitNumber),
+                            );
+                          }).toList(),
+                          onChanged: (value) => setState(() => _selectedVehicleId = value),
+                          validator: (value) => value == null ? 'Please select a vehicle' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Driver Field
+                        const Text('Driver Name', style: TextStyle(fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _driverController,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Driver name is required';
+                            }
+                            if (value.trim().length < 2) {
+                              return 'Driver name must be at least 2 characters';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Conductor Field
+                        const Text('Conductor Name', style: TextStyle(fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _conductorController,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Conductor name is required';
+                            }
+                            if (value.trim().length < 2) {
+                              return 'Conductor name must be at least 2 characters';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Action Buttons
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: _closeForm,
+                              child: const Text('Cancel'),
+                            ),
+                            const SizedBox(width: 16),
+                            ElevatedButton(
+                              onPressed: _saveAssignment,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF3E4795),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: Text(_editingAssignment != null ? 'Update' : 'Add'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
   

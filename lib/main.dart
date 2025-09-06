@@ -64,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen>
       _controller.reverse().then((_) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const LoginScreen(),
+            pageBuilder: (_, __, ___) => const AdminLoginScreen(),
             transitionsBuilder: (_, anim, __, child) =>
                 FadeTransition(opacity: anim, child: child),
             transitionDuration: const Duration(milliseconds: 700),
@@ -138,12 +138,12 @@ class _AppWrapperState extends State<AppWrapper> {
         }
 
         if (!userProvider.isLoggedIn) {
-          return LoginScreen();
+          return AdminLoginScreen();
         }
 
         // Show different screens based on user role
         final user = userProvider.currentUser;
-        if (user == null) return LoginScreen();
+        if (user == null) return AdminLoginScreen();
 
         switch (user.role) {
           case UserRole.passenger:
