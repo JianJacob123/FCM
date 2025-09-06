@@ -19,7 +19,7 @@ final List<String> kTimeSlots = List.generate(15, (i) {
   return '${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
 });
 
-enum AdminSection { dashboard, analytics, notifications, schedules, activityLogs }
+enum AdminSection { dashboard, analytics, userManagement, notifications, schedules, activityLogs }
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -33,7 +33,15 @@ class _AdminScreenState extends State<AdminScreen> {
   int? _selectedBusIndex;
   bool _showRoutePolyLine = false;
   final MapController _mapController = MapController();
-
+    bool _isEditMode = false;
+  
+  // Controllers for editable fields
+  final List<TextEditingController> _timeControllers = List.generate(15, (index) => TextEditingController());
+  final List<String> _unitValues = List.generate(15, (index) => 'Unit ${index + 1}');
+  final List<String> _driverValues = List.generate(15, (index) => 'Driver ${index + 1}');
+  final List<String> _conductorValues = List.generate(15, (index) => 'Conductor ${index + 1}');
+  final List<String> _statusValues = List.generate(15, (index) => 'Active');
+  
   // Route points for tracking
   final List<LatLng> _routePoints = [
     LatLng(13.9467729, 121.1555241),
@@ -84,6 +92,86 @@ class _AdminScreenState extends State<AdminScreen> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    // Initialize controllers with default values for 15 units
+    final timeSlots = [
+      '04:00 AM', '04:20 AM', '04:40 AM', '05:00 AM', '05:20 AM',
+      '05:40 AM', '06:00 AM', '06:30 AM', '07:00 AM', '07:30 AM',
+      '08:00 AM', '08:30 AM', '09:00 AM', '09:30 AM', '10:00 AM'
+    ];
+    
+    for (int i = 0; i < 15; i++) {
+      _timeControllers[i].text = timeSlots[i];
+      _unitValues[i] = 'Unit ${i + 1}';
+      _driverValues[i] = 'Driver ${i + 1}';
+      _conductorValues[i] = 'Conductor ${i + 1}';
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Active':
+        return Colors.green;
+      case 'Coding':
+        return Colors.orange;
+      case 'Driver Sick':
+        return Colors.red;
+      case 'Maintenance':
+        return Colors.blue;
+      default:
+        return Colors.green;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'Active':
+        return Icons.check_circle;
+      case 'Coding':
+        return Icons.code;
+      case 'Driver Sick':
+        return Icons.sick;
+      case 'Maintenance':
+        return Icons.build;
+      default:
+        return Icons.check_circle;
+    }
+  }
+
+  int _getActiveUnitsCount() {
+    int count = 0;
+    for (int i = 0; i < 15; i++) {
+      if (_statusValues[i] == 'Active') {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  int _getActiveUnitIndex(int displayIndex) {
+    int activeCount = 0;
+    for (int i = 0; i < 15; i++) {
+      if (_statusValues[i] == 'Active') {
+        if (activeCount == displayIndex) {
+          return i;
+        }
+        activeCount++;
+      }
+    }
+    return 0; // Fallback
+  }
+
+  @override
+  void dispose() {
+    // Dispose all controllers
+    for (var controller in _timeControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -105,11 +193,23 @@ class _AdminScreenState extends State<AdminScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
+                              _SidebarItem(
+                icon: Icons.map,
+                label: 'Live Tracking',
+                selected: _selectedSection == AdminSection.dashboard,
+                onTap: () => setState(() => _selectedSection = AdminSection.dashboard),
+              ),
                 _SidebarItem(
-                  icon: Icons.map,
-                  label: 'Dashboard',
-                  selected: _selectedSection == AdminSection.dashboard,
-                  onTap: () => setState(() => _selectedSection = AdminSection.dashboard),
+                  icon: Icons.analytics,
+                  label: 'Analytics',
+                  selected: _selectedSection == AdminSection.analytics,
+                  onTap: () => setState(() => _selectedSection = AdminSection.analytics),
+                ),
+                _SidebarItem(
+                  icon: Icons.people,
+                  label: 'User Management',
+                  selected: _selectedSection == AdminSection.userManagement,
+                  onTap: () => setState(() => _selectedSection = AdminSection.userManagement),
                 ),
                 _SidebarItem(
                   icon: Icons.notifications,
@@ -328,16 +428,160 @@ class _AdminScreenState extends State<AdminScreen> {
             );
           },
         );
+      case AdminSection.analytics:
+        return _AnalyticsPage();
+      case AdminSection.userManagement:
+        return _UserManagementPage();
       case AdminSection.notifications:
         return _NotificationsWithCompose();
       case AdminSection.schedules:
-        return _ScheduleWeekView();
+        return _DailyScheduleView();
       case AdminSection.activityLogs:
         return const _ActivityLogsPage();
       default:
         return const Center(child: Text('Section coming soon...', style: TextStyle(fontSize: 24)));
     }
   }
+
+  Widget _AnalyticsPage() {
+    return Container(
+      color: Colors.white,
+    );
+  }
+
+  Widget _buildAnalyticsCard(String title, String value, IconData icon, Color color, String subtitle) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const Spacer(),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _UserManagementPage() {
+    return Container(
+      color: Colors.white,
+    );
+  }
+
+  Widget _buildUserManagementCard(String title, String value, IconData icon, Color color, String subtitle) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const Spacer(),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+    Widget _DailyScheduleView() {
+      return Container(
+        color: Colors.white,
+      );
+    }
 }
 
 // Admin Search Field similar to passenger search
