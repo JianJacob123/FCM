@@ -4,7 +4,8 @@ import '../providers/user_provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/user_role.dart';
-import '../main.dart';
+import 'passenger_screen.dart';
+import 'conductor_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -32,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     Navigator.of(
       context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => const AppWrapper()));
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const PassengerScreen()));
   }
 
   Future<void> _loginAsDriver() async {
@@ -75,9 +76,13 @@ class _LoginScreenState extends State<LoginScreen> {
         // 4. Store in provider
         context.read<UserProvider>().loginUser(user);
 
-        // 5. Navigate to wrapper
+        // 5. Navigate to appropriate screen based on role
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const AppWrapper()),
+          MaterialPageRoute(
+            builder: (_) => user.role == UserRole.conductor 
+                ? const ConductorScreen() 
+                : const PassengerScreen(),
+          ),
         );
       } else {
         final errorData = jsonDecode(response.body);

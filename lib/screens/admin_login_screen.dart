@@ -29,126 +29,230 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width > 700;
+    final isMobile = MediaQuery.of(context).size.width < 768;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFE5E5E5),
-      body: Row(
-        children: [
-          // Left panel
-          Expanded(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF8EA2F8), Color(0xFF3E4795)],
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    'assets/logo2.png',
-                    height: isWide ? 340 : 220,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Welcome Admin!',
-                    style: TextStyle(
-                      color: Color(0xFFBFC6F7),
-                      fontWeight: FontWeight.bold,
-                      fontSize: isWide ? 36 : 24,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF6B73FF),
+              Color(0xFF1A1F3A),
+            ],
           ),
-          // Right panel
-          Expanded(
-            child: Center(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: isWide ? 120 : 32, vertical: isWide ? 0 : 32),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text(
-                        'Username',
-                        style: TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
-                      ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: _usernameController,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      const Text(
-                        'Password',
-                        style: TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
-                      ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          suffixIcon: IconButton(
-                            icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {},
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size(0, 0),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: const Text(
-                            'Forgot Password?',
-                            style: TextStyle(fontSize: 13, color: Color(0xFF3E4795)),
-                          ),
-                        ),
-                      ),
-                      if (_error != null) ...[
-                        const SizedBox(height: 8),
-                        Text(_error!, style: const TextStyle(color: Colors.red)),
-                      ],
-                      const SizedBox(height: 18),
-                      SizedBox(
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: _login,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3E4795),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: const Text('Login', style: TextStyle(fontSize: 18)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
+        child: isMobile ? _buildMobileLayout() : _buildDesktopLayout(),
       ),
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return SingleChildScrollView(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 30,
+                offset: const Offset(0, 15),
+              ),
+            ],
+          ),
+          child: _buildLoginForm(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout() {
+    return Center(
+      child: SingleChildScrollView(
+        child: Container(
+          width: 400,
+          margin: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 30,
+                offset: const Offset(0, 15),
+              ),
+            ],
+          ),
+          child: _buildLoginForm(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoginForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header with purple line
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            width: 60,
+            height: 2,
+            color: const Color(0xFF3E4795),
+            margin: const EdgeInsets.only(bottom: 8),
+          ),
+        ),
+        const Text(
+          'Login as Admin User',
+          style: TextStyle(
+            fontWeight: FontWeight.normal,
+            fontSize: 16,
+            color: Color(0xFF333333),
+          ),
+        ),
+        const SizedBox(height: 32),
+        
+        // Username field
+        TextField(
+          controller: _usernameController,
+          decoration: InputDecoration(
+            hintText: 'johndoe@xyz.com',
+            hintStyle: const TextStyle(color: Color(0xFF999999)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF3E4795)),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF999999)),
+          ),
+        ),
+        const SizedBox(height: 16),
+        
+        // Password field
+        TextField(
+          controller: _passwordController,
+          obscureText: _obscurePassword,
+          decoration: InputDecoration(
+            hintText: 'x x x x x x x x x',
+            hintStyle: const TextStyle(color: Color(0xFF999999)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF3E4795)),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF999999)),
+            suffixIcon: IconButton(
+              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Color(0xFF999999)),
+              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        
+        // Login button
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: ElevatedButton(
+            onPressed: _login,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3E4795),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              'LOGIN',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        
+        // Error message
+        if (_error != null) ...[
+          Text(
+            _error!,
+            style: const TextStyle(color: Colors.red, fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+        ],
+        
+        // Forgot password link
+        Center(
+          child: TextButton(
+            onPressed: () {},
+            style: ButtonStyle(
+              padding: MaterialStateProperty.all(EdgeInsets.zero),
+              minimumSize: MaterialStateProperty.all(Size(0, 0)),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              foregroundColor: MaterialStateProperty.all(const Color(0xFF3E4795)),
+              overlayColor: MaterialStateProperty.resolveWith<Color?>(
+                (Set<MaterialState> states) {
+                  if (states.contains(MaterialState.hovered)) {
+                    return const Color(0xFF3E4795).withOpacity(0.1);
+                  }
+                  if (states.contains(MaterialState.pressed)) {
+                    return const Color(0xFF3E4795).withOpacity(0.2);
+                  }
+                  return null;
+                },
+              ),
+            ),
+            child: const Text(
+              'Forget your password?',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF3E4795),
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 32),
+        
+        // Footer
+        const Center(
+          child: Text(
+            'Terms of use. Privacy policy',
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF999999),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

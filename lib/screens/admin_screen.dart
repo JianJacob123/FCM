@@ -34,7 +34,7 @@ class _AdminScreenState extends State<AdminScreen> {
   int? _selectedBusIndex;
   bool _showRoutePolyLine = false;
   final MapController _mapController = MapController();
-  bool _isEditMode = false;
+    bool _isEditMode = false;
   bool _isSidebarOpen = false;
   
   // Controllers for editable fields
@@ -193,11 +193,11 @@ class _AdminScreenState extends State<AdminScreen> {
         children: [
           // Sidebar - responsive visibility
           if (!isMobile || _isSidebarOpen) ...[
-            Container(
+          Container(
               width: isMobile ? screenWidth * 0.8 : 260,
-              color: Colors.white,
-              child: Column(
-                children: [
+            color: Colors.white,
+            child: Column(
+              children: [
                   if (isMobile) ...[
                     // Mobile header with close button
                     Container(
@@ -221,54 +221,54 @@ class _AdminScreenState extends State<AdminScreen> {
                       ),
                     ),
                   ] else ...[
-                    const SizedBox(height: 32),
+                const SizedBox(height: 32),
                   ],
-                  // Logo
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                    child: Image.asset(
-                      'assets/logo.png',
+                // Logo
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Image.asset(
+                    'assets/logo.png',
                       height: isMobile ? 120 : 170,
-                    ),
                   ),
-                  const SizedBox(height: 32),
-                  _SidebarItem(
-                    icon: Icons.map,
-                    label: 'Live Tracking',
-                    selected: _selectedSection == AdminSection.dashboard,
+                ),
+                const SizedBox(height: 32),
+                              _SidebarItem(
+                icon: Icons.map,
+                label: 'Live Tracking',
+                selected: _selectedSection == AdminSection.dashboard,
                     onTap: () {
                       setState(() {
                         _selectedSection = AdminSection.dashboard;
                         if (isMobile) _isSidebarOpen = false;
                       });
                     },
-                  ),
-                  _SidebarItem(
-                    icon: Icons.analytics,
-                    label: 'Analytics',
-                    selected: _selectedSection == AdminSection.analytics,
+              ),
+                _SidebarItem(
+                  icon: Icons.analytics,
+                  label: 'Analytics',
+                  selected: _selectedSection == AdminSection.analytics,
                     onTap: () {
                       setState(() {
                         _selectedSection = AdminSection.analytics;
                         if (isMobile) _isSidebarOpen = false;
                       });
                     },
-                  ),
-                  _SidebarItem(
-                    icon: Icons.notifications,
-                    label: 'Notifications',
-                    selected: _selectedSection == AdminSection.notifications,
+                ),
+                _SidebarItem(
+                  icon: Icons.notifications,
+                  label: 'Notifications',
+                  selected: _selectedSection == AdminSection.notifications,
                     onTap: () {
                       setState(() {
                         _selectedSection = AdminSection.notifications;
                         if (isMobile) _isSidebarOpen = false;
                       });
                     },
-                  ),
-                  _SidebarItem(
-                    icon: Icons.calendar_today,
-                    label: 'Schedules',
-                    selected: _selectedSection == AdminSection.schedules,
+                ),
+                _SidebarItem(
+                  icon: Icons.calendar_today,
+                  label: 'Schedules',
+                  selected: _selectedSection == AdminSection.schedules,
                     onTap: () {
                       setState(() {
                         _selectedSection = AdminSection.schedules;
@@ -286,35 +286,35 @@ class _AdminScreenState extends State<AdminScreen> {
                         if (isMobile) _isSidebarOpen = false;
                       });
                     },
-                  ),
-                  _SidebarItem(
-                    icon: Icons.access_time,
-                    label: 'Activity Logs',
-                    selected: _selectedSection == AdminSection.activityLogs,
+                ),
+                _SidebarItem(
+                  icon: Icons.access_time,
+                  label: 'Activity Logs',
+                  selected: _selectedSection == AdminSection.activityLogs,
                     onTap: () {
                       setState(() {
                         _selectedSection = AdminSection.activityLogs;
                         if (isMobile) _isSidebarOpen = false;
                       });
                     },
+                ),
+                const Spacer(),
+                // Logout
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 24.0),
+                  child: ListTile(
+                    leading: const Icon(Icons.logout, color: Colors.red),
+                    title: const Text('Log out', style: TextStyle(color: Colors.red)),
+                    onTap: () {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+                      );
+                    },
                   ),
-                  const Spacer(),
-                  // Logout
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 24.0),
-                    child: ListTile(
-                      leading: const Icon(Icons.logout, color: Colors.red),
-                      title: const Text('Log out', style: TextStyle(color: Colors.red)),
-                      onTap: () {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
           ],
           // Main content
           Expanded(
@@ -672,10 +672,10 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
     Widget _DailyScheduleView() {
-      return Container(
-        color: Colors.white,
-      );
-    }
+            return Container(
+                    color: Colors.white,
+        );
+      }
 }
 
 // Admin Search Field similar to passenger search
@@ -2705,7 +2705,7 @@ class _UnitDetailsDialog extends StatelessWidget {
       ),
     );
   }
-}
+} 
 
 // Vehicle Assignment Management Widget
 class _VehicleAssignmentManagement extends StatefulWidget {
@@ -2723,9 +2723,17 @@ class _VehicleAssignmentManagementState extends State<_VehicleAssignmentManageme
   int _totalPages = 1;
   bool _showAddForm = false;
   VehicleAssignment? _editingAssignment;
+  
+  // Sort functionality
+  String _sortBy = 'vehicle';
+  String _sortOrder = 'asc';
+  String _searchQuery = '';
+  // Toggle to show/hide Actions column
+  bool _showActions = false;
 
   final _formKey = GlobalKey<FormState>();
   final _driverController = TextEditingController();
+  final _searchController = TextEditingController();
   final _conductorController = TextEditingController();
   int? _selectedVehicleId;
 
@@ -2784,6 +2792,140 @@ class _VehicleAssignmentManagementState extends State<_VehicleAssignmentManageme
         backgroundColor: Colors.red,
       ),
     );
+  }
+
+  void _showSortOptions(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Sort Options'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Sort by:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              RadioListTile<String>(
+                title: const Text('Vehicle'),
+                value: 'vehicle',
+                groupValue: _sortBy,
+                onChanged: (String? value) {
+                  setState(() {
+                    _sortBy = value!;
+                  });
+                },
+              ),
+              RadioListTile<String>(
+                title: const Text('Driver'),
+                value: 'driver',
+                groupValue: _sortBy,
+                onChanged: (String? value) {
+                  setState(() {
+                    _sortBy = value!;
+                  });
+                },
+              ),
+              RadioListTile<String>(
+                title: const Text('Conductor'),
+                value: 'conductor',
+                groupValue: _sortBy,
+                onChanged: (String? value) {
+                  setState(() {
+                    _sortBy = value!;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              const Text('Order:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              RadioListTile<String>(
+                title: const Text('Ascending'),
+                value: 'asc',
+                groupValue: _sortOrder,
+                onChanged: (String? value) {
+                  setState(() {
+                    _sortOrder = value!;
+                  });
+                },
+              ),
+              RadioListTile<String>(
+                title: const Text('Descending'),
+                value: 'desc',
+                groupValue: _sortOrder,
+                onChanged: (String? value) {
+                  setState(() {
+                    _sortOrder = value!;
+                  });
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _applySorting();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3E4795),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Apply'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _applySorting() {
+    setState(() {
+      _assignments.sort((a, b) {
+        int comparison = 0;
+        
+        switch (_sortBy) {
+          case 'vehicle':
+            final vehicleA = a.unitNumber ?? 'Vehicle ${a.vehicleId}';
+            final vehicleB = b.unitNumber ?? 'Vehicle ${b.vehicleId}';
+            comparison = vehicleA.compareTo(vehicleB);
+            break;
+          case 'driver':
+            comparison = a.driver.compareTo(b.driver);
+            break;
+          case 'conductor':
+            comparison = a.conductor.compareTo(b.conductor);
+            break;
+        }
+        
+        return _sortOrder == 'desc' ? -comparison : comparison;
+      });
+    });
+  }
+
+  void _filterAssignments() {
+    setState(() {
+      _searchQuery = _searchController.text.toLowerCase();
+    });
+  }
+
+  List<VehicleAssignment> get _filteredAssignments {
+    if (_searchQuery.isEmpty) {
+      return _assignments;
+    }
+    
+    return _assignments.where((assignment) {
+      final vehicle = (assignment.unitNumber ?? 'Vehicle ${assignment.vehicleId}').toLowerCase();
+      final driver = assignment.driver.toLowerCase();
+      final conductor = assignment.conductor.toLowerCase();
+      
+      return vehicle.contains(_searchQuery) ||
+             driver.contains(_searchQuery) ||
+             conductor.contains(_searchQuery);
+    }).toList();
   }
 
   void _showSuccessSnackBar(String message) {
@@ -2899,42 +3041,193 @@ class _VehicleAssignmentManagementState extends State<_VehicleAssignmentManageme
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 768;
+    
     return Stack(
       children: [
         Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(isMobile ? 16 : 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Vehicle Assignment Management',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF3E4795),
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: _showAddFormDialog,
-                    icon: const Icon(Icons.add, color: Colors.white),
-                    label: const Text('Add Assignment', style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3E4795),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+              isMobile 
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Vehicle Assignment Management',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF3E4795),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          // Edit mode toggle (shows Actions column)
+                          IconButton(
+                            onPressed: () => setState(() => _showActions = !_showActions),
+                            icon: Icon(
+                              _showActions ? Icons.edit_off : Icons.edit,
+                              color: const Color(0xFF3E4795),
+                            ),
+                            tooltip: _showActions ? 'Exit edit mode' : 'Edit mode',
+                          ),
+                          const SizedBox(width: 8),
+                          // Add assignment as + icon
+                          ElevatedButton(
+                            onPressed: _showAddFormDialog,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3E4795),
+                              minimumSize: const Size(44, 44),
+                              shape: const CircleBorder(),
+                              padding: EdgeInsets.zero,
+                              elevation: 0,
+                            ),
+                            child: const Icon(Icons.add, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ],
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Vehicle Assignment Management',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF3E4795),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            onPressed: () => setState(() => _showActions = !_showActions),
+                            icon: Icon(
+                              _showActions ? Icons.edit_off : Icons.edit,
+                              color: const Color(0xFF3E4795),
+                            ),
+                            tooltip: _showActions ? 'Exit edit mode' : 'Edit mode',
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: _showAddFormDialog,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3E4795),
+                              minimumSize: const Size(44, 44),
+                              shape: const CircleBorder(),
+                              padding: EdgeInsets.zero,
+                              elevation: 0,
+                            ),
+                            child: const Icon(Icons.add, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
-              ),
               const SizedBox(height: 24),
+              
+              // Search and Filter Controls
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      spreadRadius: 1,
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: isMobile 
+                  ? Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _searchController,
+                                onChanged: (value) => _filterAssignments(),
+                                decoration: InputDecoration(
+                                  hintText: 'Search',
+                                  prefixIcon: const Icon(Icons.search),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(color: Color(0xFF3E4795)),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.filter_list),
+                              onPressed: () => _showSortOptions(context),
+                              tooltip: 'Sort Options',
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (value) => _filterAssignments(),
+                            decoration: InputDecoration(
+                              hintText: 'Search',
+                              prefixIcon: const Icon(Icons.search),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFF3E4795)),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton.icon(
+                          onPressed: () => _showSortOptions(context),
+                          icon: const Icon(Icons.sort, size: 18),
+                          label: const Text('Sort'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3E4795),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+              ),
+              const SizedBox(height: 16),
               
               // Table
               Expanded(
@@ -2963,14 +3256,23 @@ class _VehicleAssignmentManagementState extends State<_VehicleAssignmentManageme
                             topRight: Radius.circular(12),
                           ),
                         ),
-                        child: const Row(
-                          children: [
-                            Expanded(flex: 2, child: Text('Vehicle', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                            Expanded(flex: 2, child: Text('Driver', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                            Expanded(flex: 2, child: Text('Conductor', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                            Expanded(flex: 1, child: Text('Actions', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                          ],
-                        ),
+                        child: isMobile 
+                          ? Row(
+                              children: [
+                                const Expanded(flex: 2, child: Text('Vehicle', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
+                                if (_showActions)
+                                  const Expanded(flex: 1, child: Text('Actions', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
+                              ],
+                            )
+                          : Row(
+                              children: [
+                                const Expanded(flex: 2, child: Text('Vehicle', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                                const Expanded(flex: 2, child: Text('Driver', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                                const Expanded(flex: 2, child: Text('Conductor', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                                if (_showActions)
+                                  const Expanded(flex: 1, child: Text('Actions', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                              ],
+                            ),
                       ),
                       
                       // Table Content
@@ -2985,9 +3287,9 @@ class _VehicleAssignmentManagementState extends State<_VehicleAssignmentManageme
                                     ),
                                   )
                                 : ListView.builder(
-                                    itemCount: _assignments.length,
+                                    itemCount: _filteredAssignments.length,
                                     itemBuilder: (context, index) {
-                                      final assignment = _assignments[index];
+                                      final assignment = _filteredAssignments[index];
                                       return Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                         decoration: BoxDecoration(
@@ -2998,42 +3300,85 @@ class _VehicleAssignmentManagementState extends State<_VehicleAssignmentManageme
                                             ),
                                           ),
                                         ),
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                              flex: 2,
-                                              child: Text(
-                                                assignment.unitNumber ?? 'Vehicle ${assignment.vehicleId}',
-                                                style: const TextStyle(fontWeight: FontWeight.w500),
-                                              ),
-                                            ),
-                                            Expanded(
-                                              flex: 2,
-                                              child: Text(assignment.driver),
-                                            ),
-                                            Expanded(
-                                              flex: 2,
-                                              child: Text(assignment.conductor),
-                                            ),
-                                            Expanded(
-                                              flex: 1,
-                                              child: Row(
-                                                children: [
-                                                  IconButton(
-                                                    icon: const Icon(Icons.edit, color: Colors.blue),
-                                                    onPressed: () => _showEditFormDialog(assignment),
-                                                    tooltip: 'Edit',
+                                        child: isMobile 
+                                          ? Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    Expanded(
+                                                      child: Text(
+                                                        assignment.unitNumber ?? 'Vehicle ${assignment.vehicleId}',
+                                                        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                                                      ),
+                                                    ),
+                                                    if (_showActions)
+                                                      Row(
+                                                        children: [
+                                                          IconButton(
+                                                            icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                                                            onPressed: () => _showEditFormDialog(assignment),
+                                                            tooltip: 'Edit',
+                                                          ),
+                                                          IconButton(
+                                                            icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                                            onPressed: () => _deleteAssignment(assignment),
+                                                            tooltip: 'Delete',
+                                                          ),
+                                                        ],
+                                                      ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  'Driver: ${assignment.driver}',
+                                                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'Conductor: ${assignment.conductor}',
+                                                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                                                ),
+                                              ],
+                                            )
+                                          : Row(
+                                              children: [
+                                                Expanded(
+                                                  flex: 2,
+                                                  child: Text(
+                                                    assignment.unitNumber ?? 'Vehicle ${assignment.vehicleId}',
+                                                    style: const TextStyle(fontWeight: FontWeight.w500),
                                                   ),
-                                                  IconButton(
-                                                    icon: const Icon(Icons.delete, color: Colors.red),
-                                                    onPressed: () => _deleteAssignment(assignment),
-                                                    tooltip: 'Delete',
+                                                ),
+                                                Expanded(
+                                                  flex: 2,
+                                                  child: Text(assignment.driver),
+                                                ),
+                                                Expanded(
+                                                  flex: 2,
+                                                  child: Text(assignment.conductor),
+                                                ),
+                                                if (_showActions)
+                                                  Expanded(
+                                                    flex: 1,
+                                                    child: Row(
+                                                      children: [
+                                                        IconButton(
+                                                          icon: const Icon(Icons.edit, color: Colors.blue),
+                                                          onPressed: () => _showEditFormDialog(assignment),
+                                                          tooltip: 'Edit',
+                                                        ),
+                                                        IconButton(
+                                                          icon: const Icon(Icons.delete, color: Colors.red),
+                                                          onPressed: () => _deleteAssignment(assignment),
+                                                          tooltip: 'Delete',
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
-                                                ],
-                                              ),
+                                              ],
                                             ),
-                                          ],
-                                        ),
                                       );
                                     },
                                   ),
@@ -3086,7 +3431,7 @@ class _VehicleAssignmentManagementState extends State<_VehicleAssignmentManageme
               color: Colors.black.withOpacity(0.5),
               child: Center(
                 child: Container(
-                  width: 500,
+                  width: isMobile ? MediaQuery.of(context).size.width * 0.9 : 500,
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: Colors.white,
