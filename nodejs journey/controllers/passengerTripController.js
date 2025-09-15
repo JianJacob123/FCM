@@ -35,17 +35,17 @@ const checkVehicleNearPickUp = async () => {
                 longitude: trip.pickup_lng
             };
 
-            // 4. Check if any vehicle is near this passenger
-            const nearbyVehicle = vehicles.find(vehicle => {
-                const distance = geolib.getDistance(
-                    passengerLocation,
-                    {
-                        latitude: vehicle.lat,
-                        longitude: vehicle.lng
-                    }
-                );
-                return distance <= 100; // e.g. 100 meters threshold
-            });
+  // 4. Check for the closest vehicle near this passenger
+  const nearbyVehicle = vehicles.reduce((closest, vehicle) => {
+  const distance = geolib.getDistance(
+    passengerLocation,
+    { latitude: vehicle.lat, longitude: vehicle.lng }
+  );
+  if (distance <= 20 && (!closest || distance < closest.distance)) {
+    return { vehicle, distance };
+  }
+  return closest;
+}, null);
 
             // 5. If a nearby vehicle is found, update status
             if (nearbyVehicle) {
@@ -71,6 +71,7 @@ const checkVehicleNearPickUp = async () => {
 }
 
 const checkDropoffs = async () => {
+  
   try {
     const trips = await passengerTripModel.getAllOngoingTrips("picked_up");
     const completedTrips = [];
@@ -138,11 +139,34 @@ const monitorDropoffs = async (req, res) => {
   }
 };
 
+const getCompletedTripsById = async (req, res) => {
+    const passengerId = req.params.id;
+    try {
+        const trips = await passengerTripModel.getCompletedTripsById(passengerId);
+        res.status(200).json(trips);
+    } catch (error) {
+        console.error('Error fetching completed trips:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+const fetchPendingTrips = async (req, res) => {
+    try {
+        const trips = await passengerTripModel.getPendingTrips();
+        res.status(200).json(trips);
+    } catch (error) {
+        console.error('Error fetching pickup trips:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
 
 module.exports = {
     createRequest,
     checkVehicleNearPickUp,
     checkDropoffs,
     isVehicleNearPickUp,
-    monitorDropoffs
+    monitorDropoffs,
+    getCompletedTripsById,
+    fetchPendingTrips
 };

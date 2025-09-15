@@ -6,7 +6,7 @@ const getAllRequestsByPassengerId = async (passengerId) => {
     return res.rows;
 }
 
-const getAllPendingRequests = async (status) => {
+const getAllPendingRequests = async (status) => { //for automation to check pending requests
     try {
         const res = await client.query('SELECT * FROM passenger_trip WHERE status = $1', [status]);
         return res.rows;
@@ -56,6 +56,22 @@ const updateTripStatus = async (tripId, status) => {
   }
 };
 
+const getCompletedTripsById = async (passengerId) => {
+    const sql = `SELECT * FROM passenger_trip WHERE passenger_id = $1 AND status = 'dropped_off'`;
+    const res = await client.query(sql, [passengerId]);
+    return res.rows;
+}
+
+const getPendingTrips = async () => { //For Conductor Side
+    const sql = `SELECT passenger_id, pickup_lat, pickup_lng, created_at, route_name FROM passenger_trip
+INNER JOIN routes
+ON routes.route_id = 
+passenger_trip.route_id
+WHERE status = 'pending'`;
+    const res = await client.query(sql);
+    return res.rows;
+}
+
 module.exports = {
     getAllRequestsByPassengerId,
     getAllPendingRequests,
@@ -63,5 +79,7 @@ module.exports = {
     updateRequestPickedUp,
     getPickupLocation,
     getAllOngoingTrips,
-    updateTripStatus
+    updateTripStatus,
+    getCompletedTripsById,
+    getPendingTrips
 };

@@ -16,8 +16,9 @@ const getVehiclesDirect = async () => {
   return await vehicleModel.getAllVehicles();
 };
 
-const updateCoordinatesLogic = async () => {
+const updateCoordinatesLogic = async (io) => {
     try {
+        
         const iotResponse = await coordinatesData.getIoTData();
         
         for (const vehicle of iotResponse) {
@@ -28,6 +29,21 @@ const updateCoordinatesLogic = async () => {
             );
         }
         console.log('Coordinates updated successfully');
+
+    const updatedVehicles = await vehicleModel.getAllVehicles();
+    io.of("/vehicles").to("vehicleRoom").emit("vehicleUpdate", updatedVehicles);
+
+    // Emit to each conductor (only their assigned vehicle)
+        for (const vehicle of updatedVehicles) {
+            // find which conductor is assigned to this vehicle
+            // you’d query your `vehicle_assignment` table here
+            const conductorId = await vehicleModel.getConductorIdByVehicle(vehicle.vehicle_id);
+            if (conductorId) {
+                const conductorVehicle = await vehicleModel.getVehicleByConductor(conductorId);
+                io.of("/vehicles").to(`conductor:${conductorId}`).emit("vehicleUpdate", conductorVehicle);
+            }
+        }
+
     } catch (err) {
         console.error('Error fetching IoT data:', err);
         // Just throw the error to be handled by the caller

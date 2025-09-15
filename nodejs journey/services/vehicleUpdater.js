@@ -6,7 +6,7 @@ function startVehicleUpdater(io) {
   // run every 30 seconds
   cron.schedule('*/30 * * * * *', async () => {
     try {
-      await vehicleController.updateCoordinatesLogic();
+      await vehicleController.updateCoordinatesLogic(io);
 
       const vehicles = await vehicleController.getVehiclesDirect(); // make a direct fn that doesn't rely on req/res
       
