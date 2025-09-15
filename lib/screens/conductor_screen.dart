@@ -4,8 +4,11 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../screens/login_screen.dart';
-import 'dart:math';
-import 'package:geocoding/geocoding.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import '../services/api.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:async';
 
 class ConductorScreen extends StatefulWidget {
   const ConductorScreen({super.key});
@@ -16,15 +19,15 @@ class ConductorScreen extends StatefulWidget {
 
 class _ConductorScreenState extends State<ConductorScreen> {
   int _currentIndex = 2;
-  bool _showStatusCard = true;
+  bool _showStatusCard = false;
 
   final List<Widget> _screens = const [
     NotificationsTab(),
     PassengerPickupTab(),
-    DashboardTab(),
+    MapScreen(),
     MessagingTab(),
     ProfileTab(),
-  ];  
+  ];
 
   void _onTabChanged(int index) {
     setState(() {
@@ -42,10 +45,11 @@ class _ConductorScreenState extends State<ConductorScreen> {
 
           if (_showStatusCard && _currentIndex == 2)
             Positioned(
-              bottom: 90,
+              top: 40,
               left: 16,
               child: GestureDetector(
-                onHorizontalDragEnd: (_) => setState(() => _showStatusCard = false),
+                onHorizontalDragEnd: (_) =>
+                    setState(() => _showStatusCard = false),
                 child: Container(
                   width: 250,
                   padding: const EdgeInsets.all(16),
@@ -88,14 +92,19 @@ class _ConductorScreenState extends State<ConductorScreen> {
                             ],
                           ),
                           GestureDetector(
-                            onTap: () => setState(() => _showStatusCard = false),
+                            onTap: () =>
+                                setState(() => _showStatusCard = false),
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
                                 color: Colors.grey[100],
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(Icons.close, size: 16, color: Colors.grey),
+                              child: const Icon(
+                                Icons.close,
+                                size: 16,
+                                color: Colors.grey,
+                              ),
                             ),
                           ),
                         ],
@@ -240,11 +249,7 @@ class CustomBottomBar extends StatelessWidget {
             onPressed: () => onTabChanged(0),
           ),
           IconButton(
-            icon: Icon(
-              Icons.group,
-              color: Color(0xFF3E4795),
-              size: 36,
-            ),
+            icon: Icon(Icons.group, color: Color(0xFF3E4795), size: 36),
             onPressed: () => onTabChanged(1),
           ),
           Container(
@@ -288,662 +293,544 @@ class CustomBottomBar extends StatelessWidget {
   }
 }
 
-class DashboardTab extends StatefulWidget {
-  const DashboardTab({super.key});
+class MapScreen extends StatefulWidget {
+  const MapScreen({super.key});
 
   @override
-  State<DashboardTab> createState() => _DashboardTabState();
+  _MapScreenState createState() => _MapScreenState();
 }
 
-class _DashboardTabState extends State<DashboardTab> {
-  // Bus location (current position)
-  final LatLng busLocation = LatLng(13.7850, 121.0890); // San Jose
-
-  // Route points following main roads (Bauan → San Jose → Lipa)
-  final List<LatLng> routePoints = [
-    LatLng(13.8000, 121.0500), // Bauan
-    LatLng(13.7900, 121.0700), // Route point
-    LatLng(13.7850, 121.0890), // San Jose (current bus position)
-    LatLng(13.7800, 121.1000), // Route point
-    LatLng(13.7750, 121.1100), // Route point
-    LatLng(13.7700, 121.1200), // Route point
-    LatLng(13.7650, 121.1300), // Route point
-    LatLng(13.7600, 121.1400), // Route point
-    LatLng(13.7550, 121.1500), // Route point
-    LatLng(13.7500, 121.1600), // Lipa
-  ];
-
-  // Passenger pickup locations along the main road route
-  final List<Map<String, dynamic>> passengers = [
-    {
-      'location': LatLng(13.7800, 121.1000),
-      'address': 'San Jose Main St.',
-      'passengers': 2,
-      'waitingTime': '3 min',
-    },
-    {
-      'location': LatLng(13.7700, 121.1200),
-      'address': 'Lipa City Center',
-      'passengers': 1,
-      'waitingTime': '8 min',
-    },
-    {
-      'location': LatLng(13.7550, 121.1500),
-      'address': 'Lipa Terminal',
-      'passengers': 3,
-      'waitingTime': '12 min',
-    },
-  ];
-
-  LatLng? selectedPassengerLocation;
-  
-  // Search functionality
-  final TextEditingController _searchController = TextEditingController();
-  List<Map<String, dynamic>> _searchResults = [];
-  bool _isSearching = false;
-  bool _showSearchResults = false;
-
-  double _calculateDistance(LatLng point1, LatLng point2) {
-    // Simple distance calculation (in real app, use proper geolocation formulas)
-    const double earthRadius = 6371; // km
-    double lat1 = point1.latitude * (pi / 180);
-    double lat2 = point2.latitude * (pi / 180);
-    double deltaLat = (point2.latitude - point1.latitude) * (pi / 180);
-    double deltaLon = (point2.longitude - point1.longitude) * (pi / 180);
-
-    double a = sin(deltaLat / 2) * sin(deltaLat / 2) +
-        cos(lat1) * cos(lat2) * sin(deltaLon / 2) * sin(deltaLon / 2);
-    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-
-    return earthRadius * c;
-  }
-
-  int _calculateETA(double distance) {
-    // Assuming average speed of 30 km/h
-    return (distance / 30 * 60).round();
-  }
-
-  void _showPassengerDetails(Map<String, dynamic> passenger) {
-    double distance = _calculateDistance(busLocation, passenger['location']);
-    int eta = _calculateETA(distance);
-
-    setState(() {
-      selectedPassengerLocation = passenger['location'];
-    });
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: 90,
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Title + Close in one row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        passenger['address'],
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF3E4795),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                        setState(() {
-                          selectedPassengerLocation = null;
-                        });
-                      },
-                      child: const Icon(Icons.close, color: Colors.grey),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // Details
-                _buildDetailRow('Location', '${passenger['location'].latitude.toStringAsFixed(4)}, ${passenger['location'].longitude.toStringAsFixed(4)}'),
-                _buildDetailRow('Distance', '${distance.toStringAsFixed(1)} km'),
-                _buildDetailRow('ETA', '$eta minutes'),
-                _buildDetailRow('Passengers', '${passenger['passengers']} person(s)'),
-                _buildDetailRow('Waiting Time', passenger['waitingTime']),
-                const SizedBox(height: 20),
-                // Okay Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      setState(() {
-                        selectedPassengerLocation = null;
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3E4795),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text('Okay'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  List<LatLng> _getRouteToPassenger(LatLng passengerLocation) {
-    // Find the route points between bus location and passenger
-    List<LatLng> routeToPassenger = [];
-    
-    // Start from bus location
-    routeToPassenger.add(busLocation);
-    
-    // Add route points that are between bus and passenger
-    for (int i = 0; i < routePoints.length - 1; i++) {
-      LatLng currentPoint = routePoints[i];
-      LatLng nextPoint = routePoints[i + 1];
-      
-      // Check if this segment is between bus and passenger
-      if (_isPointBetween(currentPoint, busLocation, passengerLocation) ||
-          _isPointBetween(nextPoint, busLocation, passengerLocation)) {
-        routeToPassenger.add(currentPoint);
-        routeToPassenger.add(nextPoint);
-      }
-    }
-    
-    // Add passenger location
-    routeToPassenger.add(passengerLocation);
-    
-    return routeToPassenger;
-  }
-
-  bool _isPointBetween(LatLng point, LatLng start, LatLng end) {
-    // Check if point is between start and end points
-    double startToPoint = _calculateDistance(start, point);
-    double pointToEnd = _calculateDistance(point, end);
-    double startToEnd = _calculateDistance(start, end);
-    
-    // Allow some tolerance for route points
-    return (startToPoint + pointToEnd - startToEnd).abs() < 0.1;
-  }
-
-  Future<void> _searchPlaces(String query) async {
-    if (query.isEmpty) {
-      setState(() {
-        _searchResults = [];
-        _showSearchResults = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _isSearching = true;
-      _showSearchResults = true;
-    });
-
-    // Add some local places as fallback
-    List<Map<String, dynamic>> localPlaces = [
-      {
-        'name': 'Bauan Public Market',
-        'address': 'Bauan, Batangas',
-        'location': LatLng(13.8000, 121.0500),
-      },
-      {
-        'name': 'San Jose Municipal Hall',
-        'address': 'San Jose, Batangas',
-        'location': LatLng(13.7850, 121.0890),
-      },
-      {
-        'name': 'Lipa City Hall',
-        'address': 'Lipa City, Batangas',
-        'location': LatLng(13.7500, 121.1600),
-      },
-      {
-        'name': 'Robinsons Lipa',
-        'address': 'Lipa City, Batangas',
-        'location': LatLng(13.7550, 121.1500),
-      },
-      {
-        'name': 'SM Lipa',
-        'address': 'Lipa City, Batangas',
-        'location': LatLng(13.7600, 121.1400),
-      },
-    ];
-
-    // Filter local places based on query
-    List<Map<String, dynamic>> filteredLocalPlaces = localPlaces
-        .where((place) => place['name'].toLowerCase().contains(query.toLowerCase()) ||
-                         place['address'].toLowerCase().contains(query.toLowerCase()))
-        .toList();
-
-    try {
-      // Try to search for locations using the query
-      List<Location> locations = await locationFromAddress(query);
-      List<Map<String, dynamic>> results = [];
-      
-      // Add local places first
-      results.addAll(filteredLocalPlaces);
-      
-      // Add online search results
-      for (Location location in locations.take(3)) { // Limit to 3 online results
-        try {
-          List<Placemark> placemarks = await placemarkFromCoordinates(
-            location.latitude,
-            location.longitude,
-          );
-          
-          if (placemarks.isNotEmpty) {
-            Placemark placemark = placemarks.first;
-            String address = [
-              placemark.street,
-              placemark.subLocality,
-              placemark.locality,
-              placemark.administrativeArea,
-            ].where((element) => element != null && element.isNotEmpty).join(', ');
-            
-            results.add({
-              'name': placemark.name ?? placemark.street ?? 'Unknown Location',
-              'address': address.isNotEmpty ? address : 'Location found',
-              'location': LatLng(location.latitude, location.longitude),
-            });
-          }
-        } catch (e) {
-          // If placemark lookup fails, still add the location
-          results.add({
-            'name': 'Location at ${location.latitude.toStringAsFixed(4)}, ${location.longitude.toStringAsFixed(4)}',
-            'address': 'Coordinates found',
-            'location': LatLng(location.latitude, location.longitude),
-          });
-        }
-      }
-      
-      setState(() {
-        _searchResults = results;
-        _isSearching = false;
-      });
-    } catch (e) {
-      print('Search error: $e');
-      // If online search fails, show local places
-      setState(() {
-        _searchResults = filteredLocalPlaces;
-        _isSearching = false;
-      });
-    }
-  }
-
-  void _onSearchResultSelected(Map<String, dynamic> result) {
-    _searchController.text = result['name'];
-    setState(() {
-      _showSearchResults = false;
-    });
-    
-    // Show a dialog with the selected location
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(result['name']),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Address: ${result['address']}'),
-            const SizedBox(height: 8),
-            Text('Coordinates: ${result['location'].latitude.toStringAsFixed(4)}, ${result['location'].longitude.toStringAsFixed(4)}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Location selected: ${result['name']}'),
-                  backgroundColor: const Color(0xFF3E4795),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3E4795),
-            ),
-            child: const Text('Select'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF3E4795),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+class _MapScreenState extends State<MapScreen> {
+  late IO.Socket vehicleSocket;
+  final Map<int, Marker> _vehicleMarkers = {}; // vehicle_id to Marker
+  Map<String, dynamic>? _selectedVehicle; // selected vehicle info
+  List<LatLng> _routePolyline = [];
+  late final String conductorId;
+  List<dynamic> _pendingPickups = [];
+  LatLng? _highlightedPickup;
+  bool _showPickupList = false; // show pending pickups by default
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+  void initState() {
+    super.initState();
+    _loadPendingPickups();
+    final userProvider = context.read<UserProvider>();
+    conductorId = userProvider.currentUser!.id;
 
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        FlutterMap(
-          options: MapOptions(
-            initialCenter: LatLng(13.7850, 121.0890),
-            initialZoom: 13.0,
-            interactiveFlags: InteractiveFlag.all,
-          ),
-          children: [
-            TileLayer(
-              urlTemplate:
-                  'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-              subdomains: ['a', 'b', 'c', 'd'],
-            ),
-            // Bus marker
-            MarkerLayer(
-              markers: [
-                Marker(
-                  point: busLocation,
-                  width: 50,
-                  height: 50,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.black,
+    vehicleSocket = IO.io(
+      "http://localhost:8080/vehicles",
+      IO.OptionBuilder().setTransports(['websocket']).build(),
+    );
+
+    vehicleSocket.connect();
+
+    vehicleSocket.onConnect((_) {
+      print('Connected to vehicle backend');
+      vehicleSocket.emit(
+        "subscribeConductor",
+        conductorId,
+      ); // 🔑 join vehicleRoom
+    });
+
+    vehicleSocket.on('vehicleUpdate', (data) {
+      if (!mounted) return;
+
+      // Ensure data is always treated as a list
+      final vehicles = data is List ? data : [data];
+
+      setState(() {
+        for (var v in vehicles) {
+          final id = int.parse(v["vehicle_id"].toString());
+          final lat = double.parse(v["lat"].toString());
+          final lng = double.parse(v["lng"].toString());
+          final routeId = int.parse(v["route_id"].toString());
+
+          _vehicleMarkers[id] = Marker(
+            point: LatLng(lat, lng),
+            width: 50,
+            height: 50,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedVehicle = v;
+                  _showVehicleInfo = true;
+                  _routePolyline = [];
+                });
+              },
+              child: Column(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF3E4795),
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
                     ),
                     child: const Icon(
                       Icons.directions_bus,
                       color: Colors.white,
-                      size: 24,
+                      size: 20,
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            // Passenger markers
-            MarkerLayer(
-              markers: passengers.map((passenger) {
-                return Marker(
-                  point: passenger['location'],
-                  width: 40,
-                  height: 40,
-                  child: GestureDetector(
-                    onTap: () => _showPassengerDetails(passenger),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey[600],
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: const Icon(
-                        Icons.person,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
+          );
+        }
+      });
+    });
+
+    vehicleSocket.onDisconnect((_) {
+      print('Vehicle disconnected');
+    });
+  }
+
+  Future<void> _loadPendingPickups() async {
+    try {
+      final pickups = await fetchPendingTrips(); // your API
+      if (mounted) {
+        setState(() {
+          _pendingPickups = pickups;
+        });
+      }
+    } catch (e) {
+      print("Error fetching pickups: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    vehicleSocket.off('vehicleUpdate');
+    vehicleSocket.dispose();
+
+    super.dispose();
+  }
+
+  final MapController _mapController = MapController();
+
+  // ✅ Keep: vehicle info modal logic
+  bool _showVehicleInfo = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              center: LatLng(13.945, 121.163),
+              zoom: 14,
+              onTap: (tapPosition, point) {
+                setState(() {
+                  _showVehicleInfo = false;
+                });
+              },
             ),
-          ],
-        ),
-        Positioned(
-          top: 50,
-          left: 16,
-          right: 16,
-          child: Column(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              TileLayer(
+                urlTemplate:
+                    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                subdomains: ['a', 'b', 'c', 'd'],
+              ),
+
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: _routePolyline,
+                    strokeWidth: 4.0,
+                    color: Color(0xFF3E4795),
+                  ),
+                ],
+              ),
+
+              MarkerLayer(
+                markers: [
+                  if (_routePolyline.isNotEmpty)
+                    Marker(
+                      point: _routePolyline.last,
+                      width: 30,
+                      height: 60,
+                      child: const Icon(
+                        Icons.location_pin,
+                        color: Color(0xFF3E4795),
+                        size: 32,
+                      ),
+                    ),
+                  ..._vehicleMarkers.values.toList(),
+
+                  //Pickup markers
+                  if (_highlightedPickup != null)
+                    Marker(
+                      point: _highlightedPickup!,
+                      width: 44,
+                      height: 44,
+                      child: const Icon(
+                        Icons.location_pin,
+                        color: Colors.red,
+                        size: 44,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+
+          // Toggle Button to show/hide pickup list
+          Positioned(
+            top: 40,
+            right: 20,
+            child: FloatingActionButton(
+              backgroundColor: const Color(0xFF3E4795),
+              child: const Icon(Icons.person_search, color: Colors.white),
+              onPressed: () {
+                setState(() {
+                  _showPickupList = true;
+                });
+              },
+            ),
+          ),
+
+          //pickup list bottom sheet
+          if (_showPickupList)
+            Positioned(
+              bottom: 0,
+              left: 20,
+              right: 20,
+              child: Container(
+                constraints: const BoxConstraints(
+                  minHeight: 100,
+                  maxHeight: 220, //Enough space for ~2 items + scrolling
+                ),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withOpacity(0.15),
                       blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      offset: const Offset(0, -4),
                     ),
                   ],
                 ),
-                child: Row(
+                child: Column(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF3E4795).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.search,
-                        color: Color(0xFF3E4795),
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black87,
-                        ),
-                        decoration: const InputDecoration.collapsed(
-                          hintText: 'Search for places...',
-                          hintStyle: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14,
+                    //Header row with close button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Pending Pickups",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF3E4795),
                           ),
                         ),
-                        onChanged: (value) {
-                          print('Search query: $value'); // Debug print
-                          if (value.length > 2) {
-                            _searchPlaces(value);
-                          } else {
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: () {
                             setState(() {
-                              _showSearchResults = false;
+                              _showPickupList = false;
+                              _highlightedPickup = null;
                             });
-                          }
-                        },
-                      ),
+                          },
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.filter_list,
-                        color: Colors.grey,
-                        size: 18,
+                    const SizedBox(height: 8),
+
+                    //Scrollable list, limited by constraints above
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _pendingPickups.length,
+                        itemBuilder: (context, index) {
+                          final pickup = _pendingPickups[index];
+                          final lat =
+                              double.tryParse(
+                                pickup['pickup_lat'].toString(),
+                              ) ??
+                              0.0;
+                          final lng =
+                              double.tryParse(
+                                pickup['pickup_lng'].toString(),
+                              ) ??
+                              0.0;
+
+                          return Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: ListTile(
+                              leading: const Icon(
+                                Icons.location_on,
+                                color: Color(0xFF3E4795),
+                              ),
+                              title: Text("${pickup['passenger_id']}"),
+                              subtitle: Text("Going ${pickup['route_name']}"),
+                              trailing: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.blue, // background color
+                                  borderRadius: BorderRadius.circular(
+                                    12,
+                                  ), // 👈 rounded corners
+                                ),
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.my_location,
+                                    color: Colors
+                                        .white, //make icon white so it stands out
+                                  ),
+                                  onPressed: () {
+                                    final point = LatLng(lat, lng);
+                                    setState(() {
+                                      _highlightedPickup = point;
+                                    });
+                                    _mapController.move(
+                                      point,
+                                      16.0,
+                                    ); // zoom to point
+                                  },
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
                 ),
               ),
-              // Search results dropdown
-              if (_showSearchResults && _searchResults.isNotEmpty)
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+            ),
+
+          //Keep: vehicle info bottom sheet
+          if (_showVehicleInfo && _selectedVehicle != null)
+            Positioned(
+              bottom: 0,
+              left: 20,
+              right: 20,
+              child: Container(
+                constraints: const BoxConstraints(
+                  minHeight: 100,
+                  maxHeight: 260,
+                ),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
                   ),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: _searchResults.map((result) {
-                        return ListTile(
-                          leading: const Icon(
-                            Icons.location_on,
-                            color: Color(0xFF3E4795),
-                            size: 20,
-                          ),
-                          title: Text(
-                            result['name'],
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          subtitle: Text(
-                            result['address'],
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          onTap: () => _onSearchResultSelected(result),
-                        );
-                      }).toList(),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 12,
+                      offset: const Offset(0, -4),
                     ),
-                  ),
+                  ],
                 ),
-              if (_showSearchResults && _isSearching)
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    children: [
-                      SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Color(0xFF3E4795),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'FCM No. ${_selectedVehicle?["vehicle_id"] ?? "Unknown"}',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF3E4795),
+                          ),
                         ),
-                      ),
-                      SizedBox(width: 12),
-                      Text(
-                        'Searching for places...',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: () {
+                            setState(() {
+                              _showVehicleInfo = false;
+                              _selectedVehicle = null;
+                            });
+                          },
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Plate No: DAL 7674',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_selectedVehicle?["route_name"] ?? "Unknown"}',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text(
+                          'Estimated Time of Arrival',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        Text(
+                          '8:30 AM',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text(
+                          'Current Location',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        Text(
+                          'Lalayat San Jose',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              "Driver's Name",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Nelson Suarez',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            final remainingRoute =
+                                _selectedVehicle?["remaining_route_polyline"];
+
+                            if (remainingRoute == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("No route data available."),
+                                ),
+                              );
+                              return;
+                            }
+
+                            // Decode JSON string into a Map
+                            final routeJson = remainingRoute is String
+                                ? jsonDecode(remainingRoute)
+                                : remainingRoute;
+
+                            final coords =
+                                (routeJson["coordinates"] as List?)
+                                    ?.map(
+                                      (c) => LatLng(
+                                        (c[1] as num).toDouble(),
+                                        (c[0] as num).toDouble(),
+                                      ),
+                                    )
+                                    .toList() ??
+                                [];
+
+                            if (coords.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("No route data available."),
+                                ),
+                              );
+                              return;
+                            }
+
+                            setState(() {
+                              _routePolyline = coords;
+                            });
+                          },
+                          icon: const Icon(Icons.navigation, size: 16),
+                          label: const Text(
+                            'Track Trip',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3E4795),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-            ],
-          ),
-        ),
-      ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
 // ---------------- NotificationsTab ----------------
 
-class NotificationsTab extends StatelessWidget {
+class NotificationsTab extends StatefulWidget {
   const NotificationsTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final notifications = [
-      {
-        'icon': Icons.directions_bus,
-        'iconBg': Color(0xFFBFC6F7),
-        'title': 'Passenger Pickup Alert',
-        'message': 'You have a new pickup at P. Laurel Ave.',
-        'time': '9:41 AM',
-      },
-      {
-        'icon': Icons.traffic,
-        'iconBg': Color(0xFFBFC6F7),
-        'title': 'Route Update',
-        'message': 'Heavy traffic detected ahead.',
-        'time': '7:50 AM',
-      },
-      {
-        'icon': Icons.support_agent,
-        'iconBg': Color(0xFFBFC6F7),
-        'title': 'Quick Assistance Alert Sent',
-        'message': 'Admin support will reach out shortly.',
-        'time': '9:00 AM',
-      },
-    ];
+  State<NotificationsTab> createState() => _NotificationsTabState();
+}
 
+class _NotificationsTabState extends State<NotificationsTab> {
+  late Future<List<dynamic>> notifications;
+
+  @override
+  void initState() {
+    super.initState();
+    notifications = fetchNotifications();
+  }
+
+  IconData mapIcon(String iconName) {
+    switch (iconName) {
+      case "directions_bus":
+        return Icons.directions_bus;
+      case "location_on":
+        return Icons.location_on;
+      case "star":
+        return Icons.star;
+      default:
+        return Icons.notifications;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Padding(
@@ -952,58 +839,80 @@ class NotificationsTab extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 24),
-            Text(
-              'Notifications',
-              style: TextStyle(
-                color: Color(0xFF3E4795),
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ...notifications.map(
-              (notif) => Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Color(0xFFF3F3F3),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: ListTile(
-                    leading: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: notif['iconBg'] as Color,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        notif['icon'] as IconData,
-                        color: Color.fromRGBO(62, 71, 149, 1),
-                        size: 28,
-                      ),
-                    ),
-                    title: Text(
-                      notif['title'] as String,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    subtitle: Text(
-                      notif['message'] as String,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    trailing: Text(
-                      notif['time'] as String,
-                      style: const TextStyle(fontSize: 13, color: Colors.grey),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Text(
+                  'Notifications',
+                  style: TextStyle(
+                    color: Color(0xFF3E4795),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: FutureBuilder<List<dynamic>>(
+                future: notifications,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text("Error: ${snapshot.error}"));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text("No notifications"));
+                  } else {
+                    return ListView.builder(
+                      itemCount: snapshot.data!.length,
+                      itemBuilder: (context, index) {
+                        final notif = snapshot.data![index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF3F3F3),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: ListTile(
+                              leading: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFBFC6F7),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              title: Text(
+                                notif["notif_title"],
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              subtitle: Text(
+                                notif["content"],
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              trailing: Text(
+                                notif["notif_date"],
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }
+                },
               ),
             ),
           ],
@@ -1015,123 +924,160 @@ class NotificationsTab extends StatelessWidget {
 
 // ---------------- PassengerPickupTab ----------------
 
-class PassengerPickupTab extends StatelessWidget {
+class PassengerPickupTab extends StatefulWidget {
   const PassengerPickupTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final List<Map<String, String>> pickups = [
-      {
-        'location': 'San Pascual',
-        'coords': '(13.8000, 121.0500)',
-        'time': '9:41 AM'
-      },
-      {
-        'location': 'San Jose',
-        'coords': '(13.7850, 128.0890)',
-        'time': '7:50 AM'
-      },
-      {
-        'location': 'Banay-banay',
-        'coords': '(13.7850, 128.0890)',
-        'time': '9:00 AM'
-      },
-    ];
+  State<PassengerPickupTab> createState() => _PassengerPickupTabState();
+}
 
+class _PassengerPickupTabState extends State<PassengerPickupTab> {
+  late Future<List<dynamic>> _futurePickups;
+
+  @override
+  void initState() {
+    super.initState();
+    _futurePickups = fetchPendingTrips(); // 🔹 your endpoint
+  }
+
+  Future<void> _refreshData() async {
+    setState(() {
+      _futurePickups = fetchPendingTrips(); // 🔄 refresh
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 24),
-            Text(
-              'Passenger Pick-ups',
-              style: TextStyle(
-                color: Color(0xFF3E4795),
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Color(0xFFF3F3F3),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Column(
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        child: FutureBuilder<List<dynamic>>(
+          future: _futurePickups,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text("Error: ${snapshot.error}"));
+            } else if (snapshot.hasData) {
+              final pickups = snapshot.data!;
+              if (pickups.isEmpty) {
+                return const Center(child: Text("No pickups available."));
+              }
+
+              return ListView(
+                padding: const EdgeInsets.all(16),
                 children: [
-                  Text(
-                    'Passenger Capacity Status',
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Passenger Pick-ups',
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
                       color: Color(0xFF3E4795),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 6),
-                  Text(
-                    '2/20',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
+                  const SizedBox(height: 16),
+
+                  // 🔹 Capacity Status card
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F3F3),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Column(
+                      children: const [
+                        Text(
+                          'Passenger Capacity Status',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF3E4795),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 6),
+                        Text(
+                          '2/20', // TODO: Replace with dynamic value
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Can accommodate more passengers.',
+                          style: TextStyle(color: Colors.green, fontSize: 14),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Can accommodate more passengers.',
-                    style: TextStyle(color: Colors.green, fontSize: 14),
-                    textAlign: TextAlign.center,
+                  const SizedBox(height: 16),
+
+                  // 🔹 Dynamic pickup list
+                  ListView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    itemCount: pickups.length,
+                    itemBuilder: (context, index) {
+                      final pickup = pickups[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3F3F3),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: ListTile(
+                            leading: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFBFC6F7),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Color.fromRGBO(62, 71, 149, 1),
+                                size: 28,
+                              ),
+                            ),
+                            title: Text(
+                              pickup['passenger_id'] ?? 'Unknown',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            subtitle: Text(
+                              'Location: ${pickup['pickup_lat'] ?? ""}, ${pickup['pickup_lng'] ?? ""}',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            trailing: Text(
+                              pickup['created_at'] ?? '',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            ...pickups.map((pickup) => Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Color(0xFFF3F3F3),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: ListTile(
-                  leading: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Color(0xFFBFC6F7),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.location_on,
-                      color: Color.fromRGBO(62, 71, 149, 1),
-                      size: 28,
-                    ),
-                  ),
-                  title: Text(
-                    pickup['location']!,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Location: ${pickup['coords']}',
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  trailing: Text(
-                    pickup['time']!,
-                    style: const TextStyle(fontSize: 13, color: Colors.grey),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                ),
-              ),
-            )),
-          ],
+              );
+            } else {
+              return const Center(child: Text("No pickups available."));
+            }
+          },
         ),
       ),
     );
@@ -1149,10 +1095,22 @@ class MessagingTab extends StatefulWidget {
 
 class _MessagingTabState extends State<MessagingTab> {
   final List<Map<String, dynamic>> _messages = [
-    {'fromAdmin': true, 'text': 'Thanks for the quick update, FCM 22. Are you safe?'},
-    {'fromAdmin': false, 'text': "Yes, I'm safe. No need for medical, but I might need a tow."},
-    {'fromAdmin': true, 'text': "Copy that. I'm dispatching our on-site support now."},
-    {'fromAdmin': false, 'text': "Got it. Passenger has been informed and is waiting with me."},
+    {
+      'fromAdmin': true,
+      'text': 'Thanks for the quick update, FCM 22. Are you safe?',
+    },
+    {
+      'fromAdmin': false,
+      'text': "Yes, I'm safe. No need for medical, but I might need a tow.",
+    },
+    {
+      'fromAdmin': true,
+      'text': "Copy that. I'm dispatching our on-site support now.",
+    },
+    {
+      'fromAdmin': false,
+      'text': "Got it. Passenger has been informed and is waiting with me.",
+    },
   ];
 
   final TextEditingController _controller = TextEditingController();
@@ -1191,12 +1149,19 @@ class _MessagingTabState extends State<MessagingTab> {
                   final msg = _messages[index];
                   final isMe = !msg['fromAdmin'];
                   return Align(
-                    alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                    alignment: isMe
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
-                        color: isMe ? const Color(0xFF3E4795) : Color(0xFFF3F3F3),
+                        color: isMe
+                            ? const Color(0xFF3E4795)
+                            : Color(0xFFF3F3F3),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
@@ -1225,7 +1190,10 @@ class _MessagingTabState extends State<MessagingTab> {
                       decoration: const InputDecoration(
                         hintText: 'Write a message',
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
                     ),
                   ),
@@ -1276,7 +1244,7 @@ class _ProfileTabState extends State<ProfileTab> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Account Information
           Text('Account Information', style: sectionStyle),
           ListTile(
@@ -1285,7 +1253,10 @@ class _ProfileTabState extends State<ProfileTab> {
             subtitle: Text(busNumber),
           ),
           ListTile(
-            leading: const Icon(Icons.confirmation_number, color: Color(0xFF3E4795)),
+            leading: const Icon(
+              Icons.confirmation_number,
+              color: Color(0xFF3E4795),
+            ),
             title: const Text('Plate Number'),
             subtitle: Text(plateNumber),
           ),
@@ -1448,7 +1419,9 @@ class _ProfileTabState extends State<ProfileTab> {
                           // Navigate to login screen
                           if (context.mounted) {
                             Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(builder: (_) => const LoginScreen()),
+                              MaterialPageRoute(
+                                builder: (_) => const LoginScreen(),
+                              ),
                               (route) => false,
                             );
                           }
@@ -1531,30 +1504,30 @@ class _QuickAssistanceScreenState extends State<QuickAssistanceScreen> {
                 children: [
                   const Text(
                     'Choose a Situation',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   const SizedBox(height: 12),
                   RadioListTile<String>(
                     value: 'Vehicle Breakdown',
                     groupValue: _selectedSituation,
-                    onChanged: (val) => setState(() => _selectedSituation = val),
+                    onChanged: (val) =>
+                        setState(() => _selectedSituation = val),
                     activeColor: Color(0xFF3E4795),
                     title: const Text('Vehicle Breakdown'),
                   ),
                   RadioListTile<String>(
                     value: 'Accident',
                     groupValue: _selectedSituation,
-                    onChanged: (val) => setState(() => _selectedSituation = val),
+                    onChanged: (val) =>
+                        setState(() => _selectedSituation = val),
                     activeColor: Color(0xFF3E4795),
                     title: const Text('Accident'),
                   ),
                   RadioListTile<String>(
                     value: 'Others',
                     groupValue: _selectedSituation,
-                    onChanged: (val) => setState(() => _selectedSituation = val),
+                    onChanged: (val) =>
+                        setState(() => _selectedSituation = val),
                     activeColor: Color(0xFF3E4795),
                     title: const Text('Others'),
                   ),
@@ -1565,15 +1538,19 @@ class _QuickAssistanceScreenState extends State<QuickAssistanceScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _selectedSituation == null ? null : () {
-                  // TODO: Implement assistance logic
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Assistance requested for $_selectedSituation'),
-                      backgroundColor: const Color(0xFF3E4795),
-                    ),
-                  );
-                },
+                onPressed: _selectedSituation == null
+                    ? null
+                    : () {
+                        // TODO: Implement assistance logic
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Assistance requested for $_selectedSituation',
+                            ),
+                            backgroundColor: const Color(0xFF3E4795),
+                          ),
+                        );
+                      },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF3E4795),
                   foregroundColor: Colors.white,

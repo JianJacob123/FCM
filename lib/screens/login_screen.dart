@@ -22,8 +22,9 @@ class _LoginScreenState extends State<LoginScreen> {
   double _dragStartY = 0;
 
   void _continueAsPassenger() {
-    final guestId =
-        context.read<UserProvider>().guestId ?? DateTime.now().toString();
+    final guestId = context
+        .read<UserProvider>()
+        .guestId!; // safe because init ensures it
     final user = UserModel(
       id: guestId,
       name: 'Passenger',

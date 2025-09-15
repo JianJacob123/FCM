@@ -28,12 +28,10 @@ class UserProvider extends ChangeNotifier {
         storedGuestId = const Uuid().v4();
         await prefs.setString('guest_id', storedGuestId);
       }
-
       _guestId = storedGuestId;
 
-      //Load logged-in user if exists
+      // Load logged-in user if exists
       final userJson = prefs.getString('user');
-
       if (userJson != null) {
         final userData = jsonDecode(userJson);
         _currentUser = UserModel.fromJson(userData);
@@ -53,7 +51,8 @@ class UserProvider extends ChangeNotifier {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('user', user.toJson().toString());
+      // ✅ FIX: use jsonEncode, not .toString()
+      await prefs.setString('user', jsonEncode(user.toJson()));
       _currentUser = user;
     } catch (e) {
       print('Error saving user: $e');

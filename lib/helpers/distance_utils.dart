@@ -1,17 +1,16 @@
 import 'package:latlong2/latlong.dart';
 
-bool isNearRoute(
-  LatLng pinnedLocation,
-  List<LatLng> routePoints, {
-  double maxDistance = 300,
+bool isPointNearPolyline(
+  LatLng point,
+  List<LatLng> polyline, {
+  double tolerance = 50,
 }) {
-  final Distance distance = Distance();
+  final Distance distance = const Distance();
 
-  for (final point in routePoints) {
-    final double meters = distance.as(LengthUnit.Meter, pinnedLocation, point);
-    if (meters <= maxDistance) {
-      return true;
-    }
+  for (final vertex in polyline) {
+    final d = distance(point, vertex); // haversine distance (meters)
+    if (d <= tolerance) return true;
   }
+
   return false;
 }

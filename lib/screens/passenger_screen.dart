@@ -4,10 +4,11 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/user_provider.dart';
-import '../widgets/vehicle_info_sheet.dart';
-import '../helpers/mapbox_services.dart';
+//import '../widgets/vehicle_info_sheet.dart';
+//import '../helpers/mapbox_services.dart';
 import '../helpers/distance_utils.dart';
-import '../helpers/geofence_utils.dart';
+import '../helpers/location_service.dart';
+import '../models/trip_request.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api.dart';
 import 'package:http/http.dart' as http;
@@ -590,11 +591,17 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   late IO.Socket vehicleSocket;
-  Map<int, Marker> _vehicleMarkers = {}; // vehicle_id to Marker
+  LatLng? _userLocation;
+  final Map<int, Marker> _vehicleMarkers = {}; // vehicle_id to Marker
   Map<String, dynamic>? _selectedVehicle; // selected vehicle info
+  List<LatLng> _routePolyline = [];
+  int? _selectedRouteId; // will hold the chosen route_id
+
   @override
   void initState() {
     super.initState();
+
+    _getUserLocation(); //fetch at startup
 
     // --- Vehicle socket (no userId needed) ---
     vehicleSocket = IO.io(
@@ -605,12 +612,13 @@ class _MapScreenState extends State<MapScreen> {
     vehicleSocket.connect();
 
     vehicleSocket.onConnect((_) {
-      print('✅ Connected to vehicle backend');
+      print('Connected to vehicle backend');
       vehicleSocket.emit("subscribeVehicles"); // 🔑 join vehicleRoom
     });
 
     vehicleSocket.on('vehicleUpdate', (data) {
-      print('🚐 Vehicle update: $data');
+      if (!mounted) return;
+      //print('🚐 Vehicle update: $data');
 
       // data is an array of vehicles
       setState(() {
@@ -628,14 +636,23 @@ class _MapScreenState extends State<MapScreen> {
                 setState(() {
                   _selectedVehicle = v; // save the tapped vehicle info
                   _showVehicleInfo = true;
+                  _routePolyline = []; // clear old polyline
                 });
               },
               child: Column(
                 children: [
-                  const Icon(
-                    Icons.directions_bus,
-                    color: Colors.blue,
-                    size: 30,
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: Color(0xFF3E4795),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.directions_bus,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ],
               ),
@@ -646,14 +663,37 @@ class _MapScreenState extends State<MapScreen> {
     });
 
     vehicleSocket.onDisconnect((_) {
-      print('❌ Vehicle disconnected');
+      print('Vehicle disconnected');
     });
+  }
+
+  @override
+  void dispose() {
+    vehicleSocket.off('vehicleUpdate');
+    vehicleSocket.dispose();
+
+    super.dispose();
+  }
+
+  Future<void> _getUserLocation() async {
+    final position = await LocationService.getCurrentLocation();
+
+    if (!mounted) return;
+    if (position != null) {
+      setState(() {
+        _userLocation = LatLng(position.latitude, position.longitude);
+      });
+    } else {
+      print('Unable to fetch user location');
+    }
   }
 
   final MapController _mapController = MapController();
 
   // ✅ Keep: picked location for user search
   LatLng? _pickedLocation;
+  bool _showPinnedLocation = false;
+  String _pickedLocationName = "Selected Location"; //for now.
 
   // ✅ Keep: vehicle info modal logic
   bool _showVehicleInfo = false;
@@ -668,10 +708,12 @@ class _MapScreenState extends State<MapScreen> {
             options: MapOptions(
               center: LatLng(13.945, 121.163),
               zoom: 14,
-              onTap: (_, __) {
+              onTap: (tapPosition, point) {
                 setState(() {
                   _showVehicleInfo = false;
-                  _pickedLocation = null;
+                  _pickedLocation = point;
+                  _showPinnedLocation = true;
+                  _pickedLocationName = "Pinned Location";
                 });
               },
             ),
@@ -682,8 +724,29 @@ class _MapScreenState extends State<MapScreen> {
                 subdomains: ['a', 'b', 'c', 'd'],
               ),
 
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: _routePolyline,
+                    strokeWidth: 4.0,
+                    color: Color(0xFF3E4795),
+                  ),
+                ],
+              ),
+
               MarkerLayer(
                 markers: [
+                  if (_routePolyline.isNotEmpty)
+                    Marker(
+                      point: _routePolyline.last,
+                      width: 30,
+                      height: 60,
+                      child: const Icon(
+                        Icons.location_pin,
+                        color: Color(0xFF3E4795),
+                        size: 32,
+                      ),
+                    ),
                   if (_pickedLocation != null)
                     Marker(
                       point: _pickedLocation!,
@@ -692,6 +755,17 @@ class _MapScreenState extends State<MapScreen> {
                       child: const Icon(
                         Icons.location_pin,
                         color: Colors.green,
+                        size: 32,
+                      ),
+                    ),
+                  if (_userLocation != null)
+                    Marker(
+                      point: _userLocation!,
+                      width: 40,
+                      height: 40,
+                      child: const Icon(
+                        Icons.person_pin_circle,
+                        color: Colors.orange,
                         size: 32,
                       ),
                     ),
@@ -837,7 +911,46 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                         ElevatedButton.icon(
                           onPressed: () {
-                            // Implement navigation to tracking screen
+                            final remainingRoute =
+                                _selectedVehicle?["remaining_route_polyline"];
+
+                            if (remainingRoute == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("No route data available."),
+                                ),
+                              );
+                              return;
+                            }
+
+                            // Decode JSON string into a Map
+                            final routeJson = remainingRoute is String
+                                ? jsonDecode(remainingRoute)
+                                : remainingRoute;
+
+                            final coords =
+                                (routeJson["coordinates"] as List?)
+                                    ?.map(
+                                      (c) => LatLng(
+                                        (c[1] as num).toDouble(),
+                                        (c[0] as num).toDouble(),
+                                      ),
+                                    )
+                                    .toList() ??
+                                [];
+
+                            if (coords.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("No route data available."),
+                                ),
+                              );
+                              return;
+                            }
+
+                            setState(() {
+                              _routePolyline = coords;
+                            });
                           },
                           icon: const Icon(Icons.navigation, size: 16),
                           label: const Text(
@@ -855,6 +968,205 @@ class _MapScreenState extends State<MapScreen> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             elevation: 0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          //PinLocationModal
+          if (_showPinnedLocation && _pickedLocation != null)
+            Positioned(
+              bottom: 80,
+              left: 20,
+              right: 20,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 12,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title + close button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _pickedLocationName,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF3E4795),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: () {
+                            setState(() {
+                              _showPinnedLocation = false;
+                              _pickedLocation = null;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Coordinates (for now, until we add reverse geocoding)
+                    DropdownButtonFormField<int>(
+                      value: _selectedRouteId,
+                      decoration: const InputDecoration(
+                        labelText: "Select Route",
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 1, child: Text("Lipa → Bauan")),
+                        DropdownMenuItem(value: 2, child: Text("Bauan → Lipa")),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedRouteId = value;
+                        });
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Action buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              final userProvider = context.read<UserProvider>();
+                              final userId = userProvider.isLoggedIn
+                                  ? userProvider.currentUser!.id
+                                  : userProvider
+                                        .guestId; // <-- fallback to guestId
+                              if (userId == null) {
+                                // Handle error: user not logged in
+                                throw Exception("Id Not Found");
+                              }
+                              addLocation(
+                                userId,
+                                _pickedLocation!.latitude,
+                                _pickedLocation!.longitude,
+                              );
+                            },
+                            icon: const Icon(Icons.favorite_border),
+                            label: const Text(
+                              "Add Favorites",
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[200],
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                              ), // height
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8), // spacing between buttons
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              if (_routePolyline.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Please track the vehicle first before setting destination.",
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+                              if (_userLocation == null ||
+                                  _pickedLocation == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "User location or destination missing!",
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+                              //Validate: is pickup and dropoff near the polyline?
+                              final isPickupValid = isPointNearPolyline(
+                                _userLocation!,
+                                _routePolyline,
+                              );
+                              final isDropoffValid = isPointNearPolyline(
+                                _pickedLocation!,
+                                _routePolyline,
+                              );
+
+                              if (!isPickupValid || !isDropoffValid) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Pickup or dropoff location is too far from the route. Please select a closer point.",
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              final userProvider = context.read<UserProvider>();
+                              final userId = userProvider.isLoggedIn
+                                  ? userProvider.currentUser!.id
+                                  : userProvider
+                                        .guestId; // <-- fallback to guestId
+                              if (userId == null) {
+                                // Handle error: user not logged in
+                                throw Exception("Id Not Found");
+                              }
+                              final trip = TripRequest(
+                                passengerId: userId,
+                                pickupLat: _userLocation!.latitude,
+                                pickupLng: _userLocation!.longitude,
+                                dropoffLat: _pickedLocation!.latitude,
+                                dropoffLng: _pickedLocation!.longitude,
+                              );
+
+                              print("🚖 Trip Request: ${trip.toJson()}");
+
+                              // TODO: send this trip request to backend
+                              // For now, just log or show a snackbar
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    "Destination set successfully!",
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.flag),
+                            label: const Text(
+                              "Set Destination",
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3E4795),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
                           ),
                         ),
                       ],
@@ -1069,214 +1381,223 @@ class _SettingsScreenState extends State<SettingsScreen> {
   );
 }
 
-class TripHistoryScreen extends StatelessWidget {
+class TripHistoryScreen extends StatefulWidget {
   const TripHistoryScreen({super.key});
 
   @override
+  State<TripHistoryScreen> createState() => _TripHistoryScreenState();
+}
+
+class _TripHistoryScreenState extends State<TripHistoryScreen> {
+  @override
   Widget build(BuildContext context) {
-    final trips = [
-      {
-        'number': '12',
-        'route': 'Lipa City Terminal → Layayat, San Jose',
-        'date': 'April 15, 2025',
-        'time': '8:15 AM',
-        'duration': '45 mins',
-      },
-      {
-        'number': '05',
-        'route': 'Lipa City Terminal → Bauan',
-        'date': 'April 25, 2025',
-        'time': '10:15 AM',
-        'duration': '1 hour & 5 mins',
-      },
-      {
-        'number': '01',
-        'route': 'Lipa City Terminal → Bauan',
-        'date': 'April 30, 2025',
-        'time': '10:15 AM',
-        'duration': '1 hour & 5 mins',
-      },
-    ];
     return Scaffold(
       backgroundColor: Colors.white,
-      body: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        itemCount: trips.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(height: 16),
-        itemBuilder: (context, i) {
-          if (i == 0) {
-            return const Padding(
-              padding: EdgeInsets.only(top: 24, bottom: 8),
-              child: Text(
-                'Trip History',
-                textAlign: TextAlign.left,
-                style: TextStyle(
-                  color: Color(0xFF3E4795),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 24,
-                ),
-              ),
-            );
-          }
-          final trip = trips[i - 1];
-          return Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF3F3F3),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'FCM No. ${trip['number']}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
+      appBar: AppBar(
+        title: const Text(
+          'Trip History',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+            color: Color(0xFF3E4795), //Change the color here
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: FutureBuilder<List<dynamic>>(
+        future: fetchTripHistory(
+          context.read<UserProvider>().currentUser?.id ?? "",
+        ),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}"));
+          } else if (snapshot.hasData) {
+            final trips = snapshot.data!;
+            if (trips.isEmpty) {
+              return const Center(child: Text("No trip history available."));
+            }
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: trips.length,
+              itemBuilder: (context, index) {
+                final trip = trips[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F3F3),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: ListTile(
+                      leading: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFBFC6F7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.directions_bus,
+                          color: Color(0xFF3E4795),
+                          size: 28,
+                        ),
+                      ),
+                      title: Text(
+                        trip["route_name"] ?? "Unknown Route",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          Text(
+                            'From: ${trip["pickup_location"] ?? "Unknown"}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          Text(
+                            'To: ${trip["dropoff_location"] ?? "Unknown"}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      trailing: Text(
+                        trip["trip_date"] ?? "Unknown Date",
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  trip['route']!,
-                  style: const TextStyle(fontSize: 15, color: Colors.black87),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '${trip['date']} | ${trip['time']} | ${trip['duration']}',
-                  style: const TextStyle(fontSize: 14, color: Colors.black54),
-                ),
-              ],
-            ),
-          );
+                );
+              },
+            );
+          } else {
+            return const Center(child: Text("No trip history available."));
+          }
         },
       ),
     );
   }
 }
 
-class SaveRoutesScreen extends StatelessWidget {
+class SaveRoutesScreen extends StatefulWidget {
   const SaveRoutesScreen({super.key});
 
   @override
+  State<SaveRoutesScreen> createState() => _SaveRoutesScreenState();
+}
+
+class _SaveRoutesScreenState extends State<SaveRoutesScreen> {
+  late Future<List<dynamic>> _futureLocations;
+
+  @override
+  void initState() {
+    super.initState();
+    final userProvider = context.read<UserProvider>();
+    final userId = userProvider.isLoggedIn
+        ? userProvider.currentUser!.id
+        : userProvider.guestId;
+
+    _futureLocations = fetchFavoriteLocations(userId ?? "");
+  }
+
+  Future<void> _refreshData() async {
+    final userProvider = context.read<UserProvider>();
+    final userId = userProvider.isLoggedIn
+        ? userProvider.currentUser!.id
+        : userProvider.guestId;
+
+    setState(() {
+      _futureLocations = fetchFavoriteLocations(userId ?? "");
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final saveRoutes = [
-      'Lipa City Terminal → Layayat, San Jose',
-      'Lipa City Terminal → Bauan City',
-      'Lipa City Terminal → Lumil, San Jose',
-    ];
-    final favoriteLocations = [
-      'Lalayat, San Jose Batangas',
-      'Lipa City Terminal',
-      'San Pascual, Batangas',
-    ];
     return Scaffold(
       backgroundColor: Colors.white,
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-        children: [
-          const SizedBox(height: 24),
-          const Text(
-            'My Save Routes',
-            style: TextStyle(
-              color: Color(0xFF3E4795),
-              fontWeight: FontWeight.bold,
-              fontSize: 24,
-            ),
+      appBar: AppBar(
+        title: const Text(
+          'Favorite Locations',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+            color: Color(0xFF3E4795),
           ),
-          const SizedBox(height: 16),
-          ...saveRoutes.map(
-            (route) => Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F3F3),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 12,
-                ),
-                child: Row(
-                  children: [
-                    Container(
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        child: FutureBuilder<List<dynamic>>(
+          future: _futureLocations,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text("Error: ${snapshot.error}"));
+            } else if (snapshot.hasData) {
+              final locations = snapshot.data!;
+              if (locations.isEmpty) {
+                return const Center(
+                  child: Text("No favorite locations available."),
+                );
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: locations.length,
+                itemBuilder: (context, index) {
+                  final loc = locations[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFFBFC6F7),
-                        borderRadius: BorderRadius.circular(16),
+                        color: const Color(0xFFF3F3F3),
+                        borderRadius: BorderRadius.circular(18),
                       ),
-                      padding: const EdgeInsets.all(8),
-                      child: const Icon(
-                        Icons.favorite,
-                        color: Color(0xFF3E4795),
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        route,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 17,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.location_on, color: Colors.blue),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                loc["location_name"] ?? "Unnamed Location",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'Favorite Locations',
-            style: TextStyle(
-              color: Color(0xFF3E4795),
-              fontWeight: FontWeight.bold,
-              fontSize: 24,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ...favoriteLocations.map(
-            (loc) => Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3F3F3),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 12,
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFBFC6F7),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      padding: const EdgeInsets.all(8),
-                      child: const Icon(
-                        Icons.favorite,
-                        color: Color(0xFF3E4795),
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        loc,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 17,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+                  );
+                },
+              );
+            } else {
+              return const Center(
+                child: Text("No favorite locations available."),
+              );
+            }
+          },
+        ),
       ),
     );
   }

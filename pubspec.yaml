@@ -45,6 +45,7 @@ dependencies:
   http: ^1.4.0
   socket_io_client: ^3.1.2
   uuid: ^4.5.1
+  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:
