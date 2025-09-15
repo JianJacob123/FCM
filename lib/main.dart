@@ -31,7 +31,9 @@ class MyApp extends StatelessWidget {
               primaryColor: const Color.fromRGBO(62, 71, 149, 1),
               brightness: Brightness.light,
             ),
-            home: const AdminLoginScreen(),
+            home: kIsWeb
+                ? const SplashScreen()
+                : const SplashScreen(), //Change this to adminLoginScreen() for admin view
           );
         },
       ),
