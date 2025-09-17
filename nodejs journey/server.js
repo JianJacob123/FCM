@@ -15,6 +15,7 @@ const userRoutes = require('./routes/userRoutes');
 const favLocationRoutes = require('./routes/favLocationsRoutes');
 const getRoute = require('./routes/mapBoxRoute');
 const passengerTripRoutes = require('./routes/passengerTripRoutes');
+const scheduleRoutes = require('./routes/scheduleRoutes');
 const { startCronJobs } = require('./services/cronJobs');
 const socketHandler = require("./sockets/socketHandler");
 const vehicleSocketHandler = require("./sockets/vehicleHandler");
@@ -28,6 +29,7 @@ app.use('/trips', tripRoutes);
 app.use('/favLocations', favLocationRoutes);
 app.use('/route', getRoute);
 app.use('/passengerTrips', passengerTripRoutes);
+app.use(scheduleRoutes);
 
 
 const io = new Server(httpServer, {

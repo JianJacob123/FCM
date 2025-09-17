@@ -672,10 +672,8 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
     Widget _DailyScheduleView() {
-            return Container(
-                    color: Colors.white,
-        );
-      }
+      return const DailyScheduleCrud();
+    }
 }
 
 // Admin Search Field similar to passenger search
@@ -3544,6 +3542,533 @@ class _VehicleAssignmentManagementState extends State<_VehicleAssignmentManageme
                                 ),
                               ),
                               child: Text(_editingAssignment != null ? 'Update' : 'Add'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// Schedule CRUD Widget
+class DailyScheduleCrud extends StatefulWidget {
+  const DailyScheduleCrud({super.key});
+
+  @override
+  State<DailyScheduleCrud> createState() => _DailyScheduleCrudState();
+}
+
+class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
+  DateTime _selectedDate = DateTime.now();
+  List<Map<String, dynamic>> _schedules = [];
+  bool _isLoading = false;
+  bool _showAddForm = false;
+  Map<String, dynamic>? _editingSchedule;
+  
+  final _formKey = GlobalKey<FormState>();
+  final _timeController = TextEditingController();
+  final _unitController = TextEditingController();
+  final _statusController = TextEditingController();
+  final _reasonController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSchedules();
+  }
+
+  @override
+  void dispose() {
+    _timeController.dispose();
+    _unitController.dispose();
+    _statusController.dispose();
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSchedules() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:8080/api/schedules?date=${_formatDate(_selectedDate)}'),
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _schedules = List<Map<String, dynamic>>.from(data['data'] ?? []);
+        });
+      } else {
+        _showErrorSnackBar('Failed to load schedules');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error loading schedules: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveSchedule() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final scheduleData = {
+      'schedule_date': _formatDate(_selectedDate),
+      'time_start': _timeController.text.trim(),
+      'vehicle_id': int.tryParse(_unitController.text.trim()) ?? 1,
+      'status': _statusController.text.trim(),
+      'reason': _reasonController.text.trim().isEmpty ? null : _reasonController.text.trim(),
+    };
+
+    try {
+      http.Response response;
+      if (_editingSchedule != null) {
+        response = await http.put(
+          Uri.parse('http://localhost:8080/api/schedules/${_editingSchedule!['id']}'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(scheduleData),
+        );
+      } else {
+        response = await http.post(
+          Uri.parse('http://localhost:8080/api/schedules'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(scheduleData),
+        );
+      }
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _showSuccessSnackBar(_editingSchedule != null ? 'Schedule updated' : 'Schedule created');
+        _closeForm();
+        _loadSchedules();
+      } else {
+        _showErrorSnackBar('Failed to save schedule');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error saving schedule: $e');
+    }
+  }
+
+  Future<void> _deleteSchedule(int id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Schedule'),
+        content: const Text('Are you sure you want to delete this schedule?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final response = await http.delete(
+          Uri.parse('http://localhost:8080/api/schedules/$id'),
+        );
+
+        if (response.statusCode == 200) {
+          _showSuccessSnackBar('Schedule deleted');
+          _loadSchedules();
+        } else {
+          _showErrorSnackBar('Failed to delete schedule');
+        }
+      } catch (e) {
+        _showErrorSnackBar('Error deleting schedule: $e');
+      }
+    }
+  }
+
+  void _showAddFormDialog() {
+    setState(() {
+      _showAddForm = true;
+      _editingSchedule = null;
+      _timeController.clear();
+      _unitController.clear();
+      _statusController.text = 'Active';
+      _reasonController.clear();
+    });
+  }
+
+  void _showEditFormDialog(Map<String, dynamic> schedule) {
+    setState(() {
+      _showAddForm = true;
+      _editingSchedule = schedule;
+      _timeController.text = schedule['time_start'] ?? '';
+      _unitController.text = schedule['vehicle_id']?.toString() ?? '';
+      _statusController.text = schedule['status'] ?? 'Active';
+      _reasonController.text = schedule['reason'] ?? '';
+    });
+  }
+
+  void _closeForm() {
+    setState(() {
+      _showAddForm = false;
+      _editingSchedule = null;
+    });
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _selectDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() => _selectedDate = picked);
+      _loadSchedules();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Container(
+          color: Colors.grey[100],
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with date picker and add button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Daily Schedules',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF3E4795),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        // Date picker
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF3E4795)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.calendar_today, color: Color(0xFF3E4795), size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                _formatDate(_selectedDate),
+                                style: const TextStyle(
+                                  color: Color(0xFF3E4795),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: _selectDate,
+                                child: const Icon(Icons.arrow_drop_down, color: Color(0xFF3E4795)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        // Add button
+                        ElevatedButton.icon(
+                          onPressed: _showAddFormDialog,
+                          icon: const Icon(Icons.add, color: Colors.white),
+                          label: const Text('Add Schedule', style: TextStyle(color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3E4795),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
+                // Table
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          spreadRadius: 1,
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Table header
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF3E4795),
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(12),
+                              topRight: Radius.circular(12),
+                            ),
+                          ),
+                          child: const Row(
+                            children: [
+                              Expanded(flex: 2, child: Text('Time', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                              Expanded(flex: 2, child: Text('Unit Number', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                              Expanded(flex: 2, child: Text('Status', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                              Expanded(flex: 2, child: Text('Reason', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                              Expanded(flex: 1, child: Text('Actions', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                            ],
+                          ),
+                        ),
+                        
+                        // Table content
+                        Expanded(
+                          child: _isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : _schedules.isEmpty
+                                  ? const Center(
+                                      child: Text(
+                                        'No schedules found for this date',
+                                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      itemCount: _schedules.length,
+                                      itemBuilder: (context, index) {
+                                        final schedule = _schedules[index];
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                          decoration: BoxDecoration(
+                                            border: Border(
+                                              bottom: BorderSide(
+                                                color: Colors.grey.withOpacity(0.2),
+                                                width: 1,
+                                              ),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                flex: 2,
+                                                child: Text(schedule['time_start'] ?? 'N/A'),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Text('Unit ${schedule['vehicle_id'] ?? 'N/A'}'),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Text(schedule['status'] ?? 'N/A'),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Text(schedule['reason'] ?? 'N/A'),
+                                              ),
+                                              Expanded(
+                                                flex: 1,
+                                                child: Row(
+                                                  children: [
+                                                    IconButton(
+                                                      icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                                                      onPressed: () => _showEditFormDialog(schedule),
+                                                      tooltip: 'Edit',
+                                                    ),
+                                                    IconButton(
+                                                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                                      onPressed: () => _deleteSchedule(schedule['id']),
+                                                      tooltip: 'Delete',
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        
+        // Add/Edit Form Modal
+        if (_showAddForm)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.5),
+              child: Center(
+                child: Container(
+                  width: 500,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _editingSchedule != null ? 'Edit Schedule' : 'Add Schedule',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF3E4795),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: _closeForm,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Time field
+                        const Text('Time (HH:MM)', style: TextStyle(fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _timeController,
+                          decoration: InputDecoration(
+                            hintText: '08:00',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Time is required';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Unit Number field
+                        const Text('Unit Number', style: TextStyle(fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _unitController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            hintText: '1',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Unit number is required';
+                            }
+                            if (int.tryParse(value.trim()) == null) {
+                              return 'Please enter a valid number';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Status field
+                        const Text('Status', style: TextStyle(fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          value: _statusController.text.isEmpty ? 'Active' : _statusController.text,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          items: ['Active', 'Sick', 'Maintenance', 'Coding'].map((status) {
+                            return DropdownMenuItem<String>(
+                              value: status,
+                              child: Text(status),
+                            );
+                          }).toList(),
+                          onChanged: (value) => _statusController.text = value ?? 'Active',
+                          validator: (value) => value == null ? 'Status is required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Reason field
+                        const Text('Reason (Optional)', style: TextStyle(fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _reasonController,
+                          decoration: InputDecoration(
+                            hintText: 'Enter reason if applicable',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Action buttons
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: _closeForm,
+                              child: const Text('Cancel'),
+                            ),
+                            const SizedBox(width: 16),
+                            ElevatedButton(
+                              onPressed: _saveSchedule,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF3E4795),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: Text(_editingSchedule != null ? 'Update' : 'Add'),
                             ),
                           ],
                         ),
