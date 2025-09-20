@@ -11,6 +11,7 @@ import '../helpers/location_service.dart';
 import '../models/trip_request.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api.dart';
+import '../services/notif_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
@@ -501,7 +502,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
+              children: [
                 Text(
                   'Notifications',
                   style: TextStyle(
@@ -509,6 +510,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     fontWeight: FontWeight.bold,
                     fontSize: 24,
                   ),
+                ),
+                // 👇 Floating test button
+                FloatingActionButton(
+                  onPressed: () {
+                    NotifService().showNotification(
+                      title: "Test Notification",
+                      body: "pag nakita mo to yeheyyy.",
+                    );
+                  },
+                  child: const Icon(Icons.notifications_active),
                 ),
               ],
             ),

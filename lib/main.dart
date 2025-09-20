@@ -7,9 +7,18 @@ import 'screens/passenger_screen.dart';
 import 'screens/conductor_screen.dart';
 import 'models/user_role.dart';
 import 'screens/admin_login_screen.dart';
+import 'services/notif_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-void main() => runApp(MyApp());
+Future<void> main() async {
+  // must be first line in main
+  WidgetsFlutterBinding.ensureInitialized();
+
+  //initialize local notifications once
+  await NotifService().initNotification();
+
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -31,7 +40,9 @@ class MyApp extends StatelessWidget {
               primaryColor: const Color.fromRGBO(62, 71, 149, 1),
               brightness: Brightness.light,
             ),
-            home: const AdminLoginScreen(),
+            home: kIsWeb
+                ? const SplashScreen()
+                : const SplashScreen(), //kIsWeb ? const SplashScreen() : const SplashScreen(), //const AdminLoginScreen(),
           );
         },
       ),
