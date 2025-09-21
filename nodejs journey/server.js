@@ -18,6 +18,7 @@ const getRoute = require('./routes/mapBoxRoute');
 const passengerTripRoutes = require('./routes/passengerTripRoutes');
 const scheduleRoutes = require('./routes/scheduleRoutes');
 const employeeRoutes = require('./routes/employeeRoutes');
+const vehicleAssignmentRoutes = require('./routes/vehicleAssignmentRoutes');
 const { startCronJobs } = require('./services/cronJobs');
 const socketHandler = require("./sockets/socketHandler");
 const vehicleSocketHandler = require("./sockets/vehicleHandler");
@@ -33,6 +34,7 @@ app.use('/route', getRoute);
 app.use('/passengerTrips', passengerTripRoutes);
 app.use(scheduleRoutes);
 app.use('/api/employees', employeeRoutes);
+app.use('/api/vehicle-assignments', vehicleAssignmentRoutes);
 app.use('/api/users', userRoutes);
 
 

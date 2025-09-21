@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'admin_login_screen.dart';
 import 'employee_management_screen.dart';
+import 'vehicle_assignment_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -25,6 +26,7 @@ enum AdminSection {
   analytics, 
   notifications, 
   schedule, 
+  vehicleAssignment,
   employees, 
   tripHistory, 
   accountManagement, 
@@ -309,6 +311,18 @@ class _AdminScreenState extends State<AdminScreen> {
                               onTap: () {
                                 setState(() {
                                   _selectedSection = AdminSection.schedule;
+                                  if (isMobile) _isSidebarOpen = false;
+                                });
+                              },
+                            ),
+                            _SidebarItem(
+                              icon: Icons.directions_car,
+                              label: 'Vehicle Assignment',
+                              selected: _selectedSection == AdminSection.vehicleAssignment,
+                              isSubItem: true,
+                              onTap: () {
+                                setState(() {
+                                  _selectedSection = AdminSection.vehicleAssignment;
                                   if (isMobile) _isSidebarOpen = false;
                                 });
                               },
@@ -603,6 +617,11 @@ class _AdminScreenState extends State<AdminScreen> {
         return Container(
           color: Colors.grey[100],
           child: _DailyScheduleView(),
+        );
+      case AdminSection.vehicleAssignment:
+        return Container(
+          color: Colors.grey[100],
+          child: const VehicleAssignmentScreen(),
         );
       case AdminSection.employees:
         return Container(
