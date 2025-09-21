@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'admin_login_screen.dart';
+import 'employee_management_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../services/vehicle_assignment_api.dart';
@@ -388,24 +389,21 @@ class _AdminScreenState extends State<AdminScreen> {
                                 });
                               },
                             ),
+                            _SidebarItem(
+                              icon: Icons.logout,
+                              label: 'Logout',
+                              selected: false,
+                              isSubItem: true,
+                              onTap: () {
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+                                );
+                              },
+                            ),
                           ],
                         ),
                       ],
                     ),
-                  ),
-                ),
-                
-                // Logout
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 24.0),
-                  child: ListTile(
-                    leading: const Icon(Icons.logout, color: Colors.red),
-                    title: const Text('Log out', style: TextStyle(color: Colors.red)),
-                    onTap: () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
-                      );
-                    },
                   ),
                 ),
               ],
@@ -621,11 +619,14 @@ class _AdminScreenState extends State<AdminScreen> {
           child: _NotificationsWithCompose(),
         );
       case AdminSection.schedule:
-        return _DailyScheduleView();
+        return Container(
+          color: Colors.grey[100],
+          child: _DailyScheduleView(),
+        );
       case AdminSection.employees:
         return Container(
           color: Colors.grey[100],
-          child: const _EmployeesPage(),
+          child: const EmployeeManagementScreen(),
         );
       case AdminSection.tripHistory:
         return Container(
@@ -715,10 +716,7 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Widget _UserManagementPage() {
-    return Container(
-      color: Colors.white,
-      child: const _VehicleAssignmentManagement(),
-    );
+    return const _VehicleAssignmentManagement();
   }
 
   Widget _buildUserManagementCard(String title, String value, IconData icon, Color color, String subtitle) {
