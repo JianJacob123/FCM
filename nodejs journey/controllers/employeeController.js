@@ -75,13 +75,8 @@ class EmployeeController {
         });
       }
 
-      const validPositions = ['Driver', 'Conductor', 'Admin', 'Manager'];
-      if (!validPositions.includes(position)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid position. Must be one of: Driver, Conductor, Admin, Manager'
-        });
-      }
+      // Allow any position value (including custom positions)
+      // No validation needed for custom positions
 
       const employee = await Employee.create({
         full_name: full_name.trim(),
@@ -119,13 +114,8 @@ class EmployeeController {
         });
       }
 
-      // Validation
-      if (position && !['Driver', 'Conductor', 'Admin', 'Manager'].includes(position)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid position. Must be one of: Driver, Conductor, Admin, Manager'
-        });
-      }
+      // Allow any position value (including custom positions)
+      // No validation needed for custom positions
 
       const updateData = {};
       if (full_name !== undefined) updateData.full_name = full_name.trim();
@@ -198,12 +188,8 @@ class EmployeeController {
     try {
       const { position } = req.params;
       
-      if (!['Driver', 'Conductor', 'Admin', 'Manager'].includes(position)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid position. Must be one of: Driver, Conductor, Admin, Manager'
-        });
-      }
+      // Allow any position value (including custom positions)
+      // No validation needed for custom positions
 
       const employees = await Employee.getByPosition(position);
 
@@ -248,6 +234,111 @@ class EmployeeController {
       res.status(500).json({
         success: false,
         message: 'Failed to toggle employee status',
+        error: error.message
+      });
+    }
+  }
+
+  // Assign vehicle to employee
+  static async assignVehicle(req, res) {
+    try {
+      const { id } = req.params;
+      const { vehicle_id } = req.body;
+
+      if (!vehicle_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vehicle ID is required'
+        });
+      }
+
+      const employee = await Employee.getById(id);
+      if (!employee) {
+        return res.status(404).json({
+          success: false,
+          message: 'Employee not found'
+        });
+      }
+
+      const assignmentId = await Employee.assignVehicle(id, vehicle_id);
+
+      res.json({
+        success: true,
+        message: 'Vehicle assigned successfully',
+        data: { assignment_id: assignmentId }
+      });
+    } catch (error) {
+      console.error('Error in assignVehicle:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to assign vehicle',
+        error: error.message
+      });
+    }
+  }
+
+  // Unassign vehicle from employee
+  static async unassignVehicle(req, res) {
+    try {
+      const { id } = req.params;
+
+      const employee = await Employee.getById(id);
+      if (!employee) {
+        return res.status(404).json({
+          success: false,
+          message: 'Employee not found'
+        });
+      }
+
+      await Employee.unassignVehicle(id);
+
+      res.json({
+        success: true,
+        message: 'Vehicle unassigned successfully'
+      });
+    } catch (error) {
+      console.error('Error in unassignVehicle:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to unassign vehicle',
+        error: error.message
+      });
+    }
+  }
+
+  // Get available vehicles
+  static async getAvailableVehicles(req, res) {
+    try {
+      const vehicles = await Employee.getAvailableVehicles();
+
+      res.json({
+        success: true,
+        data: vehicles
+      });
+    } catch (error) {
+      console.error('Error in getAvailableVehicles:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch available vehicles',
+        error: error.message
+      });
+    }
+  }
+
+  // Get all vehicles with assignment status
+  static async getAllVehiclesWithStatus(req, res) {
+    try {
+      const vehicles = await Employee.getAllVehiclesWithStatus();
+
+      res.json({
+        success: true,
+        data: vehicles
+      });
+    } catch (error) {
+      console.error('Error in getAllVehiclesWithStatus:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch vehicles with status',
         error: error.message
       });
     }

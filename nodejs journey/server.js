@@ -1,3 +1,4 @@
+
 // server
 const express = require('express');
 const { createServer } = require("http");
@@ -16,7 +17,6 @@ const favLocationRoutes = require('./routes/favLocationsRoutes');
 const getRoute = require('./routes/mapBoxRoute');
 const passengerTripRoutes = require('./routes/passengerTripRoutes');
 const scheduleRoutes = require('./routes/scheduleRoutes');
-const vehicleAssignmentRoutes = require('./routes/vehicleAssignmentRoutes');
 const employeeRoutes = require('./routes/employeeRoutes');
 const { startCronJobs } = require('./services/cronJobs');
 const socketHandler = require("./sockets/socketHandler");
@@ -32,8 +32,8 @@ app.use('/favLocations', favLocationRoutes);
 app.use('/route', getRoute);
 app.use('/passengerTrips', passengerTripRoutes);
 app.use(scheduleRoutes);
-app.use('/api/vehicle-assignments', vehicleAssignmentRoutes);
 app.use('/api/employees', employeeRoutes);
+app.use('/api/users', userRoutes);
 
 
 const io = new Server(httpServer, {

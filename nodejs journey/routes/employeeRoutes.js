@@ -23,4 +23,17 @@ router.patch('/:id/toggle-status', EmployeeController.toggleEmployeeStatus);
 // DELETE /api/employees/:id - Delete employee
 router.delete('/:id', EmployeeController.deleteEmployee);
 
+// Vehicle assignment routes
+// POST /api/employees/:id/assign-vehicle - Assign vehicle to employee
+router.post('/:id/assign-vehicle', EmployeeController.assignVehicle);
+
+// DELETE /api/employees/:id/unassign-vehicle - Unassign vehicle from employee
+router.delete('/:id/unassign-vehicle', EmployeeController.unassignVehicle);
+
+// GET /api/employees/vehicles/available - Get available vehicles
+router.get('/vehicles/available', EmployeeController.getAvailableVehicles);
+
+// GET /api/employees/vehicles/status - Get all vehicles with assignment status
+router.get('/vehicles/status', EmployeeController.getAllVehiclesWithStatus);
+
 module.exports = router;

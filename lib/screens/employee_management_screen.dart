@@ -29,8 +29,10 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
   final _searchController = TextEditingController();
   String _selectedPositionForm = 'Driver';
   bool _isActiveForm = true;
+  bool _isCustomPosition = false;
+  final TextEditingController _customPositionController = TextEditingController();
 
-  final List<String> _positions = ['Driver', 'Conductor', 'Admin', 'Manager'];
+  final List<String> _positions = ['Driver', 'Conductor', 'Admin', 'Manager', 'Other'];
 
   @override
   void initState() {
@@ -42,6 +44,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
   void dispose() {
     _nameController.dispose();
     _searchController.dispose();
+    _customPositionController.dispose();
     super.dispose();
   }
 
@@ -78,6 +81,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
       ),
     );
   }
+
 
   void _showSortOptions(BuildContext context) {
     showDialog(
@@ -202,10 +206,13 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
     });
   }
 
+
   Future<void> _showAddFormDialog() async {
     _nameController.clear();
+    _customPositionController.clear();
     _selectedPositionForm = 'Driver';
     _isActiveForm = true;
+    _isCustomPosition = false;
     
     setState(() {
       _showAddForm = true;
@@ -214,8 +221,18 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
 
   Future<void> _showEditFormDialog(Employee employee) async {
     _nameController.text = employee.fullName;
-    _selectedPositionForm = employee.position;
     _isActiveForm = employee.active;
+    
+    // Check if the position is in our predefined list
+    if (_positions.contains(employee.position)) {
+      _selectedPositionForm = employee.position;
+      _isCustomPosition = false;
+      _customPositionController.clear();
+    } else {
+      _selectedPositionForm = 'Other';
+      _isCustomPosition = true;
+      _customPositionController.text = employee.position;
+    }
     
     setState(() {
       _editingEmployee = employee;
@@ -226,13 +243,18 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
   Future<void> _saveEmployee() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Get the final position value
+    final String finalPosition = _isCustomPosition 
+        ? _customPositionController.text.trim()
+        : _selectedPositionForm;
+
     try {
       if (_editingEmployee != null) {
         // Update existing employee
         final response = await EmployeeApiService.updateEmployee(
           id: _editingEmployee!.id,
           fullName: _nameController.text.trim(),
-          position: _selectedPositionForm,
+          position: finalPosition,
           active: _isActiveForm,
         );
         
@@ -248,7 +270,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
         // Create new employee
         final response = await EmployeeApiService.createEmployee(
           fullName: _nameController.text.trim(),
-          position: _selectedPositionForm,
+          position: finalPosition,
           active: _isActiveForm,
         );
         
@@ -265,6 +287,8 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
       setState(() {
         _showAddForm = false;
         _editingEmployee = null;
+        _isCustomPosition = false;
+        _customPositionController.clear();
       });
     } catch (e) {
       _showErrorSnackBar('Error saving employee: $e');
@@ -655,7 +679,7 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                                 const Expanded(flex: 2, child: Text('Position', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                                 const Expanded(flex: 2, child: Text('Status', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                                 if (_showActions)
-                                  const Expanded(flex: 1, child: Text('Actions', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                                  const Expanded(flex: 2, child: Text('Actions', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                               ],
                             ),
                       ),
@@ -778,11 +802,11 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                                                 ),
                                                 if (_showActions)
                                                   Expanded(
-                                                    flex: 1,
+                                                    flex: 2,
                                                     child: Row(
                                                       children: [
                                                         IconButton(
-                                                          icon: const Icon(Icons.edit, color: Colors.blue),
+                                                          icon: const Icon(Icons.edit, color: Colors.blue, size: 18),
                                                           onPressed: () => _showEditFormDialog(employee),
                                                           tooltip: 'Edit',
                                                         ),
@@ -790,12 +814,13 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                                                           icon: Icon(
                                                             employee.active ? Icons.pause : Icons.play_arrow,
                                                             color: employee.active ? Colors.orange : Colors.green,
+                                                            size: 18,
                                                           ),
                                                           onPressed: () => _toggleEmployeeStatus(employee),
                                                           tooltip: employee.active ? 'Deactivate' : 'Activate',
                                                         ),
                                                         IconButton(
-                                                          icon: const Icon(Icons.delete, color: Colors.red),
+                                                          icon: const Icon(Icons.delete, color: Colors.red, size: 18),
                                                           onPressed: () => _deleteEmployee(employee),
                                                           tooltip: 'Delete',
                                                         ),
@@ -906,9 +931,39 @@ class _EmployeeManagementScreenState extends State<EmployeeManagementScreen> {
                           onChanged: (value) {
                             setState(() {
                               _selectedPositionForm = value!;
+                              _isCustomPosition = (value == 'Other');
+                              if (!_isCustomPosition) {
+                                _customPositionController.clear();
+                              }
                             });
                           },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please select a position';
+                            }
+                            if (value == 'Other' && _isCustomPosition && _customPositionController.text.trim().isEmpty) {
+                              return 'Please enter a custom position';
+                            }
+                            return null;
+                          },
                         ),
+                        if (_isCustomPosition) ...[
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _customPositionController,
+                            decoration: const InputDecoration(
+                              labelText: 'Custom Position',
+                              border: OutlineInputBorder(),
+                              hintText: 'Enter custom position',
+                            ),
+                            validator: (value) {
+                              if (_isCustomPosition && (value == null || value.trim().isEmpty)) {
+                                return 'Please enter a custom position';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
                         const SizedBox(height: 16),
                         Row(
                           children: [

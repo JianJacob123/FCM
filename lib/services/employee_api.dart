@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+
 class Employee {
   final int id;
   final String fullName;
@@ -20,9 +21,9 @@ class Employee {
 
   factory Employee.fromJson(Map<String, dynamic> json) {
     return Employee(
-      id: json['id'],
+      id: json['id'] ?? json['user_id'],
       fullName: json['full_name'] ?? '',
-      position: json['position'] ?? '',
+      position: json['position'] ?? json['user_role'] ?? '',
       active: json['active'] ?? false,
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
@@ -107,7 +108,7 @@ class EmployeeResponse {
     return EmployeeResponse(
       success: json['success'] ?? false,
       message: json['message'],
-      data: json['data'] != null
+      data: json['data'] != null && json['data'] is List
           ? (json['data'] as List)
               .map((item) => Employee.fromJson(item))
               .toList()
@@ -338,4 +339,5 @@ class EmployeeApiService {
       );
     }
   }
+
 }
