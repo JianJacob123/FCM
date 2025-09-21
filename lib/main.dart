@@ -7,6 +7,7 @@ import 'screens/passenger_screen.dart';
 import 'screens/conductor_screen.dart';
 import 'models/user_role.dart';
 import 'screens/admin_login_screen.dart';
+import 'services/notif_socket.dart';
 import 'services/notif_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -40,7 +41,9 @@ class MyApp extends StatelessWidget {
               primaryColor: const Color.fromRGBO(62, 71, 149, 1),
               brightness: Brightness.light,
             ),
-            home: const AdminLoginScreen(),
+            home: kIsWeb
+                ? const AdminLoginScreen()
+                : const SplashScreen(), //kIsWeb ? const SplashScreen() : const SplashScreen(), //const AdminLoginScreen(),
           );
         },
       ),
@@ -156,8 +159,10 @@ class _AppWrapperState extends State<AppWrapper> {
 
         switch (user.role) {
           case UserRole.passenger:
+            SocketService().initSocket(user.id.toString()); // joins usersRoom
             return PassengerScreen();
           case UserRole.conductor:
+            SocketService().initSocket(user.id.toString()); // joins usersRoom
             return ConductorScreen();
           default:
             return LoginScreen();
