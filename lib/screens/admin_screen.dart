@@ -20,7 +20,17 @@ final List<String> kTimeSlots = List.generate(15, (i) {
   return '${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
 });
 
-enum AdminSection { dashboard, analytics, notifications, schedules, vehicleAssignment, activityLogs }
+enum AdminSection { 
+  liveTracking, 
+  analytics, 
+  notifications, 
+  schedule, 
+  vehicleAssignment, 
+  employees, 
+  tripHistory, 
+  accountManagement, 
+  activityLogs 
+}
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -30,12 +40,16 @@ class AdminScreen extends StatefulWidget {
 }
 
 class _AdminScreenState extends State<AdminScreen> {
-  AdminSection _selectedSection = AdminSection.dashboard;
+  AdminSection _selectedSection = AdminSection.liveTracking;
   int? _selectedBusIndex;
   bool _showRoutePolyLine = false;
   final MapController _mapController = MapController();
-    bool _isEditMode = false;
+  bool _isEditMode = false;
   bool _isSidebarOpen = false;
+  
+  // Navigation state
+  bool _recordsExpanded = false;
+  bool _settingsExpanded = false;
   
   // Controllers for editable fields
   final List<TextEditingController> _timeControllers = List.generate(15, (index) => TextEditingController());
@@ -232,73 +246,155 @@ class _AdminScreenState extends State<AdminScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                              _SidebarItem(
-                icon: Icons.map,
-                label: 'Live Tracking',
-                selected: _selectedSection == AdminSection.dashboard,
-                    onTap: () {
-                      setState(() {
-                        _selectedSection = AdminSection.dashboard;
-                        if (isMobile) _isSidebarOpen = false;
-                      });
-                    },
-              ),
-                _SidebarItem(
-                  icon: Icons.analytics,
-                  label: 'Analytics',
-                  selected: _selectedSection == AdminSection.analytics,
-                    onTap: () {
-                      setState(() {
-                        _selectedSection = AdminSection.analytics;
-                        if (isMobile) _isSidebarOpen = false;
-                      });
-                    },
-                ),
-                _SidebarItem(
-                  icon: Icons.notifications,
-                  label: 'Notifications',
-                  selected: _selectedSection == AdminSection.notifications,
-                    onTap: () {
-                      setState(() {
-                        _selectedSection = AdminSection.notifications;
-                        if (isMobile) _isSidebarOpen = false;
-                      });
-                    },
-                ),
-                _SidebarItem(
-                  icon: Icons.calendar_today,
-                  label: 'Schedules',
-                  selected: _selectedSection == AdminSection.schedules,
-                    onTap: () {
-                      setState(() {
-                        _selectedSection = AdminSection.schedules;
-                        if (isMobile) _isSidebarOpen = false;
-                      });
-                    },
+                
+                // Navigation Items
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        // Live Tracking
+                        _SidebarItem(
+                          icon: Icons.map,
+                          label: 'Live Tracking',
+                          selected: _selectedSection == AdminSection.liveTracking,
+                          onTap: () {
+                            setState(() {
+                              _selectedSection = AdminSection.liveTracking;
+                              if (isMobile) _isSidebarOpen = false;
+                            });
+                          },
+                        ),
+                        
+                        // Analytics
+                        _SidebarItem(
+                          icon: Icons.analytics,
+                          label: 'Analytics',
+                          selected: _selectedSection == AdminSection.analytics,
+                          onTap: () {
+                            setState(() {
+                              _selectedSection = AdminSection.analytics;
+                              if (isMobile) _isSidebarOpen = false;
+                            });
+                          },
+                        ),
+                        
+                        // Notifications
+                        _SidebarItem(
+                          icon: Icons.notifications,
+                          label: 'Notifications',
+                          selected: _selectedSection == AdminSection.notifications,
+                          onTap: () {
+                            setState(() {
+                              _selectedSection = AdminSection.notifications;
+                              if (isMobile) _isSidebarOpen = false;
+                            });
+                          },
+                        ),
+                        
+                        // Records (Expandable)
+                        _ExpandableSidebarItem(
+                          icon: Icons.folder,
+                          label: 'Records',
+                          expanded: _recordsExpanded,
+                          onToggle: () {
+                            setState(() {
+                              _recordsExpanded = !_recordsExpanded;
+                            });
+                          },
+                          children: [
+                            _SidebarItem(
+                              icon: Icons.calendar_today,
+                              label: 'Schedule',
+                              selected: _selectedSection == AdminSection.schedule,
+                              isSubItem: true,
+                              onTap: () {
+                                setState(() {
+                                  _selectedSection = AdminSection.schedule;
+                                  if (isMobile) _isSidebarOpen = false;
+                                });
+                              },
+                            ),
+                            _SidebarItem(
+                              icon: Icons.directions_bus,
+                              label: 'Vehicle Assignment',
+                              selected: _selectedSection == AdminSection.vehicleAssignment,
+                              isSubItem: true,
+                              onTap: () {
+                                setState(() {
+                                  _selectedSection = AdminSection.vehicleAssignment;
+                                  if (isMobile) _isSidebarOpen = false;
+                                });
+                              },
+                            ),
+                            _SidebarItem(
+                              icon: Icons.people,
+                              label: 'Employees',
+                              selected: _selectedSection == AdminSection.employees,
+                              isSubItem: true,
+                              onTap: () {
+                                setState(() {
+                                  _selectedSection = AdminSection.employees;
+                                  if (isMobile) _isSidebarOpen = false;
+                                });
+                              },
+                            ),
+                            _SidebarItem(
+                              icon: Icons.history,
+                              label: 'Trip History',
+                              selected: _selectedSection == AdminSection.tripHistory,
+                              isSubItem: true,
+                              onTap: () {
+                                setState(() {
+                                  _selectedSection = AdminSection.tripHistory;
+                                  if (isMobile) _isSidebarOpen = false;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                        
+                        // Settings (Expandable)
+                        _ExpandableSidebarItem(
+                          icon: Icons.settings,
+                          label: 'Settings',
+                          expanded: _settingsExpanded,
+                          onToggle: () {
+                            setState(() {
+                              _settingsExpanded = !_settingsExpanded;
+                            });
+                          },
+                          children: [
+                            _SidebarItem(
+                              icon: Icons.account_circle,
+                              label: 'Account Management',
+                              selected: _selectedSection == AdminSection.accountManagement,
+                              isSubItem: true,
+                              onTap: () {
+                                setState(() {
+                                  _selectedSection = AdminSection.accountManagement;
+                                  if (isMobile) _isSidebarOpen = false;
+                                });
+                              },
+                            ),
+                            _SidebarItem(
+                              icon: Icons.access_time,
+                              label: 'Activity Logs',
+                              selected: _selectedSection == AdminSection.activityLogs,
+                              isSubItem: true,
+                              onTap: () {
+                                setState(() {
+                                  _selectedSection = AdminSection.activityLogs;
+                                  if (isMobile) _isSidebarOpen = false;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  _SidebarItem(
-                    icon: Icons.directions_bus,
-                    label: 'Vehicle Assignment',
-                    selected: _selectedSection == AdminSection.vehicleAssignment,
-                    onTap: () {
-                      setState(() {
-                        _selectedSection = AdminSection.vehicleAssignment;
-                        if (isMobile) _isSidebarOpen = false;
-                      });
-                    },
                 ),
-                _SidebarItem(
-                  icon: Icons.access_time,
-                  label: 'Activity Logs',
-                  selected: _selectedSection == AdminSection.activityLogs,
-                    onTap: () {
-                      setState(() {
-                        _selectedSection = AdminSection.activityLogs;
-                        if (isMobile) _isSidebarOpen = false;
-                      });
-                    },
-                ),
-                const Spacer(),
+                
                 // Logout
                 Padding(
                   padding: const EdgeInsets.only(bottom: 24.0),
@@ -341,7 +437,7 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Widget _buildMainContent() {
     switch (_selectedSection) {
-      case AdminSection.dashboard:
+      case AdminSection.liveTracking:
         // Show only one bus marker and info, like the passenger map
         final busLocation = LatLng(13.9467729, 121.1555241);
         final busInfo = {
@@ -524,8 +620,23 @@ class _AdminScreenState extends State<AdminScreen> {
           color: Colors.grey[100],
           child: _NotificationsWithCompose(),
         );
-      case AdminSection.schedules:
+      case AdminSection.schedule:
         return _DailyScheduleView();
+      case AdminSection.employees:
+        return Container(
+          color: Colors.grey[100],
+          child: const _EmployeesPage(),
+        );
+      case AdminSection.tripHistory:
+        return Container(
+          color: Colors.grey[100],
+          child: const _TripHistoryPage(),
+        );
+      case AdminSection.accountManagement:
+        return Container(
+          color: Colors.grey[100],
+          child: const _AccountManagementPage(),
+        );
       case AdminSection.activityLogs:
         return Container(
           color: Colors.grey[100],
@@ -997,12 +1108,23 @@ class _SidebarItem extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback? onTap;
-  const _SidebarItem({required this.icon, required this.label, this.selected = false, this.onTap});
+  final bool isSubItem;
+  
+  const _SidebarItem({
+    required this.icon, 
+    required this.label, 
+    this.selected = false, 
+    this.onTap,
+    this.isSubItem = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+      margin: EdgeInsets.symmetric(
+        vertical: 4, 
+        horizontal: isSubItem ? 24 : 12,
+      ),
       decoration: selected
           ? BoxDecoration(
               color: const Color(0xFFE8EAFE),
@@ -1010,17 +1132,69 @@ class _SidebarItem extends StatelessWidget {
             )
           : null,
       child: ListTile(
-        leading: Icon(icon, color: const Color(0xFF3E4795)),
+        leading: Icon(
+          icon, 
+          color: const Color(0xFF3E4795),
+          size: isSubItem ? 20 : 24,
+        ),
         title: Text(
           label,
           style: TextStyle(
             color: const Color(0xFF3E4795),
             fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+            fontSize: isSubItem ? 14 : 16,
           ),
         ),
         selected: selected,
         onTap: onTap,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: isSubItem ? 8 : 16,
+          vertical: 4,
+        ),
       ),
+    );
+  }
+}
+
+class _ExpandableSidebarItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool expanded;
+  final VoidCallback onToggle;
+  final List<Widget> children;
+
+  const _ExpandableSidebarItem({
+    required this.icon,
+    required this.label,
+    required this.expanded,
+    required this.onToggle,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+          child: ListTile(
+            leading: Icon(icon, color: const Color(0xFF3E4795)),
+            title: Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF3E4795),
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+            trailing: Icon(
+              expanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+              color: const Color(0xFF3E4795),
+            ),
+            onTap: onToggle,
+          ),
+        ),
+        if (expanded) ...children,
+      ],
     );
   }
 }
@@ -2892,10 +3066,10 @@ class _VehicleAssignmentManagementState extends State<_VehicleAssignmentManageme
             comparison = vehicleA.compareTo(vehicleB);
             break;
           case 'driver':
-            comparison = a.driver.compareTo(b.driver);
+            comparison = (a.driver ?? '').compareTo(b.driver ?? '');
             break;
           case 'conductor':
-            comparison = a.conductor.compareTo(b.conductor);
+            comparison = (a.conductor ?? '').compareTo(b.conductor ?? '');
             break;
         }
         
@@ -2917,8 +3091,8 @@ class _VehicleAssignmentManagementState extends State<_VehicleAssignmentManageme
     
     return _assignments.where((assignment) {
       final vehicle = (assignment.unitNumber ?? 'Vehicle ${assignment.vehicleId}').toLowerCase();
-      final driver = assignment.driver.toLowerCase();
-      final conductor = assignment.conductor.toLowerCase();
+      final driver = (assignment.driver ?? '').toLowerCase();
+      final conductor = (assignment.conductor ?? '').toLowerCase();
       
       return vehicle.contains(_searchQuery) ||
              driver.contains(_searchQuery) ||
@@ -2949,8 +3123,8 @@ class _VehicleAssignmentManagementState extends State<_VehicleAssignmentManageme
     setState(() {
       _showAddForm = true;
       _editingAssignment = assignment;
-      _driverController.text = assignment.driver;
-      _conductorController.text = assignment.conductor;
+      _driverController.text = assignment.driver ?? '';
+      _conductorController.text = assignment.conductor ?? '';
       _selectedVehicleId = assignment.vehicleId;
     });
   }
@@ -3351,11 +3525,11 @@ class _VehicleAssignmentManagementState extends State<_VehicleAssignmentManageme
                                                 ),
                                                 Expanded(
                                                   flex: 2,
-                                                  child: Text(assignment.driver),
+                                                  child: Text(assignment.driver ?? 'Not Assigned'),
                                                 ),
                                                 Expanded(
                                                   flex: 2,
-                                                  child: Text(assignment.conductor),
+                                                  child: Text(assignment.conductor ?? 'Not Assigned'),
                                                 ),
                                                 if (_showActions)
                                                   Expanded(
@@ -3577,11 +3751,22 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
   final _unitController = TextEditingController();
   final _statusController = TextEditingController();
   final _reasonController = TextEditingController();
+  
+  // Time picker state
+  int _selectedHour = 8;
+  int _selectedMinute = 0;
+  bool _isAM = true;
+  
+  // Vehicle data for dropdown
+  List<Map<String, dynamic>> _vehicles = [];
+  int? _selectedVehicleId;
+  
 
   @override
   void initState() {
     super.initState();
     _loadSchedules();
+    _loadVehicles();
   }
 
   @override
@@ -3615,13 +3800,61 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
     }
   }
 
+  Future<void> _loadVehicles() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:8080/vehicles'),
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('Vehicles API Response: $data'); // Debug log
+        
+        setState(() {
+          _vehicles = List<Map<String, dynamic>>.from(data);
+        });
+        
+        print('Loaded ${_vehicles.length} vehicles'); // Debug log
+      } else {
+        print('Vehicles API failed with status: ${response.statusCode}');
+        _useDummyVehicles();
+      }
+    } catch (e) {
+      print('Error loading vehicles: $e'); // Debug log
+      _useDummyVehicles();
+    }
+  }
+
+  void _useDummyVehicles() {
+    setState(() {
+      _vehicles = [
+        {'vehicle_id': 1, 'unit_number': 'Unit 1'},
+        {'vehicle_id': 2, 'unit_number': 'Unit 2'},
+        {'vehicle_id': 3, 'unit_number': 'Unit 3'},
+        {'vehicle_id': 4, 'unit_number': 'Unit 4'},
+        {'vehicle_id': 5, 'unit_number': 'Unit 5'},
+        {'vehicle_id': 6, 'unit_number': 'Unit 6'},
+        {'vehicle_id': 7, 'unit_number': 'Unit 7'},
+        {'vehicle_id': 8, 'unit_number': 'Unit 8'},
+        {'vehicle_id': 9, 'unit_number': 'Unit 9'},
+        {'vehicle_id': 10, 'unit_number': 'Unit 10'},
+      ];
+    });
+    print('Using dummy vehicles: ${_vehicles.length} units');
+  }
+
+
   Future<void> _saveSchedule() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Format time from time picker
+    final hour12 = _selectedHour == 0 ? 12 : (_selectedHour > 12 ? _selectedHour - 12 : _selectedHour);
+    final timeString = '${hour12.toString().padLeft(2, '0')}:${_selectedMinute.toString().padLeft(2, '0')} ${_isAM ? 'AM' : 'PM'}';
+
     final scheduleData = {
       'schedule_date': _formatDate(_selectedDate),
-      'time_start': _timeController.text.trim(),
-      'vehicle_id': int.tryParse(_unitController.text.trim()) ?? 1,
+      'time_start': timeString,
+      'vehicle_id': _selectedVehicleId ?? 1,
       'status': _statusController.text.trim(),
       'reason': _reasonController.text.trim().isEmpty ? null : _reasonController.text.trim(),
     };
@@ -3700,6 +3933,10 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
       _unitController.clear();
       _statusController.text = 'Active';
       _reasonController.clear();
+      _selectedHour = 8;
+      _selectedMinute = 0;
+      _isAM = true;
+      _selectedVehicleId = null;
     });
   }
 
@@ -3711,7 +3948,38 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
       _unitController.text = schedule['vehicle_id']?.toString() ?? '';
       _statusController.text = schedule['status'] ?? 'Active';
       _reasonController.text = schedule['reason'] ?? '';
+      _selectedVehicleId = schedule['vehicle_id'];
+      
+      // Parse time from schedule
+      final timeStr = schedule['time_start'] ?? '08:00 AM';
+      _parseTimeString(timeStr);
     });
+  }
+
+  void _parseTimeString(String timeStr) {
+    try {
+      final parts = timeStr.split(' ');
+      final timePart = parts[0];
+      final period = parts.length > 1 ? parts[1] : 'AM';
+      
+      final timeComponents = timePart.split(':');
+      int hour = int.parse(timeComponents[0]);
+      int minute = int.parse(timeComponents[1]);
+      
+      if (period == 'PM' && hour != 12) {
+        hour += 12;
+      } else if (period == 'AM' && hour == 12) {
+        hour = 0;
+      }
+      
+      _selectedHour = hour;
+      _selectedMinute = minute;
+      _isAM = period == 'AM';
+    } catch (e) {
+      _selectedHour = 8;
+      _selectedMinute = 0;
+      _isAM = true;
+    }
   }
 
   void _closeForm() {
@@ -3725,6 +3993,67 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
+  }
+
+  Widget _buildSimpleTimePicker() {
+    return GestureDetector(
+      onTap: _selectTime,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(8),
+          color: Colors.white,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _getFormattedTime(),
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+            Icon(
+              Icons.access_time,
+              color: Colors.grey.shade600,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getFormattedTime() {
+    final hour12 = _selectedHour == 0 ? 12 : (_selectedHour > 12 ? _selectedHour - 12 : _selectedHour);
+    return '${hour12.toString().padLeft(2, '0')}:${_selectedMinute.toString().padLeft(2, '0')} ${_isAM ? 'AM' : 'PM'}';
+  }
+
+  Future<void> _selectTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: _selectedHour,
+        minute: _selectedMinute,
+      ),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF3E4795),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedHour = picked.hour;
+        _selectedMinute = picked.minute;
+        _isAM = picked.period == DayPeriod.am;
+      });
+    }
   }
 
   void _showSuccessSnackBar(String message) {
@@ -3974,42 +4303,56 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                         ),
                         const SizedBox(height: 24),
                         
-                        // Time field
+                        // Time picker
                         const Text('Time (HH:MM)', style: TextStyle(fontWeight: FontWeight.w500)),
                         const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _timeController,
-                          decoration: InputDecoration(
-                            hintText: '08:00',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Time is required';
-                            }
-                            return null;
-                          },
-                        ),
+                        _buildSimpleTimePicker(),
                         const SizedBox(height: 16),
                         
-                        // Unit Number field
-                        const Text('Unit Number', style: TextStyle(fontWeight: FontWeight.w500)),
+                        // Unit Number dropdown
+                        Row(
+                          children: [
+                            const Text('Unit Number', style: TextStyle(fontWeight: FontWeight.w500)),
+                            const Spacer(),
+                            if (_vehicles.isEmpty)
+                              TextButton.icon(
+                                onPressed: _loadVehicles,
+                                icon: const Icon(Icons.refresh, size: 16),
+                                label: const Text('Load Vehicles', style: TextStyle(fontSize: 12)),
+                              ),
+                          ],
+                        ),
                         const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _unitController,
-                          keyboardType: TextInputType.number,
+                        DropdownButtonFormField<int>(
+                          value: _selectedVehicleId,
                           decoration: InputDecoration(
-                            hintText: '1',
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           ),
+                          hint: Text(_vehicles.isEmpty ? 'Loading vehicles...' : 'Select Unit'),
+                          items: _vehicles.map((vehicle) {
+                            // Handle different possible field names for unit number
+                            String unitName = vehicle['unit_number'] ?? 
+                                            vehicle['unitNumber'] ?? 
+                                            vehicle['plate_number'] ?? 
+                                            vehicle['plateNumber'] ?? 
+                                            'Unit ${vehicle['vehicle_id'] ?? vehicle['id']}';
+                            
+                            int vehicleId = vehicle['vehicle_id'] ?? vehicle['id'] ?? 0;
+                            
+                            return DropdownMenuItem<int>(
+                              value: vehicleId,
+                              child: Text(unitName),
+                            );
+                          }).toList(),
+                          onChanged: _vehicles.isEmpty ? null : (value) {
+                            setState(() {
+                              _selectedVehicleId = value;
+                            });
+                          },
                           validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Unit number is required';
-                            }
-                            if (int.tryParse(value.trim()) == null) {
-                              return 'Please enter a valid number';
+                            if (value == null) {
+                              return 'Please select a unit';
                             }
                             return null;
                           },
@@ -4084,3 +4427,114 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
   }
 }
   
+// Placeholder pages for new sections
+class _EmployeesPage extends StatelessWidget {
+  const _EmployeesPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.people,
+            size: 64,
+            color: Color(0xFF3E4795),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Employees Management',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF3E4795),
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Manage driver and conductor accounts',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TripHistoryPage extends StatelessWidget {
+  const _TripHistoryPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.history,
+            size: 64,
+            color: Color(0xFF3E4795),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Trip History',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF3E4795),
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'View and analyze trip records',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccountManagementPage extends StatelessWidget {
+  const _AccountManagementPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.account_circle,
+            size: 64,
+            color: Color(0xFF3E4795),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Account Management',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF3E4795),
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Manage user accounts and permissions',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

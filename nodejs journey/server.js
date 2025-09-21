@@ -16,6 +16,7 @@ const favLocationRoutes = require('./routes/favLocationsRoutes');
 const getRoute = require('./routes/mapBoxRoute');
 const passengerTripRoutes = require('./routes/passengerTripRoutes');
 const scheduleRoutes = require('./routes/scheduleRoutes');
+const vehicleAssignmentRoutes = require('./routes/vehicleAssignmentRoutes');
 const { startCronJobs } = require('./services/cronJobs');
 const socketHandler = require("./sockets/socketHandler");
 const vehicleSocketHandler = require("./sockets/vehicleHandler");
@@ -30,6 +31,7 @@ app.use('/favLocations', favLocationRoutes);
 app.use('/route', getRoute);
 app.use('/passengerTrips', passengerTripRoutes);
 app.use(scheduleRoutes);
+app.use('/api/vehicle-assignments', vehicleAssignmentRoutes);
 
 
 const io = new Server(httpServer, {

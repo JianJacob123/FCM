@@ -4,16 +4,16 @@ import 'package:http/http.dart' as http;
 class VehicleAssignment {
   final int? assignmentId;
   final int vehicleId;
-  final String driver;
-  final String conductor;
+  final String? driver;
+  final String? conductor;
   final String? unitNumber;
   final String? plateNumber;
 
   VehicleAssignment({
     this.assignmentId,
     required this.vehicleId,
-    required this.driver,
-    required this.conductor,
+    this.driver,
+    this.conductor,
     this.unitNumber,
     this.plateNumber,
   });
@@ -22,18 +22,18 @@ class VehicleAssignment {
     return VehicleAssignment(
       assignmentId: json['assignment_id'],
       vehicleId: json['vehicle_id'],
-      driver: json['driver'],
-      conductor: json['conductor'],
-      unitNumber: json['unit_number'],
-      plateNumber: json['plate_number'],
+      driver: json['driver']?.toString(),
+      conductor: json['conductor']?.toString(),
+      unitNumber: json['unit_number']?.toString(),
+      plateNumber: json['plate_number']?.toString(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'vehicle_id': vehicleId,
-      'driver': driver,
-      'conductor': conductor,
+      'driver': driver ?? '',
+      'conductor': conductor ?? '',
     };
   }
 }
@@ -52,8 +52,8 @@ class Vehicle {
   factory Vehicle.fromJson(Map<String, dynamic> json) {
     return Vehicle(
       vehicleId: json['vehicle_id'],
-      unitNumber: json['unit_number'],
-      plateNumber: json['plate_number'],
+      unitNumber: json['unit_number']?.toString() ?? 'Unknown Unit',
+      plateNumber: json['plate_number']?.toString() ?? 'Unknown Plate',
     );
   }
 }
@@ -133,10 +133,16 @@ class VehicleAssignmentApi {
               : null,
         );
       } else {
-        final errorData = json.decode(response.body);
+        String message;
+        try {
+          final errorData = json.decode(response.body);
+          message = errorData['message'] ?? 'Failed to fetch assignments';
+        } catch (_) {
+          message = 'Failed to fetch assignments (HTTP ${response.statusCode})';
+        }
         return ApiResponse<List<VehicleAssignment>>(
           success: false,
-          message: errorData['message'] ?? 'Failed to fetch assignments',
+          message: message,
         );
       }
     } catch (e) {
@@ -163,10 +169,16 @@ class VehicleAssignmentApi {
           data: assignment,
         );
       } else {
-        final errorData = json.decode(response.body);
+        String message;
+        try {
+          final errorData = json.decode(response.body);
+          message = errorData['message'] ?? 'Failed to fetch assignment';
+        } catch (_) {
+          message = 'Failed to fetch assignment (HTTP ${response.statusCode})';
+        }
         return ApiResponse<VehicleAssignment>(
           success: false,
-          message: errorData['message'] ?? 'Failed to fetch assignment',
+          message: message,
         );
       }
     } catch (e) {
@@ -197,10 +209,16 @@ class VehicleAssignmentApi {
           data: createdAssignment,
         );
       } else {
-        final errorData = json.decode(response.body);
+        String message;
+        try {
+          final errorData = json.decode(response.body);
+          message = errorData['message'] ?? 'Failed to create assignment';
+        } catch (_) {
+          message = 'Failed to create assignment (HTTP ${response.statusCode})';
+        }
         return ApiResponse<VehicleAssignment>(
           success: false,
-          message: errorData['message'] ?? 'Failed to create assignment',
+          message: message,
         );
       }
     } catch (e) {
@@ -232,10 +250,16 @@ class VehicleAssignmentApi {
           data: updatedAssignment,
         );
       } else {
-        final errorData = json.decode(response.body);
+        String message;
+        try {
+          final errorData = json.decode(response.body);
+          message = errorData['message'] ?? 'Failed to update assignment';
+        } catch (_) {
+          message = 'Failed to update assignment (HTTP ${response.statusCode})';
+        }
         return ApiResponse<VehicleAssignment>(
           success: false,
-          message: errorData['message'] ?? 'Failed to update assignment',
+          message: message,
         );
       }
     } catch (e) {
@@ -261,10 +285,16 @@ class VehicleAssignmentApi {
           message: jsonData['message'],
         );
       } else {
-        final errorData = json.decode(response.body);
+        String message;
+        try {
+          final errorData = json.decode(response.body);
+          message = errorData['message'] ?? 'Failed to delete assignment';
+        } catch (_) {
+          message = 'Failed to delete assignment (HTTP ${response.statusCode})';
+        }
         return ApiResponse<void>(
           success: false,
-          message: errorData['message'] ?? 'Failed to delete assignment',
+          message: message,
         );
       }
     } catch (e) {
@@ -295,10 +325,16 @@ class VehicleAssignmentApi {
           data: vehicles,
         );
       } else {
-        final errorData = json.decode(response.body);
+        String message;
+        try {
+          final errorData = json.decode(response.body);
+          message = errorData['message'] ?? 'Failed to fetch available vehicles';
+        } catch (_) {
+          message = 'Failed to fetch available vehicles (HTTP ${response.statusCode})';
+        }
         return ApiResponse<List<Vehicle>>(
           success: false,
-          message: errorData['message'] ?? 'Failed to fetch available vehicles',
+          message: message,
         );
       }
     } catch (e) {
@@ -329,10 +365,16 @@ class VehicleAssignmentApi {
           data: vehicles,
         );
       } else {
-        final errorData = json.decode(response.body);
+        String message;
+        try {
+          final errorData = json.decode(response.body);
+          message = errorData['message'] ?? 'Failed to fetch vehicles';
+        } catch (_) {
+          message = 'Failed to fetch vehicles (HTTP ${response.statusCode})';
+        }
         return ApiResponse<List<Vehicle>>(
           success: false,
-          message: errorData['message'] ?? 'Failed to fetch vehicles',
+          message: message,
         );
       }
     } catch (e) {

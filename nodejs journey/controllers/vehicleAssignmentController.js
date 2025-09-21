@@ -208,28 +208,11 @@ class VehicleAssignmentController {
   // Get all vehicles (including assigned ones)
   static async getAllVehicles(req, res) {
     try {
-      // Mock vehicles data
-      const mockVehicles = [
-        { vehicle_id: 1, unit_number: 'FCM No. 01', plate_number: 'ABC 1001' },
-        { vehicle_id: 2, unit_number: 'FCM No. 02', plate_number: 'ABC 1002' },
-        { vehicle_id: 3, unit_number: 'FCM No. 03', plate_number: 'ABC 1003' },
-        { vehicle_id: 4, unit_number: 'FCM No. 04', plate_number: 'ABC 1004' },
-        { vehicle_id: 5, unit_number: 'FCM No. 05', plate_number: 'ABC 1005' },
-        { vehicle_id: 6, unit_number: 'FCM No. 06', plate_number: 'ABC 1006' },
-        { vehicle_id: 7, unit_number: 'FCM No. 07', plate_number: 'ABC 1007' },
-        { vehicle_id: 8, unit_number: 'FCM No. 08', plate_number: 'ABC 1008' },
-        { vehicle_id: 9, unit_number: 'FCM No. 09', plate_number: 'ABC 1009' },
-        { vehicle_id: 10, unit_number: 'FCM No. 10', plate_number: 'ABC 1010' },
-        { vehicle_id: 11, unit_number: 'FCM No. 11', plate_number: 'ABC 1011' },
-        { vehicle_id: 12, unit_number: 'FCM No. 12', plate_number: 'ABC 1012' },
-        { vehicle_id: 13, unit_number: 'FCM No. 13', plate_number: 'ABC 1013' },
-        { vehicle_id: 14, unit_number: 'FCM No. 14', plate_number: 'ABC 1014' },
-        { vehicle_id: 15, unit_number: 'FCM No. 15', plate_number: 'ABC 1015' }
-      ];
+      const vehicles = await VehicleAssignment.getAllVehicles();
       
       res.status(200).json({
         success: true,
-        data: mockVehicles
+        data: vehicles
       });
     } catch (error) {
       console.error('Error in getAllVehicles:', error);

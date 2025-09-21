@@ -4,8 +4,8 @@ class VehicleAssignment {
   constructor(data) {
     this.assignment_id = data.assignment_id;
     this.vehicle_id = data.vehicle_id;
-    this.driver = data.driver;
-    this.conductor = data.conductor;
+    this.driver = data.driver || null;
+    this.conductor = data.conductor || null;
   }
 
   // Get all assignments with pagination
@@ -68,7 +68,7 @@ class VehicleAssignment {
   // Create new assignment
   static async create(assignmentData) {
     try {
-      const { vehicle_id, driver, conductor } = assignmentData;
+      const { vehicle_id } = assignmentData;
       
       // Check if vehicle already has an assignment
       const checkQuery = 'SELECT assignment_id FROM vehicle_users WHERE vehicle_id = $1';
@@ -79,17 +79,15 @@ class VehicleAssignment {
       }
       
       const query = `
-        INSERT INTO vehicle_users (vehicle_id, driver, conductor)
-        VALUES ($1, $2, $3)
+        INSERT INTO vehicle_users (vehicle_id)
+        VALUES ($1)
         RETURNING assignment_id
       `;
-      const result = await db.query(query, [vehicle_id, driver, conductor]);
+      const result = await db.query(query, [vehicle_id]);
       
       return {
         assignment_id: result.rows[0].assignment_id,
-        vehicle_id,
-        driver,
-        conductor
+        vehicle_id
       };
     } catch (error) {
       throw new Error(`Error creating assignment: ${error.message}`);
@@ -99,7 +97,7 @@ class VehicleAssignment {
   // Update assignment
   static async update(assignmentId, assignmentData) {
     try {
-      const { vehicle_id, driver, conductor } = assignmentData;
+      const { vehicle_id } = assignmentData;
       
       // Check if assignment exists
       const existing = await this.getById(assignmentId);
@@ -117,10 +115,10 @@ class VehicleAssignment {
       
       const query = `
         UPDATE vehicle_users 
-        SET vehicle_id = $1, driver = $2, conductor = $3
-        WHERE assignment_id = $4
+        SET vehicle_id = $1
+        WHERE assignment_id = $2
       `;
-      await db.query(query, [vehicle_id, driver, conductor, assignmentId]);
+      await db.query(query, [vehicle_id, assignmentId]);
       
       return await this.getById(assignmentId);
     } catch (error) {

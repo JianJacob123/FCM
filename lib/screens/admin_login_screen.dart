@@ -125,7 +125,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         TextField(
           controller: _usernameController,
           decoration: InputDecoration(
-            hintText: 'johndoe@xyz.com',
+            hintText: 'username or email',
             hintStyle: const TextStyle(color: Color(0xFF999999)),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -150,7 +150,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           controller: _passwordController,
           obscureText: _obscurePassword,
           decoration: InputDecoration(
-            hintText: 'x x x x x x x x x',
+            hintText: 'password',
             hintStyle: const TextStyle(color: Color(0xFF999999)),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
