@@ -7,7 +7,7 @@ async function query(sql, params = []) {
 
 async function listByDate(date) {
   const sql = `
-    SELECT id, schedule_date, time_start, vehicle_id, driver_id, conductor_id, status, reason
+    SELECT id, schedule_date, time_start, vehicle_id, status, reason
     FROM schedules
     WHERE schedule_date = $1
     ORDER BY time_start NULLS LAST, id
@@ -17,16 +17,14 @@ async function listByDate(date) {
 
 async function create(data) {
   const sql = `
-    INSERT INTO schedules (schedule_date, time_start, vehicle_id, driver_id, conductor_id, status, reason)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    INSERT INTO schedules (schedule_date, time_start, vehicle_id, status, reason)
+    VALUES ($1, $2, $3, $4, $5)
     RETURNING id
   `;
   const rows = await query(sql, [
     data.schedule_date,
     data.time_start || null,
     data.vehicle_id || null,
-    data.driver_id || null,
-    data.conductor_id || null,
     data.status,
     data.reason || null,
   ]);
