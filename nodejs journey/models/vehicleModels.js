@@ -10,11 +10,18 @@ const getAllVehicles = async () => {
         const res = await client.query(`
        SELECT 
   v.vehicle_id AS vehicle_id,
-  v.lat AS lat,
-  v.lng AS lng,
+  ST_X(v.current_location) AS lng,
+  ST_Y(v.current_location) AS lat,
   r.route_name,
   r.route_id,
-  v.last_update
+  ST_AsGeoJSON(
+    ST_LineSubstring(
+      r.route_geom,
+      ST_LineLocatePoint(r.route_geom, ST_ClosestPoint(r.route_geom, v.current_location)),
+      1
+    ),
+    6
+  ) AS remaining_route_polyline
 FROM vehicles v
 INNER JOIN routes r ON v.route_id = r.route_id;
             `);

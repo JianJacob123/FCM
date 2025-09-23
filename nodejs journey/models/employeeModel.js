@@ -7,7 +7,7 @@ class Employee {
     this.position = data.user_role;
     this.active = data.active;
     this.current_vehicle_assignment_id = data.current_vehicle_assignment_id;
-    this.vehicle_info = data.vehicle_info || null;
+    //this.vehicle_info = data.vehicle_info || null;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
   }
@@ -31,7 +31,7 @@ class Employee {
         FROM users u
         LEFT JOIN vehicle_assignment va ON u.current_vehicle_assignment_id = va.assignment_id
         LEFT JOIN vehicles v ON va.vehicle_id = v.vehicle_id
-        WHERE 1=1
+        WHERE 1=1 AND u.user_role != 'admin'
       `;
       const params = [];
       let paramCount = 0;

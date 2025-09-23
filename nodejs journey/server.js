@@ -22,6 +22,7 @@ const vehicleAssignmentRoutes = require('./routes/vehicleAssignmentRoutes');
 const { startCronJobs } = require('./services/cronJobs');
 const socketHandler = require("./sockets/socketHandler");
 const vehicleSocketHandler = require("./sockets/vehicleHandler");
+const notificationHandler = require("./sockets/notificationHandler");
 
 app.use(express.json());
 app.use(cors());
@@ -50,10 +51,13 @@ startCronJobs(io);
 // --- Setup namespaces ---
 const chatNamespace = io.of("/chat");
 const vehicleNamespace = io.of("/vehicles");
+const notificationNamespace = io.of("/notifications");
 
 // Attach handlers separately
 socketHandler(chatNamespace);
 vehicleSocketHandler(vehicleNamespace);
+notificationHandler(notificationNamespace);
+
 
 
 httpServer.listen(port, () => {

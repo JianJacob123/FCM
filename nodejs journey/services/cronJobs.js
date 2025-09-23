@@ -4,8 +4,8 @@ const { startTripJobs } = require('./tripUpdater')
 
 function startCronJobs(io) {
   startVehicleUpdater(io);
-  startPassengerTripJobs();
-  startTripJobs();
+  startPassengerTripJobs(io);
+  startTripJobs(io);
 }
 
 module.exports = { startCronJobs };

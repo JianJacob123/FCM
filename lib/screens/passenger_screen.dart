@@ -474,7 +474,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
-    notifications = fetchNotifications();
+    notifications = fetchNotifications('All Commuters');
   }
 
   IconData mapIcon(String iconName) {

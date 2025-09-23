@@ -2,6 +2,7 @@ const tripModels = require('../models/tripModels');
 const vehicleModels = require('../models/vehicleModels');
 const routeModels = require('../models/routeModels');
 const routeMappingModels = require('../models/routeMappingModels');
+const notificationModels = require('../models/notificationModels');
 const geolib = require('geolib');
 
 // --- Geofence with hysteresis ---
@@ -23,7 +24,7 @@ function getGeofenceState(lat, lng, targetLat, targetLng, prevState, enterRadius
   }
 }
 
-const startTripIfInGeofence = async () => {
+const startTripIfInGeofence = async (io) => {
   try { 
     const vehicles = await vehicleModels.getAllVehicles();
 
@@ -53,9 +54,20 @@ const startTripIfInGeofence = async () => {
       // --- Start trip when entering start geofence ---
       if (insideStart && !prevState.at_start) {
         const activeTrip = await tripModels.getActiveTripsByVehicle(vehicle_id);
+
         if (!activeTrip || activeTrip.length === 0) {
           await tripModels.insertTrip(vehicle_id, lat, lng, 'active');
           console.log(`Trip started for vehicle ${vehicle_id}`);
+          
+          // Send notification to Admin
+          const notif = await notificationModels.createNotification(
+            'Trip Started',
+            'routeupdate',
+            `Trip started for FCM Unit ${vehicle_id}`,
+            new Date()
+          );
+          io.of("/notifications").to(`adminRoom`).emit("newNotification", notif);
+
         } else {
           console.log(`Vehicle ${vehicle_id} already has an active trip.`);
         }
@@ -75,6 +87,15 @@ const startTripIfInGeofence = async () => {
 
           await tripModels.endTrip(vehicle_id, lat, lng, 'completed');
           console.log(`Trip completed for vehicle ${vehicle_id}`);
+
+          const notif = await notificationModels.createNotification(
+            'Trip Completed',
+            'routeupdate',
+            `Trip Completed for FCM Unit ${vehicle_id}`,
+            new Date()
+          );
+          io.of("/notifications").to(`adminRoom`).emit("newNotification", notif);
+
 
           if (toRouteId) {
             await vehicleModels.updateRouteId(vehicle_id, toRouteId);

@@ -813,7 +813,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
   @override
   void initState() {
     super.initState();
-    notifications = fetchNotifications();
+    notifications = fetchNotifications('All FCM Unit');
   }
 
   IconData mapIcon(String iconName) {

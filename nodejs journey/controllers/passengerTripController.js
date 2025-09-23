@@ -14,63 +14,72 @@ const createRequest = async (req, res) => {
 }
 
 // --- SERVICE FUNCTIONS (no req/res here) ---
-const checkVehicleNearPickUp = async () => {
+const checkVehicleNearPickUp = async (io) => {
    try {
-        // 1. Get all pending passenger requests
         const pendingTrips = await passengerTripModel.getAllPendingRequests('pending');
-
         if (!pendingTrips || pendingTrips.length === 0) {
             console.log('[CRON] No pending requests found.');
+            return [];
         }
 
-        // 2. Get latest vehicle locations
         const vehicles = await vehicleModel.getAllVehicles(); 
-
         let updatedTrips = [];
 
-        // 3. Loop through each passenger trip
         for (const trip of pendingTrips) {
             const passengerLocation = {
                 latitude: trip.pickup_lat,
                 longitude: trip.pickup_lng
             };
 
-  // 4. Check for the closest vehicle near this passenger
-  const nearbyVehicle = vehicles.reduce((closest, vehicle) => {
-  const distance = geolib.getDistance(
-    passengerLocation,
-    { latitude: vehicle.lat, longitude: vehicle.lng }
-  );
-  if (distance <= 20 && (!closest || distance < closest.distance)) {
-    return { vehicle, distance };
-  }
-  return closest;
-}, null);
+            const nearbyVehicle = vehicles.reduce((closest, vehicle) => {
+                const distance = geolib.getDistance(passengerLocation, {
+                    latitude: vehicle.lat,
+                    longitude: vehicle.lng
+                });
 
-            // 5. If a nearby vehicle is found, update status
+                if (distance <= 100 && (!closest || distance < closest.distance)) {
+                    return { vehicle, distance };
+                }
+                return closest;
+            }, null);
+
             if (nearbyVehicle) {
-                await passengerTripModel.updateRequestPickedUp(trip.request_id, 'picked_up', nearbyVehicle.vehicle_id);
+                await passengerTripModel.updateRequestPickedUp(
+                    trip.request_id,
+                    'picked_up',
+                    nearbyVehicle.vehicle.vehicle_id
+                );
+
+                const notif = await notificationModels.createNotification(
+                            'Bus Near Pickup',
+                            'proximity',
+                            `FCM Unit ${nearbyVehicle.vehicle.vehicle_id} is near your pickup location.`,
+                            new Date()
+                          );
+                          io.of("/notifications").to(`user_${trip.passenger_id}`).emit("newNotification", notif);
+
                 updatedTrips.push({
                     request_id: trip.request_id,
                     passenger_id: trip.passenger_id,
-                    vehicle_id: nearbyVehicle.id,
+                    vehicle_id: nearbyVehicle.vehicle.vehicle_id,
                     status: 'picked_up'
                 });
             }
         }
 
-        if (updatedTrips.length > 0) {
-            console.log('[CRON] Trips marked as picked up:', updatedTrips);
-        } else {
-            console.log('[CRON] No vehicles near any pending pickups.');
-        }
+        console.log(updatedTrips.length > 0
+            ? '[CRON] Trips marked as picked up:' + JSON.stringify(updatedTrips)
+            : '[CRON] No vehicles near any pending pickups.');
+
+        return updatedTrips;
 
     } catch (error) {
         console.error('Error checking pickups:', error);
+        return [];
     }
-}
+};
 
-const checkDropoffs = async () => {
+const checkDropoffs = async (io) => {
   
   try {
     const trips = await passengerTripModel.getAllOngoingTrips("picked_up");
@@ -84,7 +93,7 @@ const checkDropoffs = async () => {
 
       // Ensure dropoff coords exist
       if (!trip.dropoff_lat || !trip.dropoff_lng) {
-        console.warn(`Trip ${trip.id} has no dropoff coordinates, skipping.`);
+        console.warn(`Trip ${trip.request_id} has no dropoff coordinates, skipping.`);
         continue;
       }
 
@@ -102,9 +111,17 @@ const checkDropoffs = async () => {
       );
 
       if (distance <= 50 && trip.status === "picked_up") {
-        await passengerTripModel.updateTripStatus(trip.id, "dropped_off");
+        await passengerTripModel.updateTripStatus(trip.request_id, "dropped_off");
         completedTrips.push(trip.vehicle_id);
         console.log(`Trip ${trip.vehicle_id} marked as completed!`);
+
+        const notif = await notificationModels.createNotification(
+                            'Bus Near Dropoff',
+                            'proximity',
+                            `FCM Unit ${vehicle.vehicle_id} is near your dropoff location.`,
+                            new Date()
+                          );
+        io.of("/notifications").to(`user_${trip.passenger_id}`).emit("newNotification", notif);
       }
     }
 
