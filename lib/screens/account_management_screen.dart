@@ -12,11 +12,90 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
   bool _loading = true;
   bool _showActions = false;
   List<UserAccount> _users = [];
+  // Search & Sort
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _sortBy = 'name'; // name | role | username
+  bool _sortAsc = true;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _searchController.addListener(() {
+      setState(() => _searchQuery = _searchController.text.trim().toLowerCase());
+    });
+  }
+
+  void _showSortOptions(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Sort Options'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Sort by:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              RadioListTile<String>(
+                title: const Text('Name'),
+                value: 'name',
+                groupValue: _sortBy,
+                onChanged: (String? value) {
+                  setState(() => _sortBy = value!);
+                },
+              ),
+              RadioListTile<String>(
+                title: const Text('Role'),
+                value: 'role',
+                groupValue: _sortBy,
+                onChanged: (String? value) {
+                  setState(() => _sortBy = value!);
+                },
+              ),
+              RadioListTile<String>(
+                title: const Text('Username'),
+                value: 'username',
+                groupValue: _sortBy,
+                onChanged: (String? value) {
+                  setState(() => _sortBy = value!);
+                },
+              ),
+              const Divider(),
+              const Text('Order:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              RadioListTile<String>(
+                title: const Text('Ascending'),
+                value: 'asc',
+                groupValue: _sortAsc ? 'asc' : 'desc',
+                onChanged: (String? value) {
+                  setState(() => _sortAsc = value == 'asc');
+                },
+              ),
+              RadioListTile<String>(
+                title: const Text('Descending'),
+                value: 'desc',
+                groupValue: _sortAsc ? 'asc' : 'desc',
+                onChanged: (String? value) {
+                  setState(() => _sortAsc = value == 'asc');
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Apply'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _load() async {
@@ -31,6 +110,29 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  List<UserAccount> _getFilteredSorted() {
+    List<UserAccount> list = _users.where((u) {
+      if (_searchQuery.isEmpty) return true;
+      return u.fullName.toLowerCase().contains(_searchQuery) ||
+          u.userRole.toLowerCase().contains(_searchQuery) ||
+          u.username.toLowerCase().contains(_searchQuery);
+    }).toList();
+
+    int cmp<T extends Comparable>(T a, T b) => _sortAsc ? a.compareTo(b) : b.compareTo(a);
+    list.sort((a, b) {
+      switch (_sortBy) {
+        case 'role':
+          return cmp(a.userRole.toLowerCase(), b.userRole.toLowerCase());
+        case 'username':
+          return cmp(a.username.toLowerCase(), b.username.toLowerCase());
+        case 'name':
+        default:
+          return cmp(a.fullName.toLowerCase(), b.fullName.toLowerCase());
+      }
+    });
+    return list;
   }
 
   Future<void> _createOrEdit({UserAccount? existing}) async {
@@ -165,6 +267,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
     }
 
     final isMobile = MediaQuery.of(context).size.width < 768;
+    final filtered = _getFilteredSorted();
     return Padding(
       padding: EdgeInsets.all(isMobile ? 16 : 24),
       child: Column(
@@ -207,7 +310,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     ),
                   ],
                 )
-              : Row(
+                : Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
@@ -242,6 +345,100 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   ],
                 ),
           const SizedBox(height: 24),
+
+          // Search/sort block under title
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  spreadRadius: 1,
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: isMobile
+                ? Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search employees',
+                            prefixIcon: const Icon(Icons.search),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFF3E4795)),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.filter_list),
+                        onPressed: () => _showSortOptions(context),
+                        tooltip: 'Sort Options',
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search employees',
+                            prefixIcon: const Icon(Icons.search),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFF3E4795)),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton.icon(
+                        onPressed: () => _showSortOptions(context),
+                        icon: const Icon(Icons.sort, size: 18),
+                        label: const Text('Sort'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF3E4795),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+
+          const SizedBox(height: 16),
 
           // Table-like container consistent with Vehicle Assignment
           Expanded(
@@ -293,12 +490,12 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
 
                   // Content
                   Expanded(
-                    child: _users.isEmpty
+                    child: filtered.isEmpty
                         ? const Center(child: Text('No accounts found', style: TextStyle(fontSize: 16, color: Colors.grey)))
                         : ListView.builder(
-                            itemCount: _users.length,
+                            itemCount: filtered.length,
                             itemBuilder: (context, index) {
-                              final u = _users[index];
+                              final u = filtered[index];
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                 decoration: BoxDecoration(
@@ -344,5 +541,6 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
     );
   }
 }
+
 
 
