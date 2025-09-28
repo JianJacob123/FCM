@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'admin_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../models/user_role.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -14,33 +19,90 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   bool _obscurePassword = true;
   String? _error;
 
-  void _login() {
-    // Use username and password
-    if (_usernameController.text == 'admin' && _passwordController.text == 'admin123') {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const AdminScreen()),
-      );
-    } else {
+  Future<void> _login() async {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (username.isEmpty || password.isEmpty) {
       setState(() {
-        _error = 'Incorrect username or password';
+        _error = 'Please enter both username and password.';
       });
+      return;
+    }
+
+    try {
+      // 1. Call your backend
+      final response = await http.post(
+        Uri.parse(
+          'http://localhost:8080/users/login',
+        ), // change to your endpoint
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({"username": username, "password": password}),
+      );
+
+      // 2. Check if successful
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+
+        if (responseData['data']['user_role'] != 'admin') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Access denied. Not an admin user.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        // 3. Build user from backend response
+        final user = UserModel(
+          id: responseData['data']['user_id'].toString(),
+          name: responseData['data']['full_name'],
+          role: responseData['data']['user_role'] == 'admin'
+              ? UserRole.admin
+              : responseData['data']['user_role'] == 'conductor'
+              ? UserRole.conductor
+              : UserRole.passenger,
+        );
+
+        // 4. Store in provider
+        context.read<UserProvider>().loginUser(user);
+
+        // 5. Navigate to appropriate screen based on role
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const AdminScreen()),
+        );
+      } else {
+        final errorData = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorData['error'] ?? 'Login failed.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (err) {
+      print("Login error: $err");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Something went wrong. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 768;
-    
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF6B73FF),
-              Color(0xFF1A1F3A),
-            ],
+            colors: [Color(0xFF6B73FF), Color(0xFF1A1F3A)],
           ),
         ),
         child: isMobile ? _buildMobileLayout() : _buildDesktopLayout(),
@@ -120,7 +182,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           ),
         ),
         const SizedBox(height: 32),
-        
+
         // Username field
         TextField(
           controller: _usernameController,
@@ -139,12 +201,18 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFF3E4795)),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF999999)),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            prefixIcon: const Icon(
+              Icons.person_outline,
+              color: Color(0xFF999999),
+            ),
           ),
         ),
         const SizedBox(height: 16),
-        
+
         // Password field
         TextField(
           controller: _passwordController,
@@ -164,16 +232,26 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: Color(0xFF3E4795)),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF999999)),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            prefixIcon: const Icon(
+              Icons.lock_outline,
+              color: Color(0xFF999999),
+            ),
             suffixIcon: IconButton(
-              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Color(0xFF999999)),
-              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              icon: Icon(
+                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                color: Color(0xFF999999),
+              ),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
             ),
           ),
         ),
         const SizedBox(height: 24),
-        
+
         // Login button
         SizedBox(
           width: double.infinity,
@@ -199,7 +277,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        
+
         // Error message
         if (_error != null) ...[
           Text(
@@ -208,7 +286,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           ),
           const SizedBox(height: 16),
         ],
-        
+
         // Forgot password link
         Center(
           child: TextButton(
@@ -217,18 +295,20 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               padding: MaterialStateProperty.all(EdgeInsets.zero),
               minimumSize: MaterialStateProperty.all(Size(0, 0)),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              foregroundColor: MaterialStateProperty.all(const Color(0xFF3E4795)),
-              overlayColor: MaterialStateProperty.resolveWith<Color?>(
-                (Set<MaterialState> states) {
-                  if (states.contains(MaterialState.hovered)) {
-                    return const Color(0xFF3E4795).withOpacity(0.1);
-                  }
-                  if (states.contains(MaterialState.pressed)) {
-                    return const Color(0xFF3E4795).withOpacity(0.2);
-                  }
-                  return null;
-                },
+              foregroundColor: MaterialStateProperty.all(
+                const Color(0xFF3E4795),
               ),
+              overlayColor: MaterialStateProperty.resolveWith<Color?>((
+                Set<MaterialState> states,
+              ) {
+                if (states.contains(MaterialState.hovered)) {
+                  return const Color(0xFF3E4795).withOpacity(0.1);
+                }
+                if (states.contains(MaterialState.pressed)) {
+                  return const Color(0xFF3E4795).withOpacity(0.2);
+                }
+                return null;
+              }),
             ),
             child: const Text(
               'Forget your password?',
@@ -241,15 +321,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           ),
         ),
         const SizedBox(height: 32),
-        
+
         // Footer
         const Center(
           child: Text(
             'Terms of use. Privacy policy',
-            style: TextStyle(
-              fontSize: 12,
-              color: Color(0xFF999999),
-            ),
+            style: TextStyle(fontSize: 12, color: Color(0xFF999999)),
           ),
         ),
       ],

@@ -1,7 +1,4 @@
-enum UserRole {
-  passenger,
-  conductor,
-}
+enum UserRole { passenger, conductor, admin }
 
 class UserModel {
   final String id;
@@ -29,10 +26,8 @@ class UserModel {
     return UserModel(
       id: json['id'],
       name: json['name'],
-      role: UserRole.values.firstWhere(
-        (e) => e.toString() == json['role'],
-      ),
+      role: UserRole.values.firstWhere((e) => e.toString() == json['role']),
       vehicleId: json['vehicleId'],
     );
   }
-} 
+}

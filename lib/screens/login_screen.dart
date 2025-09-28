@@ -32,9 +32,9 @@ class _LoginScreenState extends State<LoginScreen> {
     );
     context.read<UserProvider>().loginUser(user);
 
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => const PassengerScreen()));
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const PassengerScreen()),
+    );
   }
 
   Future<void> _loginAsDriver() async {
@@ -65,6 +65,16 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
 
+        if (responseData['data']['user_role'] != 'conductor') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Access denied. Not a conductor.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
         // 3. Build user from backend response
         final user = UserModel(
           id: responseData['data']['user_id'].toString(),
@@ -80,8 +90,8 @@ class _LoginScreenState extends State<LoginScreen> {
         // 5. Navigate to appropriate screen based on role
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (_) => user.role == UserRole.conductor 
-                ? const ConductorScreen() 
+            builder: (_) => user.role == UserRole.conductor
+                ? const ConductorScreen()
                 : const PassengerScreen(),
           ),
         );

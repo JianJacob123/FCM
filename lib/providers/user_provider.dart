@@ -51,7 +51,7 @@ class UserProvider extends ChangeNotifier {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      // ✅ FIX: use jsonEncode, not .toString()
+      // FIX: use jsonEncode, not .toString()
       await prefs.setString('user', jsonEncode(user.toJson()));
       _currentUser = user;
     } catch (e) {
