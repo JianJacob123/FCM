@@ -16,16 +16,24 @@ const getVehiclesDirect = async () => {
   return await vehicleModel.getAllVehicles();
 };
 
-const updateCoordinatesLogic = async (io) => {
+const updateCoordinatesLogic = async (io, iotResponse) => {
     try {
         
-        const iotResponse = await coordinatesData.getIoTData();
+        //const iotResponse = await coordinatesData.getIoTData();
+
+        if (!iotResponse) {
+            console.warn('No IoT data available yet');
+            return;
+        }
         
-        for (const vehicle of iotResponse) {
+        // Normalize: always work with an array
+        const vehicles = Array.isArray(iotResponse) ? iotResponse : [iotResponse];
+        
+        for (const vehicle of vehicles) {
             await vehicleModel.updateVehicleCoordinates(
-                vehicle.vehicle_id, 
+                vehicle.bus_id, 
                 vehicle.lat,
-                vehicle.lng
+                vehicle.lon
             );
         }
         console.log('Coordinates updated successfully');

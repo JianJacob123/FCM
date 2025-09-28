@@ -58,10 +58,13 @@ socketHandler(chatNamespace);
 vehicleSocketHandler(vehicleNamespace);
 notificationHandler(notificationNamespace);
 
+// IoT WebSocket connection
+const { connectIoTData } = require("./services/coordinates");
+connectIoTData(io);
 
 
 httpServer.listen(port, () => {
-  console.log(`🚀 Server running on http://localhost:${port}`);
+  console.log(`Server running on http://localhost:${port}`);
 });
 
 /*app.listen(port, () => {

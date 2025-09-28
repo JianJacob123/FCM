@@ -3,7 +3,7 @@ const { startPassengerTripJobs } = require('./passengerTripUpdater');
 const { startTripJobs } = require('./tripUpdater')
 
 function startCronJobs(io) {
-  startVehicleUpdater(io);
+  //startVehicleUpdater(io);
   startPassengerTripJobs(io);
   startTripJobs(io);
 }
