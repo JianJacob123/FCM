@@ -232,146 +232,6 @@ class _SearchFieldState extends State<SearchField> {
   }
 }
 
-/*class LocationSwitch extends StatefulWidget {
-  const LocationSwitch({super.key});
-
-  @override
-  State<LocationSwitch> createState() => _LocationSwitchState();
-}
-
-class _LocationSwitchState extends State<LocationSwitch> {
-  bool _locationEnabled = false;
-
-  void _showLocationPermissionModal() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.location_on,
-                  size: 80,
-                  color: Color.fromRGBO(62, 71, 149, 1),
-                ),
-                SizedBox(height: 24),
-                Text(
-                  'Location Permission',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'To track nearby vehicles, allow us to detect your location.',
-                  style: TextStyle(fontSize: 18),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFFE3E6F5),
-                      foregroundColor: Colors.black,
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
-                    ),
-                    onPressed: () {
-                      setState(() => _locationEnabled = true);
-                      Navigator.of(context).pop();
-                      // Here you can add actual location permission logic
-                    },
-                    child: Text(
-                      'TURN ON LOCATION SERVICES',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 16),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text(
-                    'Not Now',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.black,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 50,
-      width: 150,
-      decoration: BoxDecoration(
-        color: const Color.fromRGBO(62, 71, 149, 1),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30),
-          bottomLeft: Radius.circular(30),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey,
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: Offset(0, -3),
-          ),
-        ],
-      ),
-      margin: EdgeInsets.symmetric(vertical: 20),
-      padding: EdgeInsets.symmetric(horizontal: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Switch(
-            value: _locationEnabled,
-            onChanged: (value) {
-              _showLocationPermissionModal();
-            },
-            activeColor: Colors.white,
-            activeTrackColor: Color.fromRGBO(130, 135, 188, 1),
-            inactiveTrackColor: Color.fromRGBO(206, 206, 214, 1),
-            inactiveThumbColor: Colors.white,
-          ),
-          Text(
-            'Location',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}*/
-
 class CustomBottomBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTabChanged;
@@ -593,6 +453,42 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 }
 
+class TripStepper extends StatelessWidget {
+  final String currentStatus;
+  final List<String> steps = ["pending", "picked_up", "dropped_off"];
+
+  TripStepper({super.key, required this.currentStatus});
+
+  @override
+  Widget build(BuildContext context) {
+    int currentStep = steps.indexOf(currentStatus);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: steps.map((s) {
+        int stepIndex = steps.indexOf(s);
+        bool isActive = stepIndex <= currentStep;
+
+        return Column(
+          children: [
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: isActive ? Color(0xFF3E4795) : Colors.grey,
+              child: Icon(
+                isActive ? Icons.check : Icons.circle,
+                size: 16,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(s, style: TextStyle(fontSize: 12)),
+          ],
+        );
+      }).toList(),
+    );
+  }
+}
+
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -602,11 +498,13 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   late IO.Socket vehicleSocket;
+  late IO.Socket passengerTripSocket;
   LatLng? _userLocation;
   final Map<int, Marker> _vehicleMarkers = {}; // vehicle_id to Marker
   Map<String, dynamic>? _selectedVehicle; // selected vehicle info
   List<LatLng> _routePolyline = [];
   int? _selectedRouteId; // will hold the chosen route_id
+  String? _currentTripStatus;
 
   @override
   void initState() {
@@ -676,12 +574,53 @@ class _MapScreenState extends State<MapScreen> {
     vehicleSocket.onDisconnect((_) {
       print('Vehicle disconnected');
     });
+
+    // --- Trip Status Socket ---
+    passengerTripSocket = IO.io(
+      "http://localhost:8080/tripstatus", //point to trips namespace
+      IO.OptionBuilder().setTransports(['websocket']).build(),
+    );
+
+    passengerTripSocket.connect();
+
+    passengerTripSocket.onConnect((_) {
+      print('Connected to trip backend');
+      final testId = "guest_123"; //For Testing
+      final userProvider = context.read<UserProvider>();
+      final userId = userProvider.isLoggedIn
+          ? userProvider.currentUser!.id
+          : userProvider.guestId;
+
+      if (userId == null) {
+        print("Error: userId is null");
+        return;
+      }
+
+      passengerTripSocket.emit("subscribeTrips", testId); // 🔑 join tripRoom
+    });
+
+    passengerTripSocket.on('tripCreated', (data) {
+      if (!mounted) return;
+      print("New trip: $data");
+      final status = data["status"] ?? "pending";
+
+      setState(() {
+        // handle trip UI updates here
+        _currentTripStatus = status;
+      });
+    });
+
+    passengerTripSocket.onDisconnect((_) {
+      print('Trip socket disconnected');
+    });
   }
 
   @override
   void dispose() {
     vehicleSocket.off('vehicleUpdate');
     vehicleSocket.dispose();
+    passengerTripSocket.off('tripCreated');
+    passengerTripSocket.dispose();
 
     super.dispose();
   }
@@ -786,7 +725,7 @@ class _MapScreenState extends State<MapScreen> {
             ],
           ),
 
-          // ✅ Keep: search field on top
+          //Keep: search field on top
           Positioned(
             top: 40,
             left: 20,
@@ -800,6 +739,25 @@ class _MapScreenState extends State<MapScreen> {
               },
             ),
           ),
+
+          if (_currentTripStatus != null)
+            Positioned(
+              top: 120, // push it just below searchbar (adjust as needed)
+              left: 20,
+              right: 20,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TripStepper(currentStatus: _currentTripStatus!),
+                ),
+              ),
+            ),
 
           // ✅ Keep: vehicle info bottom sheet
           if (_showVehicleInfo && _selectedVehicle != null)
@@ -1154,12 +1112,14 @@ class _MapScreenState extends State<MapScreen> {
                                 pickupLng: _userLocation!.longitude,
                                 dropoffLat: _pickedLocation!.latitude,
                                 dropoffLng: _pickedLocation!.longitude,
+                                routeId: _selectedRouteId ?? 1,
                               );
 
                               print("🚖 Trip Request: ${trip.toJson()}");
 
-                              // TODO: send this trip request to backend
-                              // For now, just log or show a snackbar
+                              // Call API to create request
+                              createRequest(trip);
+
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(

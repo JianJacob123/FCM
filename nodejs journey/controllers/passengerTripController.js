@@ -2,11 +2,17 @@ const passengerTripModel = require('../models/passengerTripModels');
 const vehicleModel = require('../models/vehicleModels');
 const geolib = require('geolib');
 
-const createRequest = async (req, res) => {
-    const { passengerId, pickupLat, pickupLng } = req.body;
+const createRequest = (io) => async (req, res) => {
+    const { passengerId, pickupLat, pickupLng, dropoffLat, dropoffLng, routeId } = req.body;
     try {
-        const newRequest = await passengerTripModel.insertRequest(passengerId, pickupLat, pickupLng, 'pending');
+        const newRequest = await passengerTripModel.insertRequest(passengerId, pickupLat, pickupLng, dropoffLat, dropoffLng,'pending', routeId);
         res.status(201).json(newRequest);
+
+        io.to(`trip_${passengerId}`).emit("tripCreate", {
+        requestId,
+        status: "pending"
+
+});
     } catch (error) {
         console.error('Error creating request:', error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -49,6 +55,11 @@ const checkVehicleNearPickUp = async (io) => {
                     'picked_up',
                     nearbyVehicle.vehicle.vehicle_id
                 );
+
+                io.to(`trip_${trip.passenger_id}`).emit("tripUpdate", {
+                requestId: trip.request_id,
+                status: "picked_up"
+                });
 
                 const notif = await notificationModels.createNotification(
                             'Bus Near Pickup',
@@ -112,6 +123,12 @@ const checkDropoffs = async (io) => {
 
       if (distance <= 50 && trip.status === "picked_up") {
         await passengerTripModel.updateTripStatus(trip.request_id, "dropped_off");
+
+        io.to(`trip_${trip.passenger_id}`).emit("tripUpdate", {
+        requestId: trip.request_id,
+        status: "dropped_off"
+        });
+
         completedTrips.push(trip.vehicle_id);
         console.log(`Trip ${trip.vehicle_id} marked as completed!`);
 

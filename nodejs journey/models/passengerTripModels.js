@@ -16,9 +16,9 @@ const getAllPendingRequests = async (status) => { //for automation to check pend
     }
 }
 
-const insertRequest = async (passengerId, pickupLat, pickupLng, status) => {
-    const sql = `INSERT INTO passenger_trip (passenger_id, pickup_lat, pickup_lng, status) VALUES ($1, $2, $3, $4) RETURNING *`;
-    const res = await client.query(sql, [passengerId, pickupLat, pickupLng, status]);
+const insertRequest = async (passengerId, pickupLat, pickupLng, dropoffLat, dropoffLng, status, routeId) => {
+    const sql = `INSERT INTO passenger_trip (passenger_id, pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, status, route_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`;
+    const res = await client.query(sql, [passengerId, pickupLat, pickupLng, dropoffLat, dropoffLng, status, routeId]);
     return res.rows[0];
 }
 

@@ -6,6 +6,7 @@ import 'admin_login_screen.dart';
 import 'employee_management_screen.dart';
 import 'vehicle_assignment_screen.dart';
 import 'package:http/http.dart' as http;
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api.dart';
 import 'dart:convert';
 
@@ -593,177 +594,7 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget _buildMainContent() {
     switch (_selectedSection) {
       case AdminSection.liveTracking:
-        // Show only one bus marker and info, like the passenger map
-        final busLocation = LatLng(13.9467729, 121.1555241);
-        final busInfo = {
-          'busNo': 'FCM No. 05',
-          'plateNo': 'DAL 7674',
-          'route': 'Lipa City to Bauan City',
-          'eta': '9:45 AM',
-          'location': 'Lalayat San Jose',
-          'driver': 'Nelson Suarez',
-        };
-        bool _showChat = false;
-        final List<_ChatMessage> _messages = [
-          _ChatMessage(name: 'Nelson- FCM No. 5', isMe: false, text: 'Hello!'),
-          _ChatMessage(name: 'Admin', isMe: true, text: 'Hi Nelson!'),
-        ];
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Stack(
-              children: [
-                // Map
-                Positioned.fill(
-                  child: FlutterMap(
-                    mapController: _mapController,
-                    options: MapOptions(
-                      initialCenter: busLocation,
-                      initialZoom: 13.0,
-                      interactiveFlags: InteractiveFlag.all,
-                    ),
-                    children: [
-                      TileLayer(
-                        urlTemplate:
-                            'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                        subdomains: ['a', 'b', 'c', 'd'],
-                      ),
-                      if (_showRoutePolyLine)
-                        PolylineLayer(
-                          polylines: [
-                            Polyline(
-                              points: _routePoints,
-                              strokeWidth: 8.0,
-                              color: const Color.fromRGBO(62, 71, 149, 1),
-                            ),
-                          ],
-                        ),
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            width: 40.0,
-                            height: 40.0,
-                            point: busLocation,
-                            child: GestureDetector(
-                              onTap: () =>
-                                  setState(() => _selectedBusIndex = 0),
-                              child: Container(
-                                width: 50,
-                                height: 50,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF3E4795),
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black26,
-                                      blurRadius: 4,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.directions_bus_outlined,
-                                    color: Colors.white,
-                                    size: 30,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (_showRoutePolyLine)
-                            Marker(
-                              point: _routePoints.last, // Final destination
-                              width: 40,
-                              height: 40,
-                              child: Container(
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF3E4795),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.location_pin,
-                                    color: Colors.white,
-                                    size: 30,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                // Top search bar
-                Positioned(
-                  top: 24,
-                  left: 32,
-                  right: 32,
-                  child: AdminSearchField(
-                    onLocationSelected:
-                        (LatLng selectedLatLng, String placeName) {
-                          // Handle location selection for admin
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Selected: $placeName')),
-                          );
-                        },
-                  ),
-                ),
-                if (_selectedBusIndex != null)
-                  Center(
-                    child: _AdminBusInfoCard(
-                      bus: busInfo,
-                      onClose: () => setState(() => _selectedBusIndex = null),
-                      onTrackRoute: () {
-                        setState(() {
-                          _showRoutePolyLine = true;
-                        });
-                        _mapController.fitBounds(
-                          LatLngBounds.fromPoints(_routePoints),
-                          options: const FitBoundsOptions(
-                            padding: EdgeInsets.all(50),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                // Message button (bottom right)
-                Positioned(
-                  bottom: 32,
-                  right: 32,
-                  child: FloatingActionButton(
-                    backgroundColor: const Color(0xFF3E4795),
-                    foregroundColor: Colors.white,
-                    onPressed: () {
-                      setState(() => _showChat = true);
-                    },
-                    child: const Icon(Icons.chat_bubble_outline, size: 32),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 6,
-                  ),
-                ),
-                if (_showChat)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    bottom: 0,
-                    width: 400,
-                    child: _ChatSidebar(
-                      onClose: () => setState(() => _showChat = false),
-                      messages: _messages,
-                      onSend: (msg) {
-                        setState(() {
-                          _messages.add(_ChatMessage(isMe: true, text: msg));
-                        });
-                      },
-                    ),
-                  ),
-              ],
-            );
-          },
-        );
+        return const MapScreen();
       case AdminSection.analytics:
         return _AnalyticsPage();
       case AdminSection.notifications:
@@ -948,6 +779,348 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Widget _DailyScheduleView() {
     return const DailyScheduleCrud();
+  }
+}
+
+class MapScreen extends StatefulWidget {
+  const MapScreen({super.key});
+
+  @override
+  _MapScreenState createState() => _MapScreenState();
+}
+
+class _MapScreenState extends State<MapScreen> {
+  late IO.Socket vehicleSocket;
+  final Map<int, Marker> _vehicleMarkers = {}; // vehicle_id to Marker
+  Map<String, dynamic>? _selectedVehicle; // selected vehicle info
+  List<LatLng> _routePolyline = [];
+
+  @override
+  void initState() {
+    super.initState();
+
+    // --- Vehicle socket (no userId needed) ---
+    vehicleSocket = IO.io(
+      "http://localhost:8080/vehicles",
+      IO.OptionBuilder().setTransports(['websocket']).build(),
+    );
+
+    vehicleSocket.connect();
+
+    vehicleSocket.onConnect((_) {
+      print('Connected to vehicle backend');
+      vehicleSocket.emit("subscribeVehicles"); // 🔑 join vehicleRoom
+    });
+
+    vehicleSocket.on('vehicleUpdate', (data) {
+      if (!mounted) return;
+      //print('🚐 Vehicle update: $data');
+
+      // data is an array of vehicles
+      setState(() {
+        for (var v in data) {
+          final id = v["vehicle_id"];
+          final lat = double.parse(v["lat"].toString());
+          final lng = double.parse(v["lng"].toString());
+
+          _vehicleMarkers[id] = Marker(
+            point: LatLng(lat, lng),
+            width: 50,
+            height: 50,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedVehicle = v; // save the tapped vehicle info
+                  _showVehicleInfo = true;
+                  _routePolyline = []; // clear old polyline
+                });
+              },
+              child: Column(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: Color(0xFF3E4795),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.directions_bus,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      });
+    });
+
+    vehicleSocket.onDisconnect((_) {
+      print('Vehicle disconnected');
+    });
+  }
+
+  @override
+  void dispose() {
+    vehicleSocket.off('vehicleUpdate');
+    vehicleSocket.dispose();
+
+    super.dispose();
+  }
+
+  final MapController _mapController = MapController();
+
+  //vehicle info modal logic
+  bool _showVehicleInfo = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              center: LatLng(13.945, 121.163),
+              zoom: 14,
+              onTap: (tapPosition, point) {
+                setState(() {
+                  _showVehicleInfo = false;
+                });
+              },
+            ),
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                subdomains: ['a', 'b', 'c', 'd'],
+              ),
+
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: _routePolyline,
+                    strokeWidth: 4.0,
+                    color: Color(0xFF3E4795),
+                  ),
+                ],
+              ),
+
+              MarkerLayer(
+                markers: [
+                  if (_routePolyline.isNotEmpty)
+                    Marker(
+                      point: _routePolyline.last,
+                      width: 30,
+                      height: 60,
+                      child: const Icon(
+                        Icons.location_pin,
+                        color: Color(0xFF3E4795),
+                        size: 32,
+                      ),
+                    ),
+                  ..._vehicleMarkers.values.toList(),
+                ],
+              ),
+            ],
+          ),
+
+          //search field on top temporary removal
+
+          //Keep: vehicle info bottom sheet
+          if (_showVehicleInfo && _selectedVehicle != null)
+            Positioned(
+              bottom: 80,
+              left: 20,
+              right: 20,
+              child: Container(
+                constraints: const BoxConstraints(
+                  minHeight: 100,
+                  maxHeight: 260,
+                ),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 12,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'FCM No. ${_selectedVehicle?["vehicle_id"] ?? "Unknown"}',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF3E4795),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: () {
+                            setState(() {
+                              _showVehicleInfo = false;
+                              _selectedVehicle = null;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Plate No: DAL 7674',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_selectedVehicle?["route_name"] ?? "Unknown"}',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text(
+                          'Estimated Time of Arrival',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        Text(
+                          '8:30 AM',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text(
+                          'Current Location',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        Text(
+                          'Lalayat San Jose',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              "Driver's Name",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Nelson Suarez',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            final remainingRoute =
+                                _selectedVehicle?["remaining_route_polyline"];
+
+                            if (remainingRoute == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("No route data available."),
+                                ),
+                              );
+                              return;
+                            }
+
+                            // Decode JSON string into a Map
+                            final routeJson = remainingRoute is String
+                                ? jsonDecode(remainingRoute)
+                                : remainingRoute;
+
+                            final coords =
+                                (routeJson["coordinates"] as List?)
+                                    ?.map(
+                                      (c) => LatLng(
+                                        (c[1] as num).toDouble(),
+                                        (c[0] as num).toDouble(),
+                                      ),
+                                    )
+                                    .toList() ??
+                                [];
+
+                            if (coords.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("No route data available."),
+                                ),
+                              );
+                              return;
+                            }
+
+                            setState(() {
+                              _routePolyline = coords;
+                            });
+                          },
+                          icon: const Icon(Icons.navigation, size: 16),
+                          label: const Text(
+                            'Track Trip',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3E4795),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 

@@ -1,6 +1,7 @@
 // lib/services/api.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../models/trip_request.dart';
 
 Future<List<dynamic>> fetchNotifications(String recipient) async {
   final response = await http.get(
@@ -51,6 +52,35 @@ Future<List<dynamic>> fetchPendingTrips() async {
     return jsonDecode(response.body);
   } else {
     throw Exception("Failed to load passengerPickups");
+  }
+}
+
+Future<void> createRequest(TripRequest trip) async {
+  final url = Uri.parse('http://localhost:8080/passengerTrips/createRequest');
+
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        "passengerId": trip.passengerId,
+        "pickupLat": trip.pickupLat,
+        "pickupLng": trip.pickupLng,
+        "dropoffLat": trip.dropoffLat,
+        "dropoffLng": trip.dropoffLng,
+        "routeId": trip.routeId,
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      print('Location added: $data');
+    } else {
+      print('Failed: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+    }
+  } catch (e) {
+    print('Error sending request: $e');
   }
 }
 

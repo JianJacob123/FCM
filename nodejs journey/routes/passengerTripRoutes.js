@@ -4,5 +4,6 @@ const router = express.Router();
 
 router.get('/getCompletedtrips', passengerTripController.getCompletedTripsById);
 router.get('/fetchPendingTrips', passengerTripController.fetchPendingTrips);
+router.post('/createRequest', passengerTripController.createRequest);
 
 module.exports = router;

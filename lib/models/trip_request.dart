@@ -4,6 +4,7 @@ class TripRequest {
   final double pickupLng;
   final double dropoffLat;
   final double dropoffLng;
+  final int routeId;
 
   TripRequest({
     required this.passengerId,
@@ -11,6 +12,7 @@ class TripRequest {
     required this.pickupLng,
     required this.dropoffLat,
     required this.dropoffLng,
+    required this.routeId,
   });
 
   Map<String, dynamic> toJson() {
@@ -20,6 +22,7 @@ class TripRequest {
       "pickup_lng": pickupLng,
       "dropoff_lat": dropoffLat,
       "dropoff_lng": dropoffLng,
+      "route_id": routeId,
     };
   }
 }

@@ -49,12 +49,12 @@ const io = new Server(httpServer, {
 startCronJobs(io);
 
 // --- Setup namespaces ---
-const chatNamespace = io.of("/chat");
+const tripStatusNamespace = io.of("/tripstatus");
 const vehicleNamespace = io.of("/vehicles");
 const notificationNamespace = io.of("/notifications");
 
 // Attach handlers separately
-socketHandler(chatNamespace);
+socketHandler(tripStatusNamespace);
 vehicleSocketHandler(vehicleNamespace);
 notificationHandler(notificationNamespace);
 
