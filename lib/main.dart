@@ -10,6 +10,7 @@ import 'screens/admin_login_screen.dart';
 import 'services/notif_socket.dart';
 import 'services/notif_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 Future<void> main() async {
   // must be first line in main
@@ -17,6 +18,9 @@ Future<void> main() async {
 
   //initialize local notifications once
   await NotifService().initNotification();
+
+  // Load environment variables
+  await dotenv.load(fileName: ".env");
 
   runApp(const MyApp());
 }

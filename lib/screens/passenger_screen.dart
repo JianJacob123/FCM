@@ -13,8 +13,11 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api.dart';
 import '../services/notif_service.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import 'dart:async';
+
+final baseUrl = dotenv.env['API_BASE_URL'];
 
 class PassengerScreen extends StatefulWidget {
   const PassengerScreen({super.key});
@@ -514,7 +517,7 @@ class _MapScreenState extends State<MapScreen> {
 
     // --- Vehicle socket (no userId needed) ---
     vehicleSocket = IO.io(
-      "http://localhost:8080/vehicles",
+      "$baseUrl/vehicles",
       IO.OptionBuilder().setTransports(['websocket']).build(),
     );
 
@@ -577,7 +580,7 @@ class _MapScreenState extends State<MapScreen> {
 
     // --- Trip Status Socket ---
     passengerTripSocket = IO.io(
-      "http://localhost:8080/tripstatus", //point to trips namespace
+      "$baseUrl/tripstatus", //point to trips namespace
       IO.OptionBuilder().setTransports(['websocket']).build(),
     );
 

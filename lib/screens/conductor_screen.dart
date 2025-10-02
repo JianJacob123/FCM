@@ -7,8 +7,11 @@ import '../screens/login_screen.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import 'dart:async';
+
+final baseUrl = dotenv.env['API_BASE_URL'];
 
 class ConductorScreen extends StatefulWidget {
   const ConductorScreen({super.key});
@@ -318,7 +321,7 @@ class _MapScreenState extends State<MapScreen> {
     conductorId = userProvider.currentUser!.id;
 
     vehicleSocket = IO.io(
-      "http://localhost:8080/vehicles",
+      "$baseUrl/vehicles",
       IO.OptionBuilder().setTransports(['websocket']).build(),
     );
 

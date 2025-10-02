@@ -5,7 +5,8 @@ class AccountManagementScreen extends StatefulWidget {
   const AccountManagementScreen({super.key});
 
   @override
-  State<AccountManagementScreen> createState() => _AccountManagementScreenState();
+  State<AccountManagementScreen> createState() =>
+      _AccountManagementScreenState();
 }
 
 class _AccountManagementScreenState extends State<AccountManagementScreen> {
@@ -23,7 +24,9 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
     super.initState();
     _load();
     _searchController.addListener(() {
-      setState(() => _searchQuery = _searchController.text.trim().toLowerCase());
+      setState(
+        () => _searchQuery = _searchController.text.trim().toLowerCase(),
+      );
     });
   }
 
@@ -36,7 +39,10 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Sort by:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Sort by:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
               RadioListTile<String>(
                 title: const Text('Name'),
@@ -63,7 +69,10 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 },
               ),
               const Divider(),
-              const Text('Order:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Order:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
               RadioListTile<String>(
                 title: const Text('Ascending'),
@@ -104,9 +113,9 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
       final list = await UserApiService.listUsers();
       setState(() => _users = list);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load users: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load users: $e')));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -120,7 +129,8 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           u.username.toLowerCase().contains(_searchQuery);
     }).toList();
 
-    int cmp<T extends Comparable>(T a, T b) => _sortAsc ? a.compareTo(b) : b.compareTo(a);
+    int cmp<T extends Comparable>(T a, T b) =>
+        _sortAsc ? a.compareTo(b) : b.compareTo(a);
     list.sort((a, b) {
       switch (_sortBy) {
         case 'role':
@@ -154,24 +164,37 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(controller: fullNameCtrl, decoration: const InputDecoration(labelText: 'Full Name')),
+                TextField(
+                  controller: fullNameCtrl,
+                  decoration: const InputDecoration(labelText: 'Full Name'),
+                ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: role,
                   items: const [
                     DropdownMenuItem(value: 'Admin', child: Text('Admin')),
                     DropdownMenuItem(value: 'Driver', child: Text('Driver')),
-                    DropdownMenuItem(value: 'Conductor', child: Text('Conductor')),
+                    DropdownMenuItem(
+                      value: 'Conductor',
+                      child: Text('Conductor'),
+                    ),
                   ],
                   onChanged: (v) => role = v ?? role,
                   decoration: const InputDecoration(labelText: 'Role'),
                 ),
                 const SizedBox(height: 8),
-                TextField(controller: usernameCtrl, decoration: const InputDecoration(labelText: 'Username')),
+                TextField(
+                  controller: usernameCtrl,
+                  decoration: const InputDecoration(labelText: 'Username'),
+                ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: passwordCtrl,
-                  decoration: InputDecoration(labelText: isEdit ? 'Password (leave blank to keep)' : 'Password'),
+                  decoration: InputDecoration(
+                    labelText: isEdit
+                        ? 'Password (leave blank to keep)'
+                        : 'Password',
+                  ),
                   obscureText: true,
                 ),
                 const SizedBox(height: 8),
@@ -185,8 +208,14 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Save'),
+            ),
           ],
         );
       },
@@ -205,14 +234,23 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
     try {
       if (isEdit) {
         final pwd = passwordCtrl.text.trim();
-        await UserApiService.updateUser(existing!.userId, user, password: pwd.isEmpty ? null : pwd);
+        await UserApiService.updateUser(
+          existing!.userId,
+          user,
+          password: pwd.isEmpty ? null : pwd,
+        );
       } else {
-        await UserApiService.createUser(user, password: passwordCtrl.text.trim());
+        await UserApiService.createUser(
+          user,
+          password: passwordCtrl.text.trim(),
+        );
       }
       await _load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
     }
   }
 
@@ -223,8 +261,14 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
         title: const Text('Delete Account'),
         content: Text('Are you sure you want to delete ${u.fullName}?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
@@ -234,7 +278,9 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
       await _load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
     }
   }
 
@@ -251,12 +297,19 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
         builder: (ctx) => AlertDialog(
           title: const Text('Password'),
           content: SelectableText(pwd),
-          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close'))],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close'),
+            ),
+          ],
         ),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Reveal failed: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Reveal failed: $e')));
     }
   }
 
@@ -290,9 +343,15 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     Row(
                       children: [
                         IconButton(
-                          onPressed: () => setState(() => _showActions = !_showActions),
-                          icon: Icon(_showActions ? Icons.edit_off : Icons.edit, color: const Color(0xFF3E4795)),
-                          tooltip: _showActions ? 'Exit edit mode' : 'Edit mode',
+                          onPressed: () =>
+                              setState(() => _showActions = !_showActions),
+                          icon: Icon(
+                            _showActions ? Icons.edit_off : Icons.edit,
+                            color: const Color(0xFF3E4795),
+                          ),
+                          tooltip: _showActions
+                              ? 'Exit edit mode'
+                              : 'Edit mode',
                         ),
                         const SizedBox(width: 8),
                         ElevatedButton(
@@ -310,7 +369,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     ),
                   ],
                 )
-                : Row(
+              : Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
@@ -324,9 +383,15 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     Row(
                       children: [
                         IconButton(
-                          onPressed: () => setState(() => _showActions = !_showActions),
-                          icon: Icon(_showActions ? Icons.edit_off : Icons.edit, color: const Color(0xFF3E4795)),
-                          tooltip: _showActions ? 'Exit edit mode' : 'Edit mode',
+                          onPressed: () =>
+                              setState(() => _showActions = !_showActions),
+                          icon: Icon(
+                            _showActions ? Icons.edit_off : Icons.edit,
+                            color: const Color(0xFF3E4795),
+                          ),
+                          tooltip: _showActions
+                              ? 'Exit edit mode'
+                              : 'Edit mode',
                         ),
                         const SizedBox(width: 8),
                         ElevatedButton(
@@ -373,17 +438,26 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                             prefixIcon: const Icon(Icons.search),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE0E0E0),
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE0E0E0),
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF3E4795)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF3E4795),
+                              ),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                           ),
                         ),
                       ),
@@ -405,17 +479,26 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                             prefixIcon: const Icon(Icons.search),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE0E0E0),
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE0E0E0),
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFF3E4795)),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF3E4795),
+                              ),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                           ),
                         ),
                       ),
@@ -428,7 +511,10 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                           backgroundColor: const Color(0xFF3E4795),
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -459,7 +545,10 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 children: [
                   // Header bar
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     decoration: const BoxDecoration(
                       color: Color(0xFF3E4795),
                       borderRadius: BorderRadius.only(
@@ -470,20 +559,117 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     child: isMobile
                         ? Row(
                             children: [
-                              const Expanded(flex: 2, child: Text('Name', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
-                              const Expanded(flex: 1, child: Text('Role', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
-                              const Expanded(flex: 2, child: Text('Username', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
-                              const Expanded(flex: 2, child: Text('Password', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
-                              if (_showActions) const Expanded(flex: 1, child: Text('Actions', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
+                              const Expanded(
+                                flex: 2,
+                                child: Text(
+                                  'Name',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(
+                                flex: 1,
+                                child: Text(
+                                  'Role',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(
+                                flex: 2,
+                                child: Text(
+                                  'Username',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(
+                                flex: 2,
+                                child: Text(
+                                  'Password',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              if (_showActions)
+                                const Expanded(
+                                  flex: 1,
+                                  child: Text(
+                                    'Actions',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
                             ],
                           )
                         : Row(
                             children: [
-                              const Expanded(flex: 2, child: Text('Name', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                              const Expanded(flex: 1, child: Text('Role', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                              const Expanded(flex: 2, child: Text('Username', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                              const Expanded(flex: 2, child: Text('Password', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                              if (_showActions) const Expanded(flex: 1, child: Text('Actions', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                              const Expanded(
+                                flex: 2,
+                                child: Text(
+                                  'Name',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(
+                                flex: 1,
+                                child: Text(
+                                  'Role',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(
+                                flex: 2,
+                                child: Text(
+                                  'Username',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(
+                                flex: 2,
+                                child: Text(
+                                  'Password',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              if (_showActions)
+                                const Expanded(
+                                  flex: 1,
+                                  child: Text(
+                                    'Actions',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                   ),
@@ -491,40 +677,105 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   // Content
                   Expanded(
                     child: filtered.isEmpty
-                        ? const Center(child: Text('No accounts found', style: TextStyle(fontSize: 16, color: Colors.grey)))
+                        ? const Center(
+                            child: Text(
+                              'No accounts found',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          )
                         : ListView.builder(
                             itemCount: filtered.length,
                             itemBuilder: (context, index) {
                               final u = filtered[index];
                               return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
                                 decoration: BoxDecoration(
                                   border: Border(
-                                    bottom: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
+                                    bottom: BorderSide(
+                                      color: Colors.grey.withOpacity(0.2),
+                                      width: 1,
+                                    ),
                                   ),
                                 ),
                                 child: Row(
                                   children: [
-                                    Expanded(flex: 2, child: Text(u.fullName, style: const TextStyle(fontWeight: FontWeight.w500))),
-                                    Expanded(flex: 1, child: Text(u.userRole, style: const TextStyle(fontWeight: FontWeight.w500))),
-                                    Expanded(flex: 2, child: Text(u.username, style: const TextStyle(fontWeight: FontWeight.w500))),
                                     Expanded(
                                       flex: 2,
-                                      child: Row(children: [
-                                        const Text('••••••••'),
-                                        if (_showActions) ...[
-                                          const SizedBox(width: 8),
-                                          IconButton(icon: const Icon(Icons.remove_red_eye), onPressed: () => _reveal(u), tooltip: 'Reveal password'),
+                                      child: Text(
+                                        u.fullName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      flex: 1,
+                                      child: Text(
+                                        u.userRole,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      flex: 2,
+                                      child: Text(
+                                        u.username,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      flex: 2,
+                                      child: Row(
+                                        children: [
+                                          const Text('••••••••'),
+                                          if (_showActions) ...[
+                                            const SizedBox(width: 8),
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.remove_red_eye,
+                                              ),
+                                              onPressed: () => _reveal(u),
+                                              tooltip: 'Reveal password',
+                                            ),
+                                          ],
                                         ],
-                                      ]),
+                                      ),
                                     ),
                                     if (_showActions)
                                       Expanded(
                                         flex: 1,
-                                        child: Row(children: [
-                                          IconButton(icon: const Icon(Icons.edit, color: Colors.blue, size: 18), onPressed: () => _createOrEdit(existing: u), tooltip: 'Edit'),
-                                          IconButton(icon: const Icon(Icons.delete, color: Colors.red, size: 18), onPressed: () => _delete(u), tooltip: 'Delete'),
-                                        ]),
+                                        child: Row(
+                                          children: [
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.edit,
+                                                color: Colors.blue,
+                                                size: 18,
+                                              ),
+                                              onPressed: () =>
+                                                  _createOrEdit(existing: u),
+                                              tooltip: 'Edit',
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(
+                                                Icons.delete,
+                                                color: Colors.red,
+                                                size: 18,
+                                              ),
+                                              onPressed: () => _delete(u),
+                                              tooltip: 'Delete',
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                   ],
                                 ),
@@ -541,6 +792,3 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
     );
   }
 }
-
-
-

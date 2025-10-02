@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+final baseURL = dotenv.env['API_BASE_URL'];
 
 class Employee {
   final int id;
@@ -110,8 +112,8 @@ class EmployeeResponse {
       message: json['message'],
       data: json['data'] != null && json['data'] is List
           ? (json['data'] as List)
-              .map((item) => Employee.fromJson(item))
-              .toList()
+                .map((item) => Employee.fromJson(item))
+                .toList()
           : null,
       employee: json['data'] != null && json['data'] is Map<String, dynamic>
           ? Employee.fromJson(json['data'])
@@ -124,7 +126,7 @@ class EmployeeResponse {
 }
 
 class EmployeeApiService {
-  static const String baseUrl = 'http://localhost:8080/api/employees';
+  static String baseUrl = '$baseURL/api/employees';
 
   // Get all employees with pagination and filtering
   static Future<EmployeeResponse> getAllEmployees({
@@ -174,10 +176,7 @@ class EmployeeApiService {
       if (response.statusCode == 200) {
         return EmployeeResponse.fromJson(json.decode(response.body));
       } else if (response.statusCode == 404) {
-        return EmployeeResponse(
-          success: false,
-          message: 'Employee not found',
-        );
+        return EmployeeResponse(success: false, message: 'Employee not found');
       } else {
         return EmployeeResponse(
           success: false,
@@ -248,10 +247,7 @@ class EmployeeApiService {
       if (response.statusCode == 200) {
         return EmployeeResponse.fromJson(json.decode(response.body));
       } else if (response.statusCode == 404) {
-        return EmployeeResponse(
-          success: false,
-          message: 'Employee not found',
-        );
+        return EmployeeResponse(success: false, message: 'Employee not found');
       } else {
         final errorData = json.decode(response.body);
         return EmployeeResponse(
@@ -275,10 +271,7 @@ class EmployeeApiService {
       if (response.statusCode == 200) {
         return EmployeeResponse.fromJson(json.decode(response.body));
       } else if (response.statusCode == 404) {
-        return EmployeeResponse(
-          success: false,
-          message: 'Employee not found',
-        );
+        return EmployeeResponse(success: false, message: 'Employee not found');
       } else {
         return EmployeeResponse(
           success: false,
@@ -294,7 +287,9 @@ class EmployeeApiService {
   }
 
   // Get employees by position
-  static Future<EmployeeResponse> getEmployeesByPosition(String position) async {
+  static Future<EmployeeResponse> getEmployeesByPosition(
+    String position,
+  ) async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/position/$position'));
 
@@ -303,7 +298,8 @@ class EmployeeApiService {
       } else {
         return EmployeeResponse(
           success: false,
-          message: 'Failed to fetch employees by position: ${response.statusCode}',
+          message:
+              'Failed to fetch employees by position: ${response.statusCode}',
         );
       }
     } catch (e) {
@@ -317,15 +313,14 @@ class EmployeeApiService {
   // Toggle employee status
   static Future<EmployeeResponse> toggleEmployeeStatus(int id) async {
     try {
-      final response = await http.patch(Uri.parse('$baseUrl/$id/toggle-status'));
+      final response = await http.patch(
+        Uri.parse('$baseUrl/$id/toggle-status'),
+      );
 
       if (response.statusCode == 200) {
         return EmployeeResponse.fromJson(json.decode(response.body));
       } else if (response.statusCode == 404) {
-        return EmployeeResponse(
-          success: false,
-          message: 'Employee not found',
-        );
+        return EmployeeResponse(success: false, message: 'Employee not found');
       } else {
         return EmployeeResponse(
           success: false,
@@ -339,5 +334,4 @@ class EmployeeApiService {
       );
     }
   }
-
 }

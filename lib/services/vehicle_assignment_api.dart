@@ -1,5 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+final baseURL = dotenv.env['API_BASE_URL'];
 
 class VehicleAssignment {
   final int assignmentId;
@@ -59,20 +62,15 @@ class VehicleInfo {
   final double? lng;
   final DateTime? lastUpdate;
 
-  VehicleInfo({
-    required this.vehicleId,
-    this.lat,
-    this.lng,
-    this.lastUpdate,
-  });
+  VehicleInfo({required this.vehicleId, this.lat, this.lng, this.lastUpdate});
 
   factory VehicleInfo.fromJson(Map<String, dynamic> json) {
     return VehicleInfo(
       vehicleId: json['vehicle_id'],
       lat: json['lat'] != null ? double.tryParse(json['lat'].toString()) : null,
       lng: json['lng'] != null ? double.tryParse(json['lng'].toString()) : null,
-      lastUpdate: json['last_update'] != null 
-          ? DateTime.parse(json['last_update']) 
+      lastUpdate: json['last_update'] != null
+          ? DateTime.parse(json['last_update'])
           : null,
     );
   }
@@ -124,28 +122,28 @@ class VehicleAssignmentResponse {
       message: json['message'],
       data: json['data'] != null && json['data'] is List
           ? (json['data'] as List)
-              .map((item) => VehicleAssignment.fromJson(item))
-              .toList()
+                .map((item) => VehicleAssignment.fromJson(item))
+                .toList()
           : null,
       assignment: json['data'] != null && json['data'] is Map<String, dynamic>
           ? VehicleAssignment.fromJson(json['data'])
           : null,
       vehicles: json['vehicles'] != null
           ? (json['vehicles'] as List)
-              .map((item) => VehicleInfo.fromJson(item))
-              .toList()
+                .map((item) => VehicleInfo.fromJson(item))
+                .toList()
           : null,
       users: json['users'] != null
           ? (json['users'] as List)
-              .map((item) => UserInfo.fromJson(item))
-              .toList()
+                .map((item) => UserInfo.fromJson(item))
+                .toList()
           : null,
     );
   }
 }
 
 class VehicleAssignmentApiService {
-  static const String baseUrl = 'http://localhost:8080/api/vehicle-assignments';
+  static String baseUrl = '$baseURL/api/vehicle-assignments';
 
   // Get all vehicle assignments
   static Future<VehicleAssignmentResponse> getAllAssignments() async {
@@ -157,7 +155,8 @@ class VehicleAssignmentApiService {
       } else {
         return VehicleAssignmentResponse(
           success: false,
-          message: 'Failed to fetch vehicle assignments: ${response.statusCode}',
+          message:
+              'Failed to fetch vehicle assignments: ${response.statusCode}',
         );
       }
     } catch (e) {
@@ -201,9 +200,7 @@ class VehicleAssignmentApiService {
     int? conductorId,
   }) async {
     try {
-      final body = <String, dynamic>{
-        'vehicle_id': vehicleId,
-      };
+      final body = <String, dynamic>{'vehicle_id': vehicleId};
       if (driverId != null) body['driver_id'] = driverId;
       if (conductorId != null) body['conductor_id'] = conductorId;
 
@@ -272,7 +269,9 @@ class VehicleAssignmentApiService {
   }
 
   // Delete assignment
-  static Future<VehicleAssignmentResponse> deleteAssignment(int assignmentId) async {
+  static Future<VehicleAssignmentResponse> deleteAssignment(
+    int assignmentId,
+  ) async {
     try {
       final response = await http.delete(Uri.parse('$baseUrl/$assignmentId'));
 
@@ -340,7 +339,9 @@ class VehicleAssignmentApiService {
   // Get available conductors
   static Future<List<UserInfo>> getAvailableConductors() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/conductors/available'));
+      final response = await http.get(
+        Uri.parse('$baseUrl/conductors/available'),
+      );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

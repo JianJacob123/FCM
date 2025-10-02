@@ -1,5 +1,8 @@
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'notif_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+final baseUrl = dotenv.env['API_BASE_URL'];
 
 class SocketService {
   late IO.Socket socket;
@@ -8,7 +11,7 @@ class SocketService {
   void initSocket(String userId, {bool isAdmin = false}) {
     // 1. Connect to backend notifications namespace
     socket = IO.io(
-      "http://localhost:8080/notifications", // replace with your server IP/domain
+      "$baseUrl/notifications", // replace with your server IP/domain
       IO.OptionBuilder()
           .setTransports(['websocket'])
           .disableAutoConnect() // we control when to connect

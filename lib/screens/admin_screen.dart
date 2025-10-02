@@ -9,6 +9,9 @@ import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api.dart';
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+final baseUrl = dotenv.env['API_BASE_URL'];
 
 // Constants for the rotating schedule
 final List<String> kUnits = [for (int i = 1; i <= 15; i++) 'Unit $i'];
@@ -801,7 +804,7 @@ class _MapScreenState extends State<MapScreen> {
 
     // --- Vehicle socket (no userId needed) ---
     vehicleSocket = IO.io(
-      "http://localhost:8080/vehicles",
+      "$baseUrl/vehicles",
       IO.OptionBuilder().setTransports(['websocket']).build(),
     );
 
@@ -3747,9 +3750,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
     setState(() => _isLoading = true);
     try {
       final response = await http.get(
-        Uri.parse(
-          'http://localhost:8080/api/schedules?date=${_formatDate(_selectedDate)}',
-        ),
+        Uri.parse('$baseUrl/api/schedules?date=${_formatDate(_selectedDate)}'),
       );
 
       if (response.statusCode == 200) {
@@ -3769,9 +3770,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
 
   Future<void> _loadVehicles() async {
     try {
-      final response = await http.get(
-        Uri.parse('http://localhost:8080/vehicles'),
-      );
+      final response = await http.get(Uri.parse('$baseUrl/vehicles'));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -3834,15 +3833,13 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
       http.Response response;
       if (_editingSchedule != null) {
         response = await http.put(
-          Uri.parse(
-            'http://localhost:8080/api/schedules/${_editingSchedule!['id']}',
-          ),
+          Uri.parse('$baseUrl/api/schedules/${_editingSchedule!['id']}'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode(scheduleData),
         );
       } else {
         response = await http.post(
-          Uri.parse('http://localhost:8080/api/schedules'),
+          Uri.parse('$baseUrl/api/schedules'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode(scheduleData),
         );
@@ -3885,7 +3882,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
     if (confirmed == true) {
       try {
         final response = await http.delete(
-          Uri.parse('http://localhost:8080/api/schedules/$id'),
+          Uri.parse('$baseUrl/api/schedules/$id'),
         );
 
         if (response.statusCode == 200) {

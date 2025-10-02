@@ -5,6 +5,9 @@ import '../providers/user_provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/user_role.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+final baseUrl = dotenv.env['API_BASE_URL'];
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -33,9 +36,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     try {
       // 1. Call your backend
       final response = await http.post(
-        Uri.parse(
-          'http://localhost:8080/users/login',
-        ), // change to your endpoint
+        Uri.parse('$baseUrl/users/login'), // change to your endpoint
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({"username": username, "password": password}),
       );

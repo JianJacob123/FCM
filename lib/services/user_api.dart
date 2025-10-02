@@ -1,5 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+final baseURL = dotenv.env['API_BASE_URL'];
 
 class UserAccount {
   final int userId;
@@ -17,20 +20,20 @@ class UserAccount {
   });
 
   factory UserAccount.fromJson(Map<String, dynamic> j) => UserAccount(
-        userId: j['user_id'] as int,
-        fullName: j['full_name'] as String,
-        userRole: j['user_role'] as String,
-        username: j['username'] as String,
-        active: (j['active'] as bool?) ?? true,
-      );
+    userId: j['user_id'] as int,
+    fullName: j['full_name'] as String,
+    userRole: j['user_role'] as String,
+    username: j['username'] as String,
+    active: (j['active'] as bool?) ?? true,
+  );
 
   Map<String, dynamic> toCreateBody({required String password}) => {
-        'full_name': fullName,
-        'user_role': userRole,
-        'username': username,
-        'user_pass': password,
-        'active': active,
-      };
+    'full_name': fullName,
+    'user_role': userRole,
+    'username': username,
+    'user_pass': password,
+    'active': active,
+  };
 
   Map<String, dynamic> toUpdateBody({String? password}) {
     final body = <String, dynamic>{
@@ -45,7 +48,7 @@ class UserAccount {
 }
 
 class UserApiService {
-  static const String base = 'http://localhost:8080/api/users';
+  static String base = '$baseURL/api/users';
 
   static Future<List<UserAccount>> listUsers() async {
     final res = await http.get(Uri.parse(base));
@@ -57,7 +60,10 @@ class UserApiService {
     return list.map(UserAccount.fromJson).toList();
   }
 
-  static Future<int> createUser(UserAccount user, {required String password}) async {
+  static Future<int> createUser(
+    UserAccount user, {
+    required String password,
+  }) async {
     final res = await http.post(
       Uri.parse(base),
       headers: {'Content-Type': 'application/json'},
@@ -70,7 +76,11 @@ class UserApiService {
     return data['id'] as int;
   }
 
-  static Future<void> updateUser(int id, UserAccount user, {String? password}) async {
+  static Future<void> updateUser(
+    int id,
+    UserAccount user, {
+    String? password,
+  }) async {
     final res = await http.put(
       Uri.parse('$base/$id'),
       headers: {'Content-Type': 'application/json'},
@@ -106,5 +116,3 @@ class UserApiService {
     return data['password'] as String;
   }
 }
-
-

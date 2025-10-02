@@ -6,7 +6,9 @@ const { Server } = require("socket.io");
 const app = express();
 const cors = require('cors');
 const httpServer = createServer(app);
-const port = 8080;
+require('dotenv').config();
+
+const PORT = process.env.PORT || 3000;
 
 //route imports
 const vehicleRoutes = require('./routes/vehicleRoutes');
@@ -63,8 +65,8 @@ const { connectIoTData } = require("./services/coordinates");
 connectIoTData(io);
 
 
-httpServer.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+httpServer.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
 
 /*app.listen(port, () => {

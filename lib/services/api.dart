@@ -1,13 +1,14 @@
 // lib/services/api.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/trip_request.dart';
+
+final baseUrl = dotenv.env['API_BASE_URL'];
 
 Future<List<dynamic>> fetchNotifications(String recipient) async {
   final response = await http.get(
-    Uri.parse(
-      "http://localhost:8080/notifications/getNotifications?recipient=$recipient",
-    ),
+    Uri.parse("$baseUrl/notifications/getNotifications?recipient=$recipient"),
   );
 
   if (response.statusCode == 200) {
@@ -19,9 +20,7 @@ Future<List<dynamic>> fetchNotifications(String recipient) async {
 
 Future<List<dynamic>> fetchTripHistory(String userId) async {
   final response = await http.get(
-    Uri.parse(
-      "http://localhost:8080/passengerTrips/getCompletedTrips/?id=$userId",
-    ),
+    Uri.parse("$baseUrl/passengerTrips/getCompletedTrips/?id=$userId"),
   );
 
   if (response.statusCode == 200) {
@@ -33,7 +32,7 @@ Future<List<dynamic>> fetchTripHistory(String userId) async {
 
 Future<List<dynamic>> fetchFavoriteLocations(String userId) async {
   final response = await http.get(
-    Uri.parse("http://localhost:8080/favLocations/getFavLocation/?id=$userId"),
+    Uri.parse("$baseUrl/favLocations/getFavLocation/?id=$userId"),
   );
 
   if (response.statusCode == 200) {
@@ -45,7 +44,7 @@ Future<List<dynamic>> fetchFavoriteLocations(String userId) async {
 
 Future<List<dynamic>> fetchPendingTrips() async {
   final response = await http.get(
-    Uri.parse("http://localhost:8080/passengerTrips/fetchPendingTrips"),
+    Uri.parse("$baseUrl/passengerTrips/fetchPendingTrips"),
   );
 
   if (response.statusCode == 200) {
@@ -56,7 +55,7 @@ Future<List<dynamic>> fetchPendingTrips() async {
 }
 
 Future<void> createRequest(TripRequest trip) async {
-  final url = Uri.parse('http://localhost:8080/passengerTrips/createRequest');
+  final url = Uri.parse('$baseUrl/passengerTrips/createRequest');
 
   try {
     final response = await http.post(
@@ -85,7 +84,7 @@ Future<void> createRequest(TripRequest trip) async {
 }
 
 Future<void> addLocation(String userId, double lat, double lng) async {
-  final url = Uri.parse('http://localhost:8080/favLocations/addFavLocation');
+  final url = Uri.parse('$baseUrl/favLocations/addFavLocation');
 
   try {
     final response = await http.post(
@@ -113,9 +112,7 @@ Future<void> createNotification(
   String date,
   String recipient,
 ) async {
-  final url = Uri.parse(
-    'http://localhost:8080/notifications/createNotification',
-  );
+  final url = Uri.parse('$baseUrl/notifications/createNotification');
 
   try {
     final response = await http.post(
