@@ -47,7 +47,7 @@ dependencies:
   uuid: ^4.5.1
   geolocator: ^14.0.2
   flutter_local_notifications: ^19.4.2
-  flutter_dotenv: ^6.0.0
+  fl_chart: ^0.66.2
 
 dev_dependencies:
   flutter_test:
@@ -69,7 +69,6 @@ flutter:
     - assets/logo.png
     - assets/logo2.png
     - assets/icons/
-    - .env
   uses-material-design: true
 
 flutter_native_splash:
