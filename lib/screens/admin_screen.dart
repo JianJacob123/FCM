@@ -6,8 +6,8 @@ import 'admin_login_screen.dart';
 import 'employee_management_screen.dart';
 import 'vehicle_assignment_screen.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/api.dart';
-import '../services/forecasting_api.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:convert';
 
@@ -1134,226 +1134,17 @@ class _AnalyticsForecastSection extends StatefulWidget {
 }
 
 class _AnalyticsForecastSectionState extends State<_AnalyticsForecastSection> {
-  bool _loading = false;
-  String? _result;
-  String? _error;
-  List<Map<String, dynamic>> _series = const [];
-  static const String _units = 'Passengers';
-  // Peak hour (hourly) state
-  bool _peakLoading = false;
-  String? _peakSummary;
-  List<Map<String, dynamic>> _hourlySeries = const [];
-
-  Future<void> _runForecast() async {
-    setState(() {
-      _loading = true;
-      _result = null;
-      _error = null;
-    });
-    try {
-      // Build a 7-day horizon DataFrame structure with a 'ds' column
-      final now = DateTime.now();
-      final dates = List.generate(7, (i) => now.add(Duration(days: i + 1)))
-          .map((d) => d.toIso8601String().split('T').first)
-          .toList();
-
-      // Send as columns + features so Flask constructs a DataFrame
-      final features = dates.map((d) => [d]).toList();
-      final predictions = await fetchForecasts(features, columns: ['ds']);
-      // Expecting list of objects with 'ds' and 'yhat' if Prophet
-      // If it's a plain list of numbers, synthesize dates
-      if (predictions.isNotEmpty && predictions.first is Map) {
-        _series = predictions.cast<Map<String, dynamic>>();
-        _result = null;
-      } else {
-        final now = DateTime.now();
-        _series = List.generate(predictions.length, (i) => {
-              'ds': now.add(Duration(days: i + 1)).toIso8601String().split('T').first,
-              'yhat': predictions[i],
-            });
-        _result = null;
-      }
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-      });
-    } finally {
-      setState(() {
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _runPeakForecast() async {
-    setState(() {
-      _peakLoading = true;
-      _peakSummary = null;
-      _error = null;
-      _hourlySeries = const [];
-    });
-    try {
-      // Build 24 hourly timestamps for today (00:00 -> 23:00)
-      final today = DateTime.now();
-      final start = DateTime(today.year, today.month, today.day);
-      final hours = List.generate(24, (i) => start.add(Duration(hours: i)))
-          .map((d) => d.toIso8601String().split('.')..removeLast())
-          .map((parts) => parts.isEmpty ? start.toIso8601String() : parts.first)
-          .toList();
-
-      // Features as [['ISO'], ...]
-      final features = hours.map((h) => [h]).toList();
-      final predictions = await fetchForecasts(features, columns: ['ds']);
-
-      // Normalize to list of maps with ds,yhat
-      List<Map<String, dynamic>> rows;
-      if (predictions.isNotEmpty && predictions.first is Map) {
-        rows = predictions.cast<Map<String, dynamic>>();
-      } else {
-        rows = [for (int i = 0; i < predictions.length; i++) {'ds': hours[i], 'yhat': predictions[i]}];
-      }
-      _hourlySeries = rows;
-
-      // Find peak yhat
-      int peakIndex = 0;
-      double peakVal = -double.infinity;
-      for (int i = 0; i < rows.length; i++) {
-        final v = double.tryParse('${rows[i]['yhat']}') ?? 0;
-        if (v > peakVal) {
-          peakVal = v;
-          peakIndex = i;
-        }
-      }
-      final peakIso = rows[peakIndex]['ds'] as String;
-      final hh = DateTime.tryParse(peakIso)?.hour ?? peakIndex;
-      _peakSummary = 'Peak hour: ${hh.toString().padLeft(2, '0')}:00  –  ${peakVal.round()} $_units';
-    } catch (e) {
-      _error = e.toString();
-    } finally {
-      setState(() {
-        _peakLoading = false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.all(16),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Demand Forecasting',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: _loading ? null : _runForecast,
-            icon: const Icon(Icons.analytics),
-            label: _loading
-                ? const Text('Running...')
-                : const Text('Run 7-day Forecast'),
-          ),
-          const SizedBox(height: 8),
-          ElevatedButton.icon(
-            onPressed: _peakLoading ? null : _runPeakForecast,
-            icon: const Icon(Icons.access_time),
-            label: _peakLoading
-                ? const Text('Finding peak...')
-                : const Text('Forecast Peak Hour (Today)'),
-          ),
-          const SizedBox(height: 12),
-          if (_peakSummary != null) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.indigo.withOpacity(0.06),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                _peakSummary!,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-          if (_series.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
-                ],
-              ),
-              child: SizedBox(
-                height: 260,
-                child: Builder(builder: (context) {
-                  // Round values and compute axis range
-                  final rounded = _series
-                      .map((e) => (double.tryParse('${e['yhat']}') ?? 0).round())
-                      .toList();
-                  final maxVal = rounded.isEmpty ? 0 : rounded.reduce((a, b) => a > b ? a : b);
-                  final yMax = (maxVal * 1.2).ceil().toDouble();
-
-                  return BarChart(
-                    BarChartData(
-                      minY: 0,
-                      maxY: yMax == 0 ? 10 : yMax,
-                      titlesData: FlTitlesData(
-                        leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 36)),
-                        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        // Show value labels above each bar using top titles aligned by x index
-                        topTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 28,
-                            getTitlesWidget: (value, meta) {
-                              final i = value.toInt();
-                              if (i < 0 || i >= rounded.length) return const SizedBox.shrink();
-                              return Text('${rounded[i]}', style: const TextStyle(fontSize: 10));
-                            },
-                          ),
-                        ),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: (value, meta) {
-                              final index = value.toInt();
-                              if (index < 0 || index >= _series.length) return const SizedBox.shrink();
-                              final label = (_series[index]['ds'] as String).substring(5);
-                              return Text(label, style: const TextStyle(fontSize: 10));
-                            },
-                          ),
-                        ),
-                      ),
-                      barGroups: [
-                        for (int i = 0; i < _series.length; i++)
-                          BarChartGroupData(x: i, barRods: [
-                            BarChartRodData(
-                              toY: rounded[i].toDouble(),
-                              color: Colors.indigo,
-                              width: 16,
-                              borderRadius: BorderRadius.circular(4),
-                            )
-                          ])
-                      ],
-                      gridData: FlGridData(show: true, horizontalInterval: yMax == 0 ? 2 : (yMax / 5).clamp(1, double.infinity)),
-                      borderData: FlBorderData(show: false),
-                    ),
-                  );
-                }),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text('Units: \'$_units\'', style: const TextStyle(color: Colors.grey)),
-          ],
-          if (_error != null) ...[
-            const Text('Error:',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-            Text(_error!, style: const TextStyle(color: Colors.red)),
-          ],
+          Text('Analytics', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          SizedBox(height: 12),
+          Text('Forecasting is temporarily removed. A new model will be integrated later.'),
         ],
       ),
     );
@@ -3743,10 +3534,9 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
   Future<void> _loadSchedules() async {
     setState(() => _isLoading = true);
     try {
+      final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
       final response = await http.get(
-        Uri.parse(
-          'http://localhost:8080/api/schedules?date=${_formatDate(_selectedDate)}',
-        ),
+        Uri.parse('$baseUrl/api/schedules?date=${_formatDate(_selectedDate)}'),
       );
       
       if (response.statusCode == 200) {
@@ -3766,8 +3556,9 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
 
   Future<void> _loadVehicles() async {
     try {
+      final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
       final response = await http.get(
-        Uri.parse('http://localhost:8080/vehicles'),
+        Uri.parse('$baseUrl/vehicles'),
       );
       
       if (response.statusCode == 200) {
@@ -3830,16 +3621,16 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
     try {
       http.Response response;
       if (_editingSchedule != null) {
+        final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
         response = await http.put(
-          Uri.parse(
-            'http://localhost:8080/api/schedules/${_editingSchedule!['id']}',
-          ),
+          Uri.parse('$baseUrl/api/schedules/${_editingSchedule!['id']}'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode(scheduleData),
         );
       } else {
+        final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
         response = await http.post(
-          Uri.parse('http://localhost:8080/api/schedules'),
+          Uri.parse('$baseUrl/api/schedules'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode(scheduleData),
         );
@@ -3881,8 +3672,9 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
 
     if (confirmed == true) {
       try {
+        final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
         final response = await http.delete(
-          Uri.parse('http://localhost:8080/api/schedules/$id'),
+          Uri.parse('$baseUrl/api/schedules/$id'),
         );
 
         if (response.statusCode == 200) {

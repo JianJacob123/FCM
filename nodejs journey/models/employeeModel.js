@@ -22,15 +22,9 @@ class Employee {
           u.user_role, 
           u.active, 
           u.current_vehicle_assignment_id,
-          va.vehicle_id,
-          v.lat,
-          v.lng,
-          v.last_update as vehicle_last_update,
           u.created_at, 
           u.updated_at
         FROM users u
-        LEFT JOIN vehicle_assignment va ON u.current_vehicle_assignment_id = va.assignment_id
-        LEFT JOIN vehicles v ON va.vehicle_id = v.vehicle_id
         WHERE 1=1 AND u.user_role != 'admin'
       `;
       const params = [];
@@ -78,15 +72,9 @@ class Employee {
           u.user_role, 
           u.active, 
           u.current_vehicle_assignment_id,
-          va.vehicle_id,
-          v.lat,
-          v.lng,
-          v.last_update as vehicle_last_update,
           u.created_at, 
           u.updated_at
         FROM users u
-        LEFT JOIN vehicle_assignment va ON u.current_vehicle_assignment_id = va.assignment_id
-        LEFT JOIN vehicles v ON va.vehicle_id = v.vehicle_id
         WHERE u.user_id = $1
       `;
       const result = await db.query(sql, [id]);
@@ -95,17 +83,7 @@ class Employee {
         return null;
       }
       
-      const employee = new Employee(result.rows[0]);
-      // Add vehicle info if available
-      if (result.rows[0].vehicle_id) {
-        employee.vehicle_info = {
-          vehicle_id: result.rows[0].vehicle_id,
-          lat: result.rows[0].lat,
-          lng: result.rows[0].lng,
-          last_update: result.rows[0].vehicle_last_update
-        };
-      }
-      return employee;
+      return new Employee(result.rows[0]);
     } catch (error) {
       console.error('Error fetching employee by ID:', error);
       throw error;

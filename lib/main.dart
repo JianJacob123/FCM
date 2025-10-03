@@ -20,7 +20,7 @@ Future<void> main() async {
   await NotifService().initNotification();
 
   // Load environment variables
-  await dotenv.load(fileName: ".env");
+  await dotenv.load(fileName: "assets/.env");
 
   runApp(const MyApp());
 }

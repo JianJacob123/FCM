@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-final baseURL = dotenv.env['API_BASE_URL'];
+String _apiBase() => dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
 
 class Employee {
   final int id;
@@ -126,7 +126,7 @@ class EmployeeResponse {
 }
 
 class EmployeeApiService {
-  static String baseUrl = '$baseURL/api/employees';
+  static String _employeesUrl() => '${_apiBase()}/api/employees';
 
   // Get all employees with pagination and filtering
   static Future<EmployeeResponse> getAllEmployees({
@@ -149,7 +149,7 @@ class EmployeeApiService {
         queryParams['active'] = active.toString();
       }
 
-      final uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
+      final uri = Uri.parse(_employeesUrl()).replace(queryParameters: queryParams);
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {
@@ -171,7 +171,7 @@ class EmployeeApiService {
   // Get employee by ID
   static Future<EmployeeResponse> getEmployeeById(int id) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/$id'));
+      final response = await http.get(Uri.parse('${_employeesUrl()}/$id'));
 
       if (response.statusCode == 200) {
         return EmployeeResponse.fromJson(json.decode(response.body));
@@ -199,7 +199,7 @@ class EmployeeApiService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse(baseUrl),
+        Uri.parse(_employeesUrl()),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'full_name': fullName,
@@ -239,7 +239,7 @@ class EmployeeApiService {
       if (active != null) body['active'] = active;
 
       final response = await http.put(
-        Uri.parse('$baseUrl/$id'),
+        Uri.parse('${_employeesUrl()}/$id'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(body),
       );
@@ -266,7 +266,7 @@ class EmployeeApiService {
   // Delete employee
   static Future<EmployeeResponse> deleteEmployee(int id) async {
     try {
-      final response = await http.delete(Uri.parse('$baseUrl/$id'));
+      final response = await http.delete(Uri.parse('${_employeesUrl()}/$id'));
 
       if (response.statusCode == 200) {
         return EmployeeResponse.fromJson(json.decode(response.body));
@@ -291,7 +291,7 @@ class EmployeeApiService {
     String position,
   ) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/position/$position'));
+      final response = await http.get(Uri.parse('${_employeesUrl()}/position/$position'));
 
       if (response.statusCode == 200) {
         return EmployeeResponse.fromJson(json.decode(response.body));
@@ -314,7 +314,7 @@ class EmployeeApiService {
   static Future<EmployeeResponse> toggleEmployeeStatus(int id) async {
     try {
       final response = await http.patch(
-        Uri.parse('$baseUrl/$id/toggle-status'),
+        Uri.parse('${_employeesUrl()}/$id/toggle-status'),
       );
 
       if (response.statusCode == 200) {
