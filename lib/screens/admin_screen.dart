@@ -6,10 +6,12 @@ import 'admin_login_screen.dart';
 import 'employee_management_screen.dart';
 import 'vehicle_assignment_screen.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
+
+final baseUrl = dotenv.env['API_BASE_URL'];
 
 // Constants for the rotating schedule
 final List<String> kUnits = [for (int i = 1; i <= 15; i++) 'Unit $i'];
@@ -23,16 +25,15 @@ final List<String> kTimeSlots = List.generate(15, (i) {
   return '${displayHour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period';
 });
 
-enum AdminSection { 
-  liveTracking, 
-  analytics, 
-  notifications, 
-  schedule, 
-  vehicleAssignment, 
-  employees, 
-  tripHistory, 
-  accountManagement, 
-  profile,
+enum AdminSection {
+  liveTracking,
+  analytics,
+  notifications,
+  schedule,
+  vehicleAssignment,
+  employees,
+  tripHistory,
+  accountManagement,
   activityLogs,
 }
 
@@ -50,11 +51,11 @@ class _AdminScreenState extends State<AdminScreen> {
   final MapController _mapController = MapController();
   bool _isEditMode = false;
   bool _isSidebarOpen = false;
-  
+
   // Navigation state
   bool _recordsExpanded = false;
   bool _settingsExpanded = false;
-  
+
   // Controllers for editable fields
   final List<TextEditingController> _timeControllers = List.generate(
     15,
@@ -73,7 +74,7 @@ class _AdminScreenState extends State<AdminScreen> {
     (index) => 'Conductor ${index + 1}',
   );
   final List<String> _statusValues = List.generate(15, (index) => 'Active');
-  
+
   // Route points for tracking
   final List<LatLng> _routePoints = [
     LatLng(13.9467729, 121.1555241),
@@ -254,7 +255,7 @@ class _AdminScreenState extends State<AdminScreen> {
       '09:30 AM',
       '10:00 AM',
     ];
-    
+
     for (int i = 0; i < 15; i++) {
       _timeControllers[i].text = timeSlots[i];
       _unitValues[i] = 'Unit ${i + 1}';
@@ -329,30 +330,30 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 768;
-    
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: isMobile
           ? AppBar(
-        backgroundColor: const Color(0xFF3E4795),
-        foregroundColor: Colors.white,
-        title: const Text('FCM Admin'),
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
+              backgroundColor: const Color(0xFF3E4795),
+              foregroundColor: Colors.white,
+              title: const Text('FCM Admin'),
+              leading: IconButton(
+                icon: const Icon(Icons.menu),
                 onPressed: () =>
                     setState(() => _isSidebarOpen = !_isSidebarOpen),
-        ),
+              ),
             )
           : null,
       body: Row(
         children: [
           // Sidebar - responsive visibility
           if (!isMobile || _isSidebarOpen) ...[
-          Container(
+            Container(
               width: isMobile ? screenWidth * 0.8 : 260,
-            color: Colors.white,
-            child: Column(
-              children: [
+              color: Colors.white,
+              child: Column(
+                children: [
                   if (isMobile) ...[
                     // Mobile header with close button
                     Container(
@@ -380,210 +381,197 @@ class _AdminScreenState extends State<AdminScreen> {
                       ),
                     ),
                   ] else ...[
-                const SizedBox(height: 32),
+                    const SizedBox(height: 32),
                   ],
-                // Logo
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Image.asset(
-                    'assets/logo.png',
+                  // Logo
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Image.asset(
+                      'assets/logo.png',
                       height: isMobile ? 120 : 170,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
-                
-                // Navigation Items
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        // Live Tracking
-                        _SidebarItem(
-                          icon: Icons.map,
-                          label: 'Live Tracking',
+                  const SizedBox(height: 32),
+
+                  // Navigation Items
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          // Live Tracking
+                          _SidebarItem(
+                            icon: Icons.map,
+                            label: 'Live Tracking',
                             selected:
                                 _selectedSection == AdminSection.liveTracking,
-                          onTap: () {
-                            setState(() {
-                              _selectedSection = AdminSection.liveTracking;
-                              if (isMobile) _isSidebarOpen = false;
-                            });
-                          },
-                        ),
-                        
-                        // Analytics
-                        _SidebarItem(
-                          icon: Icons.analytics,
-                          label: 'Analytics',
+                            onTap: () {
+                              setState(() {
+                                _selectedSection = AdminSection.liveTracking;
+                                if (isMobile) _isSidebarOpen = false;
+                              });
+                            },
+                          ),
+
+                          // Analytics
+                          _SidebarItem(
+                            icon: Icons.analytics,
+                            label: 'Analytics',
                             selected:
                                 _selectedSection == AdminSection.analytics,
-                          onTap: () {
-                            setState(() {
-                              _selectedSection = AdminSection.analytics;
-                              if (isMobile) _isSidebarOpen = false;
-                            });
-                          },
-                        ),
-                        
-                        // Notifications
-                        _SidebarItem(
-                          icon: Icons.notifications,
-                          label: 'Notifications',
+                            onTap: () {
+                              setState(() {
+                                _selectedSection = AdminSection.analytics;
+                                if (isMobile) _isSidebarOpen = false;
+                              });
+                            },
+                          ),
+
+                          // Notifications
+                          _SidebarItem(
+                            icon: Icons.notifications,
+                            label: 'Notifications',
                             selected:
                                 _selectedSection == AdminSection.notifications,
-                          onTap: () {
-                            setState(() {
-                              _selectedSection = AdminSection.notifications;
-                              if (isMobile) _isSidebarOpen = false;
-                            });
-                          },
-                        ),
-                        
-                        // Records (Expandable)
-                        _ExpandableSidebarItem(
-                          icon: Icons.folder,
-                          label: 'Records',
-                          expanded: _recordsExpanded,
-                          onToggle: () {
-                            setState(() {
-                              _recordsExpanded = !_recordsExpanded;
-                            });
-                          },
-                          children: [
-                            _SidebarItem(
-                              icon: Icons.calendar_today,
-                              label: 'Schedule',
+                            onTap: () {
+                              setState(() {
+                                _selectedSection = AdminSection.notifications;
+                                if (isMobile) _isSidebarOpen = false;
+                              });
+                            },
+                          ),
+
+                          // Records (Expandable)
+                          _ExpandableSidebarItem(
+                            icon: Icons.folder,
+                            label: 'Records',
+                            expanded: _recordsExpanded,
+                            onToggle: () {
+                              setState(() {
+                                _recordsExpanded = !_recordsExpanded;
+                              });
+                            },
+                            children: [
+                              _SidebarItem(
+                                icon: Icons.calendar_today,
+                                label: 'Schedule',
                                 selected:
                                     _selectedSection == AdminSection.schedule,
-                              isSubItem: true,
-                              onTap: () {
-                                setState(() {
-                                  _selectedSection = AdminSection.schedule;
-                                  if (isMobile) _isSidebarOpen = false;
-                                });
-                              },
-                            ),
-                            _SidebarItem(
-                                icon: Icons.directions_car,
-                              label: 'Vehicle Assignment',
-                                selected:
-                                    _selectedSection ==
-                                    AdminSection.vehicleAssignment,
-                              isSubItem: true,
-                              onTap: () {
-                                setState(() {
-                                    _selectedSection =
-                                        AdminSection.vehicleAssignment;
-                                  if (isMobile) _isSidebarOpen = false;
-                                });
-                              },
-                            ),
-                            _SidebarItem(
-                              icon: Icons.people,
-                              label: 'Employees',
-                                selected:
-                                    _selectedSection == AdminSection.employees,
-                              isSubItem: true,
-                              onTap: () {
-                                setState(() {
-                                  _selectedSection = AdminSection.employees;
-                                  if (isMobile) _isSidebarOpen = false;
-                                });
-                              },
-                            ),
-                            _SidebarItem(
-                              icon: Icons.history,
-                              label: 'Trip History',
-                                selected:
-                                    _selectedSection ==
-                                    AdminSection.tripHistory,
-                              isSubItem: true,
-                              onTap: () {
-                                setState(() {
-                                  _selectedSection = AdminSection.tripHistory;
-                                  if (isMobile) _isSidebarOpen = false;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                        
-                        // Settings (Expandable)
-                        _ExpandableSidebarItem(
-                          icon: Icons.settings,
-                          label: 'Settings',
-                          expanded: _settingsExpanded,
-                          onToggle: () {
-                            setState(() {
-                              _settingsExpanded = !_settingsExpanded;
-                            });
-                          },
-                          children: [
-                            _SidebarItem(
-                              icon: Icons.account_circle,
-                              label: 'Account Management',
-                                selected:
-                                    _selectedSection ==
-                                    AdminSection.accountManagement,
-                              isSubItem: true,
-                              onTap: () {
-                                setState(() {
-                                    _selectedSection =
-                                        AdminSection.accountManagement;
-                                  if (isMobile) _isSidebarOpen = false;
-                                });
-                              },
-                            ),
-                              _SidebarItem(
-                                icon: Icons.person,
-                                label: 'Profile',
-                                selected:
-                                    _selectedSection == AdminSection.profile,
                                 isSubItem: true,
                                 onTap: () {
                                   setState(() {
-                                    _selectedSection = AdminSection.profile;
-                                  if (isMobile) _isSidebarOpen = false;
-                                });
-                              },
-                            ),
-                            _SidebarItem(
-                              icon: Icons.access_time,
-                              label: 'Activity Logs',
+                                    _selectedSection = AdminSection.schedule;
+                                    if (isMobile) _isSidebarOpen = false;
+                                  });
+                                },
+                              ),
+                              _SidebarItem(
+                                icon: Icons.directions_car,
+                                label: 'Vehicle Assignment',
+                                selected:
+                                    _selectedSection ==
+                                    AdminSection.vehicleAssignment,
+                                isSubItem: true,
+                                onTap: () {
+                                  setState(() {
+                                    _selectedSection =
+                                        AdminSection.vehicleAssignment;
+                                    if (isMobile) _isSidebarOpen = false;
+                                  });
+                                },
+                              ),
+                              _SidebarItem(
+                                icon: Icons.people,
+                                label: 'Employees',
+                                selected:
+                                    _selectedSection == AdminSection.employees,
+                                isSubItem: true,
+                                onTap: () {
+                                  setState(() {
+                                    _selectedSection = AdminSection.employees;
+                                    if (isMobile) _isSidebarOpen = false;
+                                  });
+                                },
+                              ),
+                              _SidebarItem(
+                                icon: Icons.history,
+                                label: 'Trip History',
+                                selected:
+                                    _selectedSection ==
+                                    AdminSection.tripHistory,
+                                isSubItem: true,
+                                onTap: () {
+                                  setState(() {
+                                    _selectedSection = AdminSection.tripHistory;
+                                    if (isMobile) _isSidebarOpen = false;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+
+                          // Settings (Expandable)
+                          _ExpandableSidebarItem(
+                            icon: Icons.settings,
+                            label: 'Settings',
+                            expanded: _settingsExpanded,
+                            onToggle: () {
+                              setState(() {
+                                _settingsExpanded = !_settingsExpanded;
+                              });
+                            },
+                            children: [
+                              _SidebarItem(
+                                icon: Icons.account_circle,
+                                label: 'Account Management',
+                                selected:
+                                    _selectedSection ==
+                                    AdminSection.accountManagement,
+                                isSubItem: true,
+                                onTap: () {
+                                  setState(() {
+                                    _selectedSection =
+                                        AdminSection.accountManagement;
+                                    if (isMobile) _isSidebarOpen = false;
+                                  });
+                                },
+                              ),
+                              _SidebarItem(
+                                icon: Icons.access_time,
+                                label: 'Activity Logs',
                                 selected:
                                     _selectedSection ==
                                     AdminSection.activityLogs,
-                              isSubItem: true,
-                              onTap: () {
-                                setState(() {
+                                isSubItem: true,
+                                onTap: () {
+                                  setState(() {
                                     _selectedSection =
                                         AdminSection.activityLogs;
-                                  if (isMobile) _isSidebarOpen = false;
-                                });
-                              },
-                            ),
-                            _SidebarItem(
-                              icon: Icons.logout,
-                              label: 'Logout',
-                              selected: false,
-                              isSubItem: true,
-                              onTap: () {
-                                Navigator.of(context).pushReplacement(
+                                    if (isMobile) _isSidebarOpen = false;
+                                  });
+                                },
+                              ),
+                              _SidebarItem(
+                                icon: Icons.logout,
+                                label: 'Logout',
+                                selected: false,
+                                isSubItem: true,
+                                onTap: () {
+                                  Navigator.of(context).pushReplacement(
                                     MaterialPageRoute(
                                       builder: (_) => const AdminLoginScreen(),
                                     ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           ],
           // Main content
           Expanded(
@@ -609,177 +597,7 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget _buildMainContent() {
     switch (_selectedSection) {
       case AdminSection.liveTracking:
-        // Show only one bus marker and info, like the passenger map
-        final busLocation = LatLng(13.9467729, 121.1555241);
-        final busInfo = {
-            'busNo': 'FCM No. 05',
-          'plateNo': 'DAL 7674',
-            'route': 'Lipa City to Bauan City',
-            'eta': '9:45 AM',
-            'location': 'Lalayat San Jose',
-            'driver': 'Nelson Suarez',
-        };
-        bool _showChat = false;
-        final List<_ChatMessage> _messages = [
-          _ChatMessage(name: 'Nelson- FCM No. 5', isMe: false, text: 'Hello!'),
-          _ChatMessage(name: 'Admin', isMe: true, text: 'Hi Nelson!'),
-        ];
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Stack(
-              children: [
-                // Map
-                Positioned.fill(
-                  child: FlutterMap(
-                    mapController: _mapController,
-                    options: MapOptions(
-                      initialCenter: busLocation,
-                      initialZoom: 13.0,
-                      interactiveFlags: InteractiveFlag.all,
-                    ),
-                    children: [
-                      TileLayer(
-                        urlTemplate:
-                            'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                        subdomains: ['a', 'b', 'c', 'd'],
-                      ),
-                      if (_showRoutePolyLine)
-                        PolylineLayer(
-                          polylines: [
-                            Polyline(
-                              points: _routePoints,
-                              strokeWidth: 8.0,
-                              color: const Color.fromRGBO(62, 71, 149, 1),
-                            ),
-                          ],
-                      ),
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            width: 40.0,
-                            height: 40.0,
-                            point: busLocation,
-                            child: GestureDetector(
-                              onTap: () =>
-                                  setState(() => _selectedBusIndex = 0),
-                              child: Container(
-                                width: 50,
-                                height: 50,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF3E4795),
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black26,
-                                      blurRadius: 4,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.directions_bus_outlined,
-                                    color: Colors.white,
-                                    size: 30,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (_showRoutePolyLine)
-                            Marker(
-                              point: _routePoints.last, // Final destination
-                              width: 40,
-                              height: 40,
-                              child: Container(
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF3E4795),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.location_pin,
-                                    color: Colors.white,
-                                    size: 30,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                // Top search bar
-                Positioned(
-                  top: 24,
-                  left: 32,
-                  right: 32,
-                  child: AdminSearchField(
-                    onLocationSelected:
-                        (LatLng selectedLatLng, String placeName) {
-                      // Handle location selection for admin
-                      ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Selected: $placeName')),
-                      );
-                    },
-                  ),
-                ),
-                if (_selectedBusIndex != null)
-                  Center(
-                    child: _AdminBusInfoCard(
-                      bus: busInfo,
-                      onClose: () => setState(() => _selectedBusIndex = null),
-                      onTrackRoute: () {
-                        setState(() {
-                          _showRoutePolyLine = true;
-                        });
-                        _mapController.fitBounds(
-                          LatLngBounds.fromPoints(_routePoints),
-                          options: const FitBoundsOptions(
-                            padding: EdgeInsets.all(50),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                // Message button (bottom right)
-                Positioned(
-                  bottom: 32,
-                  right: 32,
-                  child: FloatingActionButton(
-                    backgroundColor: const Color(0xFF3E4795),
-                    foregroundColor: Colors.white,
-                    onPressed: () {
-                      setState(() => _showChat = true);
-                    },
-                    child: const Icon(Icons.chat_bubble_outline, size: 32),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 6,
-                  ),
-                ),
-                if (_showChat)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    bottom: 0,
-                    width: 400,
-                    child: _ChatSidebar(
-                      onClose: () => setState(() => _showChat = false),
-                      messages: _messages,
-                      onSend: (msg) {
-                        setState(() {
-                          _messages.add(_ChatMessage(isMe: true, text: msg));
-                        });
-                      },
-                    ),
-                  ),
-              ],
-            );
-          },
-        );
+        return const MapScreen();
       case AdminSection.analytics:
         return _AnalyticsPage();
       case AdminSection.notifications:
@@ -809,11 +627,6 @@ class _AdminScreenState extends State<AdminScreen> {
           color: Colors.grey[100],
           child: const AccountManagementScreen(),
         );
-      case AdminSection.profile:
-        return Container(
-          color: Colors.grey[100],
-          child: const _ProfilePage(),
-        );
       case AdminSection.activityLogs:
         return Container(
           color: Colors.grey[100],
@@ -827,7 +640,7 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Widget _AnalyticsPage() {
-    return const _AnalyticsForecastSection();
+    return Container(color: Colors.white);
   }
 
   Widget _buildAnalyticsCard(
@@ -967,9 +780,351 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
-    Widget _DailyScheduleView() {
-      return const DailyScheduleCrud();
-    }
+  Widget _DailyScheduleView() {
+    return const DailyScheduleCrud();
+  }
+}
+
+class MapScreen extends StatefulWidget {
+  const MapScreen({super.key});
+
+  @override
+  _MapScreenState createState() => _MapScreenState();
+}
+
+class _MapScreenState extends State<MapScreen> {
+  late IO.Socket vehicleSocket;
+  final Map<int, Marker> _vehicleMarkers = {}; // vehicle_id to Marker
+  Map<String, dynamic>? _selectedVehicle; // selected vehicle info
+  List<LatLng> _routePolyline = [];
+
+  @override
+  void initState() {
+    super.initState();
+
+    // --- Vehicle socket (no userId needed) ---
+    vehicleSocket = IO.io(
+      "$baseUrl/vehicles",
+      IO.OptionBuilder().setTransports(['websocket']).build(),
+    );
+
+    vehicleSocket.connect();
+
+    vehicleSocket.onConnect((_) {
+      print('Connected to vehicle backend');
+      vehicleSocket.emit("subscribeVehicles"); // 🔑 join vehicleRoom
+    });
+
+    vehicleSocket.on('vehicleUpdate', (data) {
+      if (!mounted) return;
+      //print('🚐 Vehicle update: $data');
+
+      // data is an array of vehicles
+      setState(() {
+        for (var v in data) {
+          final id = v["vehicle_id"];
+          final lat = double.parse(v["lat"].toString());
+          final lng = double.parse(v["lng"].toString());
+
+          _vehicleMarkers[id] = Marker(
+            point: LatLng(lat, lng),
+            width: 50,
+            height: 50,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedVehicle = v; // save the tapped vehicle info
+                  _showVehicleInfo = true;
+                  _routePolyline = []; // clear old polyline
+                });
+              },
+              child: Column(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: Color(0xFF3E4795),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.directions_bus,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      });
+    });
+
+    vehicleSocket.onDisconnect((_) {
+      print('Vehicle disconnected');
+    });
+  }
+
+  @override
+  void dispose() {
+    vehicleSocket.off('vehicleUpdate');
+    vehicleSocket.dispose();
+
+    super.dispose();
+  }
+
+  final MapController _mapController = MapController();
+
+  //vehicle info modal logic
+  bool _showVehicleInfo = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              center: LatLng(13.945, 121.163),
+              zoom: 14,
+              onTap: (tapPosition, point) {
+                setState(() {
+                  _showVehicleInfo = false;
+                });
+              },
+            ),
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                subdomains: ['a', 'b', 'c', 'd'],
+              ),
+
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: _routePolyline,
+                    strokeWidth: 4.0,
+                    color: Color(0xFF3E4795),
+                  ),
+                ],
+              ),
+
+              MarkerLayer(
+                markers: [
+                  if (_routePolyline.isNotEmpty)
+                    Marker(
+                      point: _routePolyline.last,
+                      width: 30,
+                      height: 60,
+                      child: const Icon(
+                        Icons.location_pin,
+                        color: Color(0xFF3E4795),
+                        size: 32,
+                      ),
+                    ),
+                  ..._vehicleMarkers.values.toList(),
+                ],
+              ),
+            ],
+          ),
+
+          //search field on top temporary removal
+
+          //Keep: vehicle info bottom sheet
+          if (_showVehicleInfo && _selectedVehicle != null)
+            Positioned(
+              bottom: 80,
+              left: 20,
+              right: 20,
+              child: Container(
+                constraints: const BoxConstraints(
+                  minHeight: 100,
+                  maxHeight: 260,
+                ),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 12,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'FCM No. ${_selectedVehicle?["vehicle_id"] ?? "Unknown"}',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF3E4795),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: () {
+                            setState(() {
+                              _showVehicleInfo = false;
+                              _selectedVehicle = null;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Plate No: DAL 7674',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_selectedVehicle?["route_name"] ?? "Unknown"}',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text(
+                          'Estimated Time of Arrival',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        Text(
+                          '8:30 AM',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text(
+                          'Current Location',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        Text(
+                          'Lalayat San Jose',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              "Driver's Name",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Nelson Suarez',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            final remainingRoute =
+                                _selectedVehicle?["remaining_route_polyline"];
+
+                            if (remainingRoute == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("No route data available."),
+                                ),
+                              );
+                              return;
+                            }
+
+                            // Decode JSON string into a Map
+                            final routeJson = remainingRoute is String
+                                ? jsonDecode(remainingRoute)
+                                : remainingRoute;
+
+                            final coords =
+                                (routeJson["coordinates"] as List?)
+                                    ?.map(
+                                      (c) => LatLng(
+                                        (c[1] as num).toDouble(),
+                                        (c[0] as num).toDouble(),
+                                      ),
+                                    )
+                                    .toList() ??
+                                [];
+
+                            if (coords.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("No route data available."),
+                                ),
+                              );
+                              return;
+                            }
+
+                            setState(() {
+                              _routePolyline = coords;
+                            });
+                          },
+                          icon: const Icon(Icons.navigation, size: 16),
+                          label: const Text(
+                            'Track Trip',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3E4795),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 // Admin Search Field similar to passenger search
@@ -1119,32 +1274,6 @@ class _AdminSearchFieldState extends State<AdminSearchField> {
                 },
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-}
-
-class _AnalyticsForecastSection extends StatefulWidget {
-  const _AnalyticsForecastSection();
-
-  @override
-  State<_AnalyticsForecastSection> createState() => _AnalyticsForecastSectionState();
-}
-
-class _AnalyticsForecastSectionState extends State<_AnalyticsForecastSection> {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.all(16),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Analytics', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          SizedBox(height: 12),
-          Text('Forecasting is temporarily removed. A new model will be integrated later.'),
         ],
       ),
     );
@@ -1349,11 +1478,11 @@ class _SidebarItem extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
   final bool isSubItem;
-  
+
   const _SidebarItem({
-    required this.icon, 
-    required this.label, 
-    this.selected = false, 
+    required this.icon,
+    required this.label,
+    this.selected = false,
     this.onTap,
     this.isSubItem = false,
   });
@@ -1362,7 +1491,7 @@ class _SidebarItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: EdgeInsets.symmetric(
-        vertical: 4, 
+        vertical: 4,
         horizontal: isSubItem ? 24 : 12,
       ),
       decoration: selected
@@ -1373,7 +1502,7 @@ class _SidebarItem extends StatelessWidget {
           : null,
       child: ListTile(
         leading: Icon(
-          icon, 
+          icon,
           color: const Color(0xFF3E4795),
           size: isSubItem ? 20 : 24,
         ),
@@ -1804,18 +1933,18 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                 children: filteredLogs
                     .map(
                       (log) => Container(
-                  decoration: const BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: Color(0xFFE0E0E0)),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      _TableCell(log['timestamp']!),
-                      _TableCell(log['action']!),
-                      _TableCell(log['entity']!),
-                    ],
-                  ),
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: Color(0xFFE0E0E0)),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            _TableCell(log['timestamp']!),
+                            _TableCell(log['action']!),
+                            _TableCell(log['entity']!),
+                          ],
+                        ),
                       ),
                     )
                     .toList(),
@@ -2215,36 +2344,60 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
                     ),
                     Row(
                       children: [
-                    GestureDetector(
+                        ElevatedButton.icon(
+                          onPressed: _openScheduledModal,
+                          icon: const Icon(
+                            Icons.schedule,
+                            color: Color(0xFF3E4795),
+                          ),
+                          label: const Text(
+                            'View Scheduled Notifications',
+                            style: TextStyle(color: Color(0xFF3E4795)),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF0F3FF),
+                            foregroundColor: const Color(0xFF3E4795),
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 10,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        GestureDetector(
                           onTap: () => _openCompose(),
-                      child: Container(
+                          child: Container(
                             width: 170,
                             height: 44,
                             padding: const EdgeInsets.symmetric(horizontal: 24),
-                        decoration: BoxDecoration(
+                            decoration: BoxDecoration(
                               color: Color(0xFFF0F3FF),
                               borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
                                 Icon(
                                   Icons.edit,
                                   color: Color(0xFF3E4795),
                                   size: 20,
                                 ),
                                 SizedBox(width: 10),
-                            Text(
-                              'Compose',
-                              style: TextStyle(
-                                color: Color(0xFF3E4795),
-                                fontWeight: FontWeight.w600,
+                                Text(
+                                  'Compose',
+                                  style: TextStyle(
+                                    color: Color(0xFF3E4795),
+                                    fontWeight: FontWeight.w600,
                                     fontSize: 17,
-                              ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
+                          ),
                         ),
                       ],
                     ),
@@ -2262,7 +2415,7 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
             onEdit: (index) => _openCompose(index),
             onDelete: _deleteScheduledNotification,
             onClose: _closeScheduledModal,
-        ),
+          ),
         if (_showCompose)
           _ComposeNotificationModal(
             onSave: (notif) async {
@@ -2577,26 +2730,88 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
                       children: _recipientOptions
                           .map(
                             (r) => CheckboxListTile(
-                        value: _recipients.contains(r),
-                        onChanged: (val) {
-                          setState(() {
-                            if (val == true) {
-                              _recipients.add(r);
-                            } else {
-                              _recipients.remove(r);
-                            }
-                          });
-                        },
-                        title: Text(r),
-                        controlAffinity: ListTileControlAffinity.leading,
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
+                              value: _recipients.contains(r),
+                              onChanged: (val) {
+                                setState(() {
+                                  if (val == true) {
+                                    _recipients.add(r);
+                                  } else {
+                                    _recipients.remove(r);
+                                  }
+                                });
+                              },
+                              title: Text(r),
+                              controlAffinity: ListTileControlAffinity.leading,
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
                             ),
                           )
                           .toList(),
                     ),
                     const SizedBox(height: 20),
-                    // Schedule UI removed per request
+                    const Text(
+                      'Schedule (Optional)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF3E4795),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            readOnly: true,
+                            controller: TextEditingController(
+                              text: _schedule == null
+                                  ? ''
+                                  : '${_schedule!.month.toString().padLeft(2, '0')}/${_schedule!.day.toString().padLeft(2, '0')}/${_schedule!.year} -- ${_schedule!.hour.toString().padLeft(2, '0')}:${_schedule!.minute.toString().padLeft(2, '0')}',
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'mm/dd/yyy -- : -- --',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.calendar_today,
+                            color: Color(0xFF3E4795),
+                          ),
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _schedule ?? DateTime.now(),
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2100),
+                            );
+                            if (picked != null) {
+                              final time = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay.now(),
+                              );
+                              if (time != null) {
+                                setState(() {
+                                  _schedule = DateTime(
+                                    picked.year,
+                                    picked.month,
+                                    picked.day,
+                                    time.hour,
+                                    time.minute,
+                                  );
+                                });
+                              }
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 32),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -3123,20 +3338,20 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
                                                   context: context,
                                                   builder: (context) =>
                                                       _UnitDetailsDialog(
-                                                    driver: s['driver'],
-                                                    unit: s['unit'],
+                                                        driver: s['driver'],
+                                                        unit: s['unit'],
                                                         plateNo: getPlateNumber(
                                                           s['unit'],
                                                         ),
-                                                    date: day,
-                                                    routeRuns: 3,
+                                                        date: day,
+                                                        routeRuns: 3,
                                                         firstTrip:
                                                             s['startTime'],
                                                         lastTrip: isPastDay
                                                             ? '07:30 PM'
                                                             : '',
-                                                    isPast: isPastDay,
-                                                  ),
+                                                        isPast: isPastDay,
+                                                      ),
                                                 );
                                               },
                                               child: Text(
@@ -3463,15 +3678,15 @@ class _UnitDetailsDialog extends StatelessWidget {
                   const Icon(
                     Icons.timelapse,
                     size: 18,
-                          color: Color(0xFF3E4795),
-                          ),
-                          const SizedBox(width: 8),
-                      const Text(
+                    color: Color(0xFF3E4795),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
                     'Last Trip:',
                     style: TextStyle(fontWeight: FontWeight.w500),
                   ),
                   const Spacer(),
-                                                Text(
+                  Text(
                     '07:30 PM',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
@@ -3499,18 +3714,18 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
   bool _isLoading = false;
   bool _showAddForm = false;
   Map<String, dynamic>? _editingSchedule;
-  
+
   final _formKey = GlobalKey<FormState>();
   final _timeController = TextEditingController();
   final _unitController = TextEditingController();
   final _statusController = TextEditingController();
   final _reasonController = TextEditingController();
-  
+
   // Time picker state
   int _selectedHour = 8;
   int _selectedMinute = 0;
   bool _isAM = true;
-  
+
   // Vehicle data for dropdown
   List<Map<String, dynamic>> _vehicles = [];
   int? _selectedVehicleId;
@@ -3534,11 +3749,10 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
   Future<void> _loadSchedules() async {
     setState(() => _isLoading = true);
     try {
-      final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
       final response = await http.get(
         Uri.parse('$baseUrl/api/schedules?date=${_formatDate(_selectedDate)}'),
       );
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
@@ -3556,19 +3770,16 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
 
   Future<void> _loadVehicles() async {
     try {
-      final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
-      final response = await http.get(
-        Uri.parse('$baseUrl/vehicles'),
-      );
-      
+      final response = await http.get(Uri.parse('$baseUrl/vehicles'));
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         print('Vehicles API Response: $data'); // Debug log
-        
+
         setState(() {
           _vehicles = List<Map<String, dynamic>>.from(data);
         });
-        
+
         print('Loaded ${_vehicles.length} vehicles'); // Debug log
       } else {
         print('Vehicles API failed with status: ${response.statusCode}');
@@ -3621,14 +3832,12 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
     try {
       http.Response response;
       if (_editingSchedule != null) {
-        final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
         response = await http.put(
           Uri.parse('$baseUrl/api/schedules/${_editingSchedule!['id']}'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode(scheduleData),
         );
       } else {
-        final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
         response = await http.post(
           Uri.parse('$baseUrl/api/schedules'),
           headers: {'Content-Type': 'application/json'},
@@ -3672,7 +3881,6 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
 
     if (confirmed == true) {
       try {
-        final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
         final response = await http.delete(
           Uri.parse('$baseUrl/api/schedules/$id'),
         );
@@ -3713,7 +3921,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
       _statusController.text = schedule['status'] ?? 'Active';
       _reasonController.text = schedule['reason'] ?? '';
       _selectedVehicleId = schedule['vehicle_id'];
-      
+
       // Parse time from schedule
       final timeStr = schedule['time_start'] ?? '08:00 AM';
       _parseTimeString(timeStr);
@@ -3725,17 +3933,17 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
       final parts = timeStr.split(' ');
       final timePart = parts[0];
       final period = parts.length > 1 ? parts[1] : 'AM';
-      
+
       final timeComponents = timePart.split(':');
       int hour = int.parse(timeComponents[0]);
       int minute = int.parse(timeComponents[1]);
-      
+
       if (period == 'PM' && hour != 12) {
         hour += 12;
       } else if (period == 'AM' && hour == 12) {
         hour = 0;
       }
-      
+
       _selectedHour = hour;
       _selectedMinute = minute;
       _isAM = period == 'AM';
@@ -3925,7 +4133,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Table
                 Expanded(
                   child: Container(
@@ -4011,69 +4219,69 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                             ],
                           ),
                         ),
-                        
+
                         // Table content
                         Expanded(
                           child: _isLoading
                               ? const Center(child: CircularProgressIndicator())
                               : _schedules.isEmpty
-                                  ? const Center(
-                                      child: Text(
-                                        'No schedules found for this date',
+                              ? const Center(
+                                  child: Text(
+                                    'No schedules found for this date',
                                     style: TextStyle(
                                       fontSize: 16,
                                       color: Colors.grey,
                                     ),
-                                      ),
-                                    )
-                                  : ListView.builder(
-                                      itemCount: _schedules.length,
-                                      itemBuilder: (context, index) {
-                                        final schedule = _schedules[index];
-                                        return Container(
+                                  ),
+                                )
+                              : ListView.builder(
+                                  itemCount: _schedules.length,
+                                  itemBuilder: (context, index) {
+                                    final schedule = _schedules[index];
+                                    return Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 16,
                                         vertical: 12,
                                       ),
-                                          decoration: BoxDecoration(
-                                            border: Border(
-                                              bottom: BorderSide(
-                                                color: Colors.grey.withOpacity(0.2),
-                                                width: 1,
-                                              ),
-                                            ),
+                                      decoration: BoxDecoration(
+                                        border: Border(
+                                          bottom: BorderSide(
+                                            color: Colors.grey.withOpacity(0.2),
+                                            width: 1,
                                           ),
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                flex: 2,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            flex: 2,
                                             child: Text(
                                               schedule['time_start'] ?? 'N/A',
                                             ),
-                                              ),
-                                              Expanded(
-                                                flex: 2,
+                                          ),
+                                          Expanded(
+                                            flex: 2,
                                             child: Text(
                                               'Unit ${schedule['vehicle_id'] ?? 'N/A'}',
                                             ),
-                                              ),
-                                              Expanded(
-                                                flex: 2,
+                                          ),
+                                          Expanded(
+                                            flex: 2,
                                             child: Text(
                                               schedule['status'] ?? 'N/A',
                                             ),
-                                              ),
-                                              Expanded(
-                                                flex: 2,
+                                          ),
+                                          Expanded(
+                                            flex: 2,
                                             child: Text(
                                               schedule['reason'] ?? 'N/A',
                                             ),
-                                              ),
-                                              Expanded(
-                                                flex: 1,
-                                                child: Row(
-                                                  children: [
-                                                    IconButton(
+                                          ),
+                                          Expanded(
+                                            flex: 1,
+                                            child: Row(
+                                              children: [
+                                                IconButton(
                                                   icon: const Icon(
                                                     Icons.edit,
                                                     color: Colors.blue,
@@ -4083,9 +4291,9 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                                                       _showEditFormDialog(
                                                         schedule,
                                                       ),
-                                                      tooltip: 'Edit',
-                                                    ),
-                                                    IconButton(
+                                                  tooltip: 'Edit',
+                                                ),
+                                                IconButton(
                                                   icon: const Icon(
                                                     Icons.delete,
                                                     color: Colors.red,
@@ -4095,16 +4303,16 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                                                       _deleteSchedule(
                                                         schedule['id'],
                                                       ),
-                                                      tooltip: 'Delete',
-                                                    ),
-                                                  ],
+                                                  tooltip: 'Delete',
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
-                                        );
-                                      },
-                                    ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                         ),
                       ],
                     ),
@@ -4114,7 +4322,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
             ),
           ),
         ),
-        
+
         // Add/Edit Form Modal
         if (_showAddForm)
           Positioned.fill(
@@ -4154,7 +4362,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        
+
                         // Time picker
                         const Text(
                           'Time (HH:MM)',
@@ -4163,7 +4371,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                         const SizedBox(height: 8),
                         _buildSimpleTimePicker(),
                         const SizedBox(height: 16),
-                        
+
                         // Unit Number dropdown
                         Row(
                           children: [
@@ -4204,14 +4412,14 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                             // Handle different possible field names for unit number
                             String unitName =
                                 vehicle['unit_number'] ??
-                                            vehicle['unitNumber'] ?? 
-                                            vehicle['plate_number'] ?? 
-                                            vehicle['plateNumber'] ?? 
-                                            'Unit ${vehicle['vehicle_id'] ?? vehicle['id']}';
-                            
+                                vehicle['unitNumber'] ??
+                                vehicle['plate_number'] ??
+                                vehicle['plateNumber'] ??
+                                'Unit ${vehicle['vehicle_id'] ?? vehicle['id']}';
+
                             int vehicleId =
                                 vehicle['vehicle_id'] ?? vehicle['id'] ?? 0;
-                            
+
                             return DropdownMenuItem<int>(
                               value: vehicleId,
                               child: Text(unitName),
@@ -4220,10 +4428,10 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                           onChanged: _vehicles.isEmpty
                               ? null
                               : (value) {
-                            setState(() {
-                              _selectedVehicleId = value;
-                            });
-                          },
+                                  setState(() {
+                                    _selectedVehicleId = value;
+                                  });
+                                },
                           validator: (value) {
                             if (value == null) {
                               return 'Please select a unit';
@@ -4232,7 +4440,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                           },
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Status field
                         const Text(
                           'Status',
@@ -4254,10 +4462,10 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                           ),
                           items: ['Active', 'Sick', 'Maintenance', 'Coding']
                               .map((status) {
-                            return DropdownMenuItem<String>(
-                              value: status,
-                              child: Text(status),
-                            );
+                                return DropdownMenuItem<String>(
+                                  value: status,
+                                  child: Text(status),
+                                );
                               })
                               .toList(),
                           onChanged: (value) =>
@@ -4266,7 +4474,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                               value == null ? 'Status is required' : null,
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Reason field
                         const Text(
                           'Reason (Optional)',
@@ -4287,7 +4495,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        
+
                         // Action buttons
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -4327,7 +4535,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
     );
   }
 }
-  
+
 // Placeholder pages for new sections
 class _EmployeesPage extends StatelessWidget {
   const _EmployeesPage();
@@ -4416,14 +4624,5 @@ class _AccountManagementPage extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _ProfilePage extends StatelessWidget {
-  const _ProfilePage();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox.shrink();
   }
 }

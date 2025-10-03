@@ -36,7 +36,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     try {
       // 1. Call your backend
       final response = await http.post(
-        Uri.parse('$baseUrl/users/login'), // change to your endpoint
+        Uri.parse(
+          'http://localhost:8080/users/login',
+        ), // change to your endpoint
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({"username": username, "password": password}),
       );

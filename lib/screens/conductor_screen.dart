@@ -275,11 +275,7 @@ class CustomBottomBar extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: Icon(
-              Icons.message_outlined,
-              color: Color(0xFF3E4795),
-              size: 36,
-            ),
+            icon: Icon(Icons.schedule, color: Color(0xFF3E4795), size: 36),
             onPressed: () => onTabChanged(3),
           ),
           IconButton(
@@ -577,7 +573,7 @@ class _MapScreenState extends State<MapScreen> {
                               subtitle: Text("Going ${pickup['route_name']}"),
                               trailing: Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.blue, // background color
+                                  color: Color(0xFF3E4795), // background color
                                   borderRadius: BorderRadius.circular(
                                     12,
                                   ), // 👈 rounded corners
@@ -1097,112 +1093,172 @@ class MessagingTab extends StatefulWidget {
 }
 
 class _MessagingTabState extends State<MessagingTab> {
-  final List<Map<String, dynamic>> _messages = [
-    {
-      'fromAdmin': true,
-      'text': 'Thanks for the quick update, FCM 22. Are you safe?',
-    },
-    {
-      'fromAdmin': false,
-      'text': "Yes, I'm safe. No need for medical, but I might need a tow.",
-    },
-    {
-      'fromAdmin': true,
-      'text': "Copy that. I'm dispatching our on-site support now.",
-    },
-    {
-      'fromAdmin': false,
-      'text': "Got it. Passenger has been informed and is waiting with me.",
-    },
-  ];
-
-  final TextEditingController _controller = TextEditingController();
-
-  void _sendMessage() {
-    if (_controller.text.trim().isEmpty) return;
-    setState(() {
-      _messages.add({'fromAdmin': false, 'text': _controller.text.trim()});
-      _controller.clear();
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Trips',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+            color: Color(0xFF3E4795),
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
       backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 24),
-            Text(
-              'FCM Admin',
-              style: TextStyle(
-                color: Color(0xFF3E4795),
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _messages.length,
-                itemBuilder: (context, index) {
-                  final msg = _messages[index];
-                  final isMe = !msg['fromAdmin'];
-                  return Align(
-                    alignment: isMe
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
+            // Top Row: Trips & Passengers
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Trips Container
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 12,
+                        offset: const Offset(0, -4),
                       ),
-                      decoration: BoxDecoration(
-                        color: isMe
-                            ? const Color(0xFF3E4795)
-                            : Color(0xFFF3F3F3),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        msg['text'],
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        "Trips Today",
                         style: TextStyle(
-                          color: isMe ? Colors.white : Colors.black87,
-                          fontSize: 14,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF3E4795),
                         ),
                       ),
-                    ),
-                  );
-                },
-              ),
+                      SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Center(
+                            child: Text(
+                              "12",
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Passengers Container
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 12,
+                        offset: const Offset(0, -4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        "Total Passengers",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF3E4795),
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Center(
+                            child: Text(
+                              "12",
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Container(
-              padding: const EdgeInsets.all(8.0),
-              decoration: BoxDecoration(
-                color: Color(0xFFF3F3F3),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Row(
+
+            const SizedBox(height: 24),
+
+            // Bottom: Recent Trips List
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      decoration: const InputDecoration(
-                        hintText: 'Write a message',
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                      ),
+                  const Text(
+                    "Recent Trips",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF3E4795),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.send, color: Color(0xFF3E4795)),
-                    onPressed: _sendMessage,
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: 3, // example recent trips
+                      itemBuilder: (context, index) {
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 6),
+                          child: Container(
+                            padding: const EdgeInsets.all(
+                              16,
+                            ), // increase internal padding
+                            height: 100, // set a fixed height
+                            child: ListTile(
+                              leading: const CircleAvatar(
+                                backgroundColor: Color(
+                                  0xFF3E4795,
+                                ), // circle color
+                                radius: 22, // circle size
+                                child: Icon(
+                                  Icons.schedule,
+                                  color: Colors.white, // icon color
+                                  size: 27,
+                                ),
+                              ),
+                              title: Text(
+                                "Trip #${index + 1}",
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              subtitle: const Text(
+                                "Started: 8:30 - Ended: 9:30",
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),
