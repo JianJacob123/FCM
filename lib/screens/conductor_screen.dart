@@ -1093,6 +1093,15 @@ class MessagingTab extends StatefulWidget {
 }
 
 class _MessagingTabState extends State<MessagingTab> {
+  late final String conductorId;
+
+  @override
+  void initState() {
+    super.initState();
+    final userProvider = context.read<UserProvider>();
+    conductorId = userProvider.currentUser!.id;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1109,162 +1118,152 @@ class _MessagingTabState extends State<MessagingTab> {
         elevation: 0,
       ),
       backgroundColor: Colors.white,
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Top Row: Trips & Passengers
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+      // 1. Use FutureBuilder for asynchronous data fetching
+      body: FutureBuilder<Map<String, dynamic>?>(
+        future: fetchTripDetails(conductorId), // 👈 The future to watch
+        builder: (context, snapshot) {
+          // 2. Handle Loading State (Waiting)
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // 3. Handle Error State
+          if (snapshot.hasError) {
+            print("Error fetching trip details: ${snapshot.error}");
+            return Center(child: Text("Error: ${snapshot.error}"));
+          }
+
+          final tripData = snapshot.data;
+
+          // 4. Handle No Data State (Data is null or empty)
+          if (tripData == null) {
+            return const Center(child: Text("No trip data available."));
+          }
+
+          // 5. Handle Data Received State (Data is available)
+          final tripCount = tripData['trip_count'] ?? 0;
+          final recentTrips = tripData['recent_trips'] ?? [];
+
+          // The rest of your UI logic goes here
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
               children: [
-                // Trips Container
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 12,
-                        offset: const Offset(0, -4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        "Trips Today",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF3E4795),
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Center(
-                            child: Text(
-                              "12",
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                // Top Row: Trips & Passengers
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Trips Container
+                    // Note: Use tripCount here
+                    _buildStatContainer("Trips Today", tripCount.toString()),
+
+                    //fetch passengers count from backend after
+                    _buildStatContainer("Total Passengers", "12"),
+                  ],
                 ),
 
-                // Passengers Container
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 12,
-                        offset: const Offset(0, -4),
-                      ),
-                    ],
-                  ),
+                const SizedBox(height: 24),
+
+                // Bottom: Recent Trips List
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        "Total Passengers",
+                    children: [
+                      const Text(
+                        "Recent Trips",
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF3E4795),
                         ),
                       ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Center(
-                            child: Text(
-                              "12",
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: recentTrips.length,
+                          itemBuilder: (context, index) {
+                            final trip = recentTrips[index];
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 6),
+                              // Removed fixed height for cleaner layout
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8.0,
+                                  vertical: 4.0,
+                                ),
+                                child: ListTile(
+                                  leading: const CircleAvatar(
+                                    backgroundColor: Color(0xFF3E4795),
+                                    radius: 22,
+                                    child: Icon(
+                                      Icons.schedule,
+                                      color: Colors.white,
+                                      size: 27,
+                                    ),
+                                  ),
+                                  title: Text(
+                                    "Trip #${trip['trip_id'] ?? index + 1}",
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    "Started: ${trip['start_time'] ?? '--'} - Ended: ${trip['end_time'] ?? '--'}",
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        ],
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
                 ),
               ],
             ),
+          );
+        },
+      ),
+    );
+  }
 
-            const SizedBox(height: 24),
-
-            // Bottom: Recent Trips List
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Recent Trips",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF3E4795),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: 3, // example recent trips
-                      itemBuilder: (context, index) {
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 6),
-                          child: Container(
-                            padding: const EdgeInsets.all(
-                              16,
-                            ), // increase internal padding
-                            height: 100, // set a fixed height
-                            child: ListTile(
-                              leading: const CircleAvatar(
-                                backgroundColor: Color(
-                                  0xFF3E4795,
-                                ), // circle color
-                                radius: 22, // circle size
-                                child: Icon(
-                                  Icons.schedule,
-                                  color: Colors.white, // icon color
-                                  size: 27,
-                                ),
-                              ),
-                              title: Text(
-                                "Trip #${index + 1}",
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              subtitle: const Text(
-                                "Started: 8:30 - Ended: 9:30",
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
+  // Helper method to build the stat containers (for cleaner code)
+  Widget _buildStatContainer(String title, String count) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 12,
+            offset: const Offset(
+              0,
+              4,
+            ), // Changed offset for better shadow placement
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF3E4795),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            count,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+        ],
       ),
     );
   }

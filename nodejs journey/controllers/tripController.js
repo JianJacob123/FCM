@@ -130,6 +130,26 @@ const startTripIfInGeofence = async (io) => {
   }
 };
 
+const fetchTripDetails = async (req, res) => {
+  const conductorId = req.query.id;
+  try {
+    const vehicle = await tripModels.getVehicleByConductorId(conductorId);
+
+    if (vehicle) {
+      const tripCount = await tripModels.getTripCountByVehicleId(vehicle.vehicle_id);
+      const recentTrips = await tripModels.getRecentTripsByVehicleId(vehicle.vehicle_id);
+
+      res.status(200).json({trip_count: tripCount, recent_trips: recentTrips});
+    } else {
+      console.log(`No vehicle assigned to conductor ${conductorId}`);
+    }
+  } catch (err) {
+    console.error('Error fetching trip count:', err);
+    res.status(500).json({ err: 'Failed to fetch trip count' });
+  }
+}
+
 module.exports = {
-  startTripIfInGeofence
+  startTripIfInGeofence,
+  fetchTripDetails
 };

@@ -30,6 +30,20 @@ Future<List<dynamic>> fetchTripHistory(String userId) async {
   }
 }
 
+Future<Map<String, dynamic>> fetchTripDetails(String userId) async {
+  //For Conductor Trip Details
+  final response = await http.get(
+    Uri.parse("$baseUrl/trips/trip-count?id=$userId"),
+  );
+
+  if (response.statusCode == 200) {
+    final tripData = jsonDecode(response.body);
+    return tripData;
+  } else {
+    throw Exception("Failed to load trip details");
+  }
+}
+
 Future<List<dynamic>> fetchFavoriteLocations(String userId) async {
   final response = await http.get(
     Uri.parse("$baseUrl/favLocations/getFavLocation/?id=$userId"),

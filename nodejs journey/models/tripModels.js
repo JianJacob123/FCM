@@ -30,10 +30,32 @@ const updateGeofenceState = async (vehicleId, state) => {
     await client.query(sql, values);
 }
 
+//Get Trips Logic
+const getVehicleByConductorId = async (conductorId) => {
+    const sql = `SELECT vehicle_id FROM vehicle_assignment WHERE conductor_id = $1 or driver_id = $1;`;
+    const res = await client.query(sql, [conductorId]);
+    return res.rows[0];
+}
+
+const getTripCountByVehicleId = async (vehicleId) => {
+    const sql = `SELECT COUNT(trip_id) as total_trips FROM trips WHERE vehicle_id = $1;`;
+    const res = await client.query(sql, [vehicleId]);
+    return res.rows[0].total_trips;
+}
+
+const getRecentTripsByVehicleId = async (vehicleId) => {
+    const sql = `SELECT * FROM trips WHERE vehicle_id = $1 AND status = 'completed' ORDER BY end_time DESC LIMIT 3;`;
+    const res = await client.query(sql, [vehicleId]);
+    return res.rows;
+}
+
 module.exports = {
     getActiveTripsByVehicle,
     insertTrip,
     endTrip,
     fetchGeofenceState,
-    updateGeofenceState
+    updateGeofenceState,
+    getVehicleByConductorId,
+    getTripCountByVehicleId,
+    getRecentTripsByVehicleId
 };

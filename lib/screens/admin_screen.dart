@@ -797,10 +797,15 @@ class _MapScreenState extends State<MapScreen> {
   final Map<int, Marker> _vehicleMarkers = {}; // vehicle_id to Marker
   Map<String, dynamic>? _selectedVehicle; // selected vehicle info
   List<LatLng> _routePolyline = [];
+  List<dynamic> _pendingPickups = [];
+  LatLng? _highlightedPickup;
+  bool _showPickupList = false; // show pending pickups by default
 
   @override
   void initState() {
     super.initState();
+
+    _loadPendingPickups();
 
     // --- Vehicle socket (no userId needed) ---
     vehicleSocket = IO.io(
@@ -866,6 +871,19 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
+  Future<void> _loadPendingPickups() async {
+    try {
+      final pickups = await fetchPendingTrips(); // your API
+      if (mounted) {
+        setState(() {
+          _pendingPickups = pickups;
+        });
+      }
+    } catch (e) {
+      print("Error fetching pickups: $e");
+    }
+  }
+
   @override
   void dispose() {
     vehicleSocket.off('vehicleUpdate');
@@ -926,12 +944,156 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                     ),
                   ..._vehicleMarkers.values.toList(),
+
+                  //Pickup markers
+                  if (_highlightedPickup != null)
+                    Marker(
+                      point: _highlightedPickup!,
+                      width: 44,
+                      height: 44,
+                      child: const Icon(
+                        Icons.location_pin,
+                        color: Colors.red,
+                        size: 44,
+                      ),
+                    ),
                 ],
               ),
             ],
           ),
 
           //search field on top temporary removal
+
+          // Toggle Button to show/hide pickup list
+          Positioned(
+            top: 40,
+            right: 20,
+            child: FloatingActionButton(
+              backgroundColor: const Color(0xFF3E4795),
+              child: const Icon(Icons.person_search, color: Colors.white),
+              onPressed: () {
+                setState(() {
+                  _showPickupList = true;
+                });
+              },
+            ),
+          ),
+
+          //pickup list bottom sheet
+          if (_showPickupList)
+            Positioned(
+              bottom: 0,
+              left: 20,
+              right: 20,
+              child: Container(
+                constraints: const BoxConstraints(
+                  minHeight: 100,
+                  maxHeight: 220, //Enough space for ~2 items + scrolling
+                ),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 12,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    //Header row with close button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Pending Pickups",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF3E4795),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: () {
+                            setState(() {
+                              _showPickupList = false;
+                              _highlightedPickup = null;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    //Scrollable list, limited by constraints above
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _pendingPickups.length,
+                        itemBuilder: (context, index) {
+                          final pickup = _pendingPickups[index];
+                          final lat =
+                              double.tryParse(
+                                pickup['pickup_lat'].toString(),
+                              ) ??
+                              0.0;
+                          final lng =
+                              double.tryParse(
+                                pickup['pickup_lng'].toString(),
+                              ) ??
+                              0.0;
+
+                          return Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: ListTile(
+                              leading: const Icon(
+                                Icons.location_on,
+                                color: Color(0xFF3E4795),
+                              ),
+                              title: Text("${pickup['passenger_id']}"),
+                              subtitle: Text("Going ${pickup['route_name']}"),
+                              trailing: Container(
+                                decoration: BoxDecoration(
+                                  color: Color(0xFF3E4795), // background color
+                                  borderRadius: BorderRadius.circular(
+                                    12,
+                                  ), // 👈 rounded corners
+                                ),
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.my_location,
+                                    color: Colors
+                                        .white, //make icon white so it stands out
+                                  ),
+                                  onPressed: () {
+                                    final point = LatLng(lat, lng);
+                                    setState(() {
+                                      _highlightedPickup = point;
+                                    });
+                                    _mapController.move(
+                                      point,
+                                      16.0,
+                                    ); // zoom to point
+                                  },
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
           //Keep: vehicle info bottom sheet
           if (_showVehicleInfo && _selectedVehicle != null)
