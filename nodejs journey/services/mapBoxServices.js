@@ -1,9 +1,18 @@
 const axios = require('axios');
 
-const MAPBOX_TOKEN = ''; // Replace with your actual Mapbox token
+const MAPBOX_TOKEN = 'pk.eyJ1Ijoia3lsbHVoaGgiLCJhIjoiY21jNzFrbjhnMWEzdTJqb21razJzMnNzZSJ9.mTR_W24uzbK1y3Z1Y4OjTA'; // Replace with actual Mapbox token
 
-async function generateRoute(start, end) {
-    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${start.lng},${start.lat};${end.lng},${end.lat}?alternatives=true&exclude=toll&geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
+async function generateRoute(start, end, waypoints = []) {
+
+    //Combine all coords
+    const allPoints = [start, ...waypoints, end];
+
+    //Convert to lng,lat; format
+
+    const coordsString = allPoints.map(pt => `${pt.lng},${pt.lat}`).join(';');
+
+    //Endpoint URL
+    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordsString}?alternatives=true&exclude=toll&geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
     try {
         const response = await axios.get(url);
         if (response.data.routes && response.data.routes.length > 0) {
