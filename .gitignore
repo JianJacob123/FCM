@@ -47,5 +47,5 @@ app.*.map.json
 # Environment files
 nodejs journey/.env
 
-.venv/
-forecasting/modelForecasting/.venv/
+# Virtual environment
+forecasting/
