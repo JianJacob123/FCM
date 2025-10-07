@@ -8,7 +8,7 @@ const cors = require('cors');
 const httpServer = createServer(app);
 require('dotenv').config();
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 //route imports
 const vehicleRoutes = require('./routes/vehicleRoutes');

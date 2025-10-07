@@ -72,11 +72,11 @@ const revealPasswordWithAdminAuth = async (userId, adminUsername, adminPassword)
     } else {
         let adminRes;
     if (adminUsername && adminUsername.length > 0) {
-        const adminSql = `SELECT user_id FROM users WHERE username = $1 AND user_pass = $2 AND user_role = 'Admin'`;
+        const adminSql = `SELECT user_id FROM users WHERE username = $1 AND user_pass = $2 AND user_role = 'admin'`;
             adminRes = await client.query(adminSql, [adminUsername, adminPassword]);
     } else {
-        // Password-only check: any Admin with this password
-        const adminSql = `SELECT user_id FROM users WHERE user_pass = $1 AND user_role = 'Admin' LIMIT 1`;
+        // Password-only check: any admin with this password
+        const adminSql = `SELECT user_id FROM users WHERE user_pass = $1 AND user_role = 'admin' LIMIT 1`;
             adminRes = await client.query(adminSql, [adminPassword]);
     }
         if (adminRes.rows.length === 0) {

@@ -332,7 +332,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Account Management',
+                      'Employee Management',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -373,7 +373,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Account Management',
+                      'Employee Management',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,

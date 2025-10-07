@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'admin_login_screen.dart';
-import 'employee_management_screen.dart';
 import 'vehicle_assignment_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -31,7 +30,7 @@ enum AdminSection {
   notifications,
   schedule,
   vehicleAssignment,
-  employees,
+  
   tripHistory,
   accountManagement,
   activityLogs,
@@ -480,18 +479,21 @@ class _AdminScreenState extends State<AdminScreen> {
                                 },
                               ),
                               _SidebarItem(
-                                icon: Icons.people,
-                                label: 'Employees',
+                                icon: Icons.account_circle,
+                                label: 'Employee Management',
                                 selected:
-                                    _selectedSection == AdminSection.employees,
+                                    _selectedSection ==
+                                    AdminSection.accountManagement,
                                 isSubItem: true,
                                 onTap: () {
                                   setState(() {
-                                    _selectedSection = AdminSection.employees;
+                                    _selectedSection =
+                                        AdminSection.accountManagement;
                                     if (isMobile) _isSidebarOpen = false;
                                   });
                                 },
                               ),
+                              
                               _SidebarItem(
                                 icon: Icons.history,
                                 label: 'Trip History',
@@ -502,35 +504,6 @@ class _AdminScreenState extends State<AdminScreen> {
                                 onTap: () {
                                   setState(() {
                                     _selectedSection = AdminSection.tripHistory;
-                                    if (isMobile) _isSidebarOpen = false;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-
-                          // Settings (Expandable)
-                          _ExpandableSidebarItem(
-                            icon: Icons.settings,
-                            label: 'Settings',
-                            expanded: _settingsExpanded,
-                            onToggle: () {
-                              setState(() {
-                                _settingsExpanded = !_settingsExpanded;
-                              });
-                            },
-                            children: [
-                              _SidebarItem(
-                                icon: Icons.account_circle,
-                                label: 'Account Management',
-                                selected:
-                                    _selectedSection ==
-                                    AdminSection.accountManagement,
-                                isSubItem: true,
-                                onTap: () {
-                                  setState(() {
-                                    _selectedSection =
-                                        AdminSection.accountManagement;
                                     if (isMobile) _isSidebarOpen = false;
                                   });
                                 },
@@ -550,20 +523,40 @@ class _AdminScreenState extends State<AdminScreen> {
                                   });
                                 },
                               ),
+                            ],
+                          ),
+
+                          // Logout (standalone)
                               _SidebarItem(
                                 icon: Icons.logout,
                                 label: 'Logout',
                                 selected: false,
-                                isSubItem: true,
                                 onTap: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Logout'),
+                                      content: const Text('Are you sure you want to log out?'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(context);
                                   Navigator.of(context).pushReplacement(
                                     MaterialPageRoute(
                                       builder: (_) => const AdminLoginScreen(),
                                     ),
                                   );
                                 },
+                                          child: const Text('Logout'),
                               ),
                             ],
+                                    ),
+                                  );
+                                },
                           ),
                         ],
                       ),
@@ -612,11 +605,7 @@ class _AdminScreenState extends State<AdminScreen> {
           color: Colors.grey[100],
           child: const VehicleAssignmentScreen(),
         );
-      case AdminSection.employees:
-        return Container(
-          color: Colors.grey[100],
-          child: const EmployeeManagementScreen(),
-        );
+      
       case AdminSection.tripHistory:
         return Container(
           color: Colors.grey[100],
@@ -2506,30 +2495,6 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
                     ),
                     Row(
                       children: [
-                        ElevatedButton.icon(
-                          onPressed: _openScheduledModal,
-                          icon: const Icon(
-                            Icons.schedule,
-                            color: Color(0xFF3E4795),
-                          ),
-                          label: const Text(
-                            'View Scheduled Notifications',
-                            style: TextStyle(color: Color(0xFF3E4795)),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF0F3FF),
-                            foregroundColor: const Color(0xFF3E4795),
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 18,
-                              vertical: 10,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
                         GestureDetector(
                           onTap: () => _openCompose(),
                           child: Container(
@@ -2571,13 +2536,7 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
             ),
           ),
         ),
-        if (_showScheduledModal)
-          _ScheduledNotificationsModal(
-            notifications: _scheduledNotifications,
-            onEdit: (index) => _openCompose(index),
-            onDelete: _deleteScheduledNotification,
-            onClose: _closeScheduledModal,
-          ),
+        // scheduled notifications modal removed
         if (_showCompose)
           _ComposeNotificationModal(
             onSave: (notif) async {
@@ -2595,13 +2554,10 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
                 ), // flatten Set to string
               );
 
-              // Keep your local save if you still want scheduled ones
-              _saveScheduledNotification(notif);
+              // No scheduled storage
             },
             onCancel: _closeCompose,
-            initialData: _editingIndex != null
-                ? _scheduledNotifications[_editingIndex!]
-                : null,
+            initialData: null,
           ),
         if (_showSuccess) _NotificationSentDialog(onOk: _closeSuccessDialog),
       ],
@@ -2610,113 +2566,7 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
 }
 
 // Modal for scheduled notifications
-class _ScheduledNotificationsModal extends StatelessWidget {
-  final List<Map<String, dynamic>> notifications;
-  final void Function(int) onEdit;
-  final void Function(int) onDelete;
-  final VoidCallback onClose;
-  const _ScheduledNotificationsModal({
-    required this.notifications,
-    required this.onEdit,
-    required this.onDelete,
-    required this.onClose,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black.withOpacity(0.08),
-        child: Center(
-          child: Container(
-            width: 500,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 24,
-                  offset: Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Scheduled Notifications',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
-                        color: Color(0xFF3E4795),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFF3E4795)),
-                      onPressed: onClose,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (notifications.isEmpty)
-                  const Text(
-                    'No scheduled notifications.',
-                    style: TextStyle(color: Colors.black54),
-                  ),
-                if (notifications.isNotEmpty)
-                  ...notifications.asMap().entries.map((entry) {
-                    final i = entry.key;
-                    final notif = entry.value;
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      child: ListTile(
-                        title: Text(
-                          notif['title'] ?? '',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (notif['schedule'] != null)
-                              Text(
-                                'Scheduled: ' + notif['schedule'].toString(),
-                              ),
-                            if (notif['type'] != null)
-                              Text('Type: ' + notif['type']),
-                            if (notif['content'] != null)
-                              Text('Content: ' + notif['content']),
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () => onEdit(i),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => onDelete(i),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+// Scheduled notifications modal removed
 
 // Update ComposeNotificationModal to accept initialData for editing
 class _ComposeNotificationModal extends StatefulWidget {
@@ -2740,7 +2590,6 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
   String? _type;
   String? _content;
   Set<String> _recipients = {'All Commuters', 'All FCM Unit'};
-  DateTime? _schedule;
 
   final List<String> _types = [
     'General Announcement',
@@ -2758,7 +2607,6 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
       _type = widget.initialData!['type'];
       _content = widget.initialData!['content'];
       _recipients = Set<String>.from(widget.initialData!['recipients'] ?? []);
-      _schedule = widget.initialData!['schedule'];
     }
   }
 
@@ -2910,70 +2758,6 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
                           )
                           .toList(),
                     ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'Schedule (Optional)',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF3E4795),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            readOnly: true,
-                            controller: TextEditingController(
-                              text: _schedule == null
-                                  ? ''
-                                  : '${_schedule!.month.toString().padLeft(2, '0')}/${_schedule!.day.toString().padLeft(2, '0')}/${_schedule!.year} -- ${_schedule!.hour.toString().padLeft(2, '0')}:${_schedule!.minute.toString().padLeft(2, '0')}',
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'mm/dd/yyy -- : -- --',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.calendar_today,
-                            color: Color(0xFF3E4795),
-                          ),
-                          onPressed: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: _schedule ?? DateTime.now(),
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2100),
-                            );
-                            if (picked != null) {
-                              final time = await showTimePicker(
-                                context: context,
-                                initialTime: TimeOfDay.now(),
-                              );
-                              if (time != null) {
-                                setState(() {
-                                  _schedule = DateTime(
-                                    picked.year,
-                                    picked.month,
-                                    picked.day,
-                                    time.hour,
-                                    time.minute,
-                                  );
-                                });
-                              }
-                            }
-                          },
-                        ),
-                      ],
-                    ),
                     const SizedBox(height: 32),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -2986,7 +2770,6 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
                                 'type': _type,
                                 'content': _content,
                                 'recipients': _recipients,
-                                'schedule': _schedule,
                               });
                             }
                           },
@@ -3307,35 +3090,6 @@ class _ScheduleWeekViewState extends State<_ScheduleWeekView> {
                       spacing: 12,
                       runSpacing: 8,
                       children: [
-                        ElevatedButton.icon(
-                          onPressed: _toggleEditMode,
-                          icon: Icon(
-                            _isEditMode ? Icons.check_circle : Icons.edit,
-                            size: 20,
-                            color: Colors.white,
-                          ),
-                          label: Text(
-                            _isEditMode ? 'Done Editing' : 'Edit Schedule',
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _isEditMode
-                                ? Colors.green
-                                : const Color(0xFF1A237E),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            textStyle: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
                         ElevatedButton.icon(
                           onPressed: () => setState(() => _showModal = true),
                           icon: const Icon(
@@ -3876,6 +3630,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
   bool _isLoading = false;
   bool _showAddForm = false;
   Map<String, dynamic>? _editingSchedule;
+  bool _showActions = false;
 
   final _formKey = GlobalKey<FormState>();
   final _timeController = TextEditingController();
@@ -4271,24 +4026,33 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                           ),
                         ),
                         const SizedBox(width: 16),
-                        // Add button
-                        ElevatedButton.icon(
-                          onPressed: _showAddFormDialog,
-                          icon: const Icon(Icons.add, color: Colors.white),
-                          label: const Text(
-                            'Add Schedule',
-                            style: TextStyle(color: Colors.white),
-                          ),
+                        // Edit toggle
+                        ElevatedButton(
+                          onPressed: () => setState(() => _showActions = !_showActions),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF3E4795),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                            minimumSize: const Size(44, 44),
+                            shape: const CircleBorder(),
+                            padding: EdgeInsets.zero,
+                            elevation: 0,
                           ),
+                          child: Icon(
+                            _showActions ? Icons.edit_off : Icons.edit,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Add button (icon only)
+                        ElevatedButton(
+                          onPressed: _showAddFormDialog,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3E4795),
+                            minimumSize: const Size(44, 44),
+                            shape: const CircleBorder(),
+                            padding: EdgeInsets.zero,
+                            elevation: 0,
+                          ),
+                          child: const Icon(Icons.add, color: Colors.white),
                         ),
                       ],
                     ),
@@ -4326,13 +4090,13 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                               topRight: Radius.circular(12),
                             ),
                           ),
-                          child: const Row(
+                          child: Row(
                             children: [
                               Expanded(
                                 flex: 2,
                                 child: Text(
                                   'Time',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -4358,17 +4122,9 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                                   ),
                                 ),
                               ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  'Reason',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
+                              // Reason column removed
+                              if (_showActions)
+                                const Expanded(
                                 flex: 1,
                                 child: Text(
                                   'Actions',
@@ -4433,12 +4189,8 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                                               schedule['status'] ?? 'N/A',
                                             ),
                                           ),
-                                          Expanded(
-                                            flex: 2,
-                                            child: Text(
-                                              schedule['reason'] ?? 'N/A',
-                                            ),
-                                          ),
+                                          // Reason cell removed
+                                          if (_showActions)
                                           Expanded(
                                             flex: 1,
                                             child: Row(
@@ -4570,17 +4322,22 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                                 ? 'Loading vehicles...'
                                 : 'Select Unit',
                           ),
-                          items: _vehicles.map((vehicle) {
-                            // Handle different possible field names for unit number
-                            String unitName =
+                          items: (_vehicles.isEmpty
+                                  ? List.generate(15, (i) => {
+                                        'vehicle_id': i + 1,
+                                        'unit_number': 'Unit ${i + 1}',
+                                      })
+                                  : _vehicles.take(15))
+                              .map((vehicle) {
+                            // Normalize and cap to 15 units
+                            final int vehicleId =
+                                vehicle['vehicle_id'] ?? vehicle['id'] ?? 0;
+                            final String unitName =
                                 vehicle['unit_number'] ??
                                 vehicle['unitNumber'] ??
                                 vehicle['plate_number'] ??
                                 vehicle['plateNumber'] ??
-                                'Unit ${vehicle['vehicle_id'] ?? vehicle['id']}';
-
-                            int vehicleId =
-                                vehicle['vehicle_id'] ?? vehicle['id'] ?? 0;
+                                'Unit $vehicleId';
 
                             return DropdownMenuItem<int>(
                               value: vehicleId,
@@ -4622,7 +4379,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                               vertical: 8,
                             ),
                           ),
-                          items: ['Active', 'Sick', 'Maintenance', 'Coding']
+                          items: ['Active', 'Sick', 'Maintenance', 'Coding', 'Other']
                               .map((status) {
                                 return DropdownMenuItem<String>(
                                   value: status,
@@ -4630,23 +4387,25 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                                 );
                               })
                               .toList(),
-                          onChanged: (value) =>
-                              _statusController.text = value ?? 'Active',
+                          onChanged: (value) {
+                            setState(() {
+                              _statusController.text = value ?? 'Active';
+                            });
+                          },
                           validator: (value) =>
                               value == null ? 'Status is required' : null,
                         ),
                         const SizedBox(height: 16),
-
-                        // Reason field
+                        if (_statusController.text == 'Other') ...[
                         const Text(
-                          'Reason (Optional)',
+                            'Specify Status',
                           style: TextStyle(fontWeight: FontWeight.w500),
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _reasonController,
                           decoration: InputDecoration(
-                            hintText: 'Enter reason if applicable',
+                              hintText: 'Enter custom status',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -4656,6 +4415,8 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                             ),
                           ),
                         ),
+                          const SizedBox(height: 16),
+                        ],
                         const SizedBox(height: 24),
 
                         // Action buttons

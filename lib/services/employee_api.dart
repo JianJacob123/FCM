@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-String _apiBase() => dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
+String _apiBase() => dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080';
 
 class Employee {
   final int id;

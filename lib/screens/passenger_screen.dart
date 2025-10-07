@@ -1325,8 +1325,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                context.read<UserProvider>().logout();
-                Navigator.of(context).popUntil((route) => route.isFirst);
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Logout'),
+                    content: const Text('Are you sure you want to log out?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          context.read<UserProvider>().logout();
+                          Navigator.of(context).popUntil((route) => route.isFirst);
+                        },
+                        child: const Text('Logout'),
+                      ),
+                    ],
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
