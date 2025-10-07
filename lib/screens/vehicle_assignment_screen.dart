@@ -727,19 +727,12 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
                             border: OutlineInputBorder(),
                           ),
                           items: [
-                            // Include currently assigned vehicle for editing
-                            if (_editingAssignment != null)
+                            // Fixed choices Unit 1-15 regardless of API
+                            for (int i = 1; i <= 15; i++)
                               DropdownMenuItem<int>(
-                                value: _editingAssignment!.vehicleId,
-                                child: Text('Vehicle ${_editingAssignment!.vehicleId} (Current)'),
+                                value: i,
+                                child: Text('Unit $i'),
                               ),
-                            // Include available vehicles
-                            ..._availableVehicles.map((vehicle) {
-                              return DropdownMenuItem<int>(
-                                value: vehicle.vehicleId,
-                                child: Text('Vehicle ${vehicle.vehicleId}'),
-                              );
-                            }),
                           ],
                           onChanged: (value) {
                             setState(() {
