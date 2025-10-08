@@ -106,12 +106,19 @@ class VehicleAssignment {
       }
 
       // Create the assignment
+      // The table now requires a user_id column, so we need to provide it
+      // Use driver_id as user_id if driver is provided, otherwise use conductor_id
+      const userId = driverId || conductorId;
+      if (!userId) {
+        throw new Error('At least one user (driver or conductor) must be assigned');
+      }
+      
       const query = `
-        INSERT INTO vehicle_assignment (vehicle_id, driver_id, conductor_id, assigned_at, created_at, updated_at)
-        VALUES ($1, $2, $3, NOW(), NOW(), NOW())
-        RETURNING assignment_id, vehicle_id, driver_id, conductor_id, assigned_at, created_at, updated_at
+        INSERT INTO vehicle_assignment (vehicle_id, driver_id, conductor_id, user_id, assigned_at, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW())
+        RETURNING assignment_id, vehicle_id, driver_id, conductor_id, user_id, assigned_at, created_at, updated_at
       `;
-      const result = await db.query(query, [vehicleId, driverId, conductorId]);
+      const result = await db.query(query, [vehicleId, driverId, conductorId, userId]);
 
       return new VehicleAssignment(result.rows[0]);
     } catch (error) {

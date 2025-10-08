@@ -198,12 +198,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   obscureText: true,
                 ),
                 const SizedBox(height: 8),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Active'),
-                  value: active,
-                  onChanged: (v) => setState(() => active = v),
-                ),
+                // Active toggle removed; new users default to active=true and edits preserve existing state
               ],
             ),
           ),
