@@ -6,10 +6,10 @@ import '../providers/user_provider.dart';
 import '../screens/login_screen.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import 'dart:async';
+import 'package:intl/intl.dart';
 
 final baseUrl = dotenv.env['API_BASE_URL'];
 
@@ -609,7 +609,7 @@ class _MapScreenState extends State<MapScreen> {
           //Keep: vehicle info bottom sheet
           if (_showVehicleInfo && _selectedVehicle != null)
             Positioned(
-              bottom: 0,
+              bottom: 80,
               left: 20,
               right: 20,
               child: Container(
@@ -623,6 +623,8 @@ class _MapScreenState extends State<MapScreen> {
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(24),
                     topRight: Radius.circular(24),
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -658,26 +660,61 @@ class _MapScreenState extends State<MapScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Plate No: DAL 7674',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 4),
                     Text(
                       '${_selectedVehicle?["route_name"] ?? "Unknown"}',
                       style: TextStyle(fontSize: 16),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Progress',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 4),
+                    //Animated progress bar
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(
+                        begin: 0.2,
+                        end:
+                            (double.tryParse(
+                                  _selectedVehicle!["route_progress_percent"]
+                                      .toString(),
+                                ) ??
+                                0) /
+                            100.clamp(0.0, 1.0),
+                      ),
+                      duration: const Duration(
+                        milliseconds: 800,
+                      ), // animation duration
+                      curve: Curves.easeOut, // makes it smooth
+                      builder: (context, value, _) => ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: value,
+                          minHeight: 8,
+                          backgroundColor: Colors.grey[300],
+                          color: Colors.blueAccent,
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text(
+                      children: [
+                        const Text(
                           'Estimated Time of Arrival',
                           style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                         Text(
-                          '8:30 AM',
-                          style: TextStyle(
+                          _selectedVehicle != null &&
+                                  _selectedVehicle!['eta'] != null
+                              ? DateFormat.jm().format(
+                                  DateTime.parse(
+                                    _selectedVehicle!['eta'],
+                                  ).toLocal(),
+                                )
+                              : '--:--',
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -689,11 +726,11 @@ class _MapScreenState extends State<MapScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: const [
                         Text(
-                          'Current Location',
+                          'Current Capacity',
                           style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                         Text(
-                          'Lalayat San Jose',
+                          '12/20',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -709,7 +746,7 @@ class _MapScreenState extends State<MapScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: const [
                             Text(
-                              "Driver's Name",
+                              "Plate Number",
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey,
@@ -717,7 +754,7 @@ class _MapScreenState extends State<MapScreen> {
                             ),
                             SizedBox(height: 2),
                             Text(
-                              'Nelson Suarez',
+                              'DAL 1234',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,

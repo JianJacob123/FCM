@@ -14,6 +14,14 @@ const getAllVehicles = async () => {
   ST_Y(v.current_location) AS lat,
   r.route_name,
   r.route_id,
+
+  -- Route progress as percentage (cast to numeric before rounding)
+  ROUND(
+    (ST_LineLocatePoint(r.route_geom, ST_ClosestPoint(r.route_geom, v.current_location)) * 100)::numeric,
+    2
+  ) AS route_progress_percent,
+
+  -- Remaining route geometry as GeoJSON
   ST_AsGeoJSON(
     ST_LineSubstring(
       r.route_geom,
@@ -21,7 +29,11 @@ const getAllVehicles = async () => {
       1
     ),
     6
-  ) AS remaining_route_polyline
+  ) AS remaining_route_polyline,
+
+  -- ETA based on current progress and route_duration
+  NOW() + r.route_duration * (1 - ST_LineLocatePoint(r.route_geom, ST_ClosestPoint(r.route_geom, v.current_location))) AS eta
+
 FROM vehicles v
 INNER JOIN routes r ON v.route_id = r.route_id;
             `);
