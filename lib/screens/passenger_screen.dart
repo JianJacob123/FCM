@@ -99,8 +99,7 @@ class _SearchFieldState extends State<SearchField> {
   List<Map<String, dynamic>> _suggestions = [];
 
   Future<void> _searchPlace(String query) async {
-    final accessToken =
-        'INSERT TOKEN HERE'; // Replace with your Mapbox access token
+    final accessToken = ''; // Replace with your Mapbox access token
     final encodedQuery = Uri.encodeComponent(query);
 
     final url = Uri.parse(
@@ -341,17 +340,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     notifications = fetchNotifications('All Commuters');
   }
 
-  IconData mapIcon(String iconName) {
-    switch (iconName) {
-      case "directions_bus":
-        return Icons.directions_bus;
-      case "location_on":
-        return Icons.location_on;
-      case "star":
-        return Icons.star;
-      default:
-        return Icons.notifications;
-    }
+  String timeAgo(String isoDate) {
+    final date = DateTime.parse(isoDate);
+    final diff = DateTime.now().difference(date);
+
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
+    if (diff.inHours < 24) return '${diff.inHours} hours ago';
+    if (diff.inDays < 7) return '${diff.inDays} days ago';
+    return DateFormat('MMM dd').format(date);
   }
 
   @override
@@ -411,14 +408,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               borderRadius: BorderRadius.circular(18),
                             ),
                             child: ListTile(
-                              leading: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFBFC6F7),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
                               title: Text(
                                 notif["notif_title"],
                                 style: const TextStyle(
@@ -431,7 +420,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 style: const TextStyle(fontSize: 14),
                               ),
                               trailing: Text(
-                                notif["notif_date"],
+                                timeAgo(notif["notif_date"]),
                                 style: const TextStyle(
                                   fontSize: 13,
                                   color: Colors.grey,
@@ -738,8 +727,13 @@ class _MapScreenState extends State<MapScreen> {
               onLocationSelected: (latLng, placeName) {
                 setState(() {
                   _pickedLocation = latLng;
-                  _mapController.move(latLng, 16);
+                  _pickedLocationName = placeName; // save the name
+                  _showPinnedLocation = true; // ensure the green pin shows
+                  _showVehicleInfo = false; // hide vehicle info if visible
                 });
+
+                // Smooth camera movement
+                _mapController.move(latLng, 16);
               },
             ),
           ),

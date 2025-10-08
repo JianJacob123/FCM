@@ -1761,6 +1761,17 @@ class _ExpandableSidebarItem extends StatelessWidget {
 class NotificationList extends StatelessWidget {
   const NotificationList({super.key});
 
+  String timeAgo(String isoDate) {
+    final date = DateTime.parse(isoDate);
+    final diff = DateTime.now().difference(date);
+
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
+    if (diff.inHours < 24) return '${diff.inHours} hours ago';
+    if (diff.inDays < 7) return '${diff.inDays} days ago';
+    return DateFormat('MMM dd').format(date);
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<dynamic>>(
@@ -1782,7 +1793,7 @@ class NotificationList extends StatelessWidget {
             final notif = notifications[index];
             final title = notif['notif_title'] ?? '';
             final subtitle = notif['content'] ?? '';
-            final time = notif['notif_date'] ?? '';
+            final time = timeAgo(notif['notif_date'] ?? '');
             final type = notif['notif_type'] ?? '';
             final isUrgent = type.toLowerCase() == "urgent";
 

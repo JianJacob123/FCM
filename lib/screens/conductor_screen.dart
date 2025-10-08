@@ -846,6 +846,17 @@ class NotificationsTab extends StatefulWidget {
 class _NotificationsTabState extends State<NotificationsTab> {
   late Future<List<dynamic>> notifications;
 
+  String timeAgo(String isoDate) {
+    final date = DateTime.parse(isoDate);
+    final diff = DateTime.now().difference(date);
+
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
+    if (diff.inHours < 24) return '${diff.inHours} hours ago';
+    if (diff.inDays < 7) return '${diff.inDays} days ago';
+    return DateFormat('MMM dd').format(date);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -912,14 +923,6 @@ class _NotificationsTabState extends State<NotificationsTab> {
                               borderRadius: BorderRadius.circular(18),
                             ),
                             child: ListTile(
-                              leading: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFBFC6F7),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
                               title: Text(
                                 notif["notif_title"],
                                 style: const TextStyle(
@@ -932,7 +935,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
                                 style: const TextStyle(fontSize: 14),
                               ),
                               trailing: Text(
-                                notif["notif_date"],
+                                timeAgo(notif["notif_date"]),
                                 style: const TextStyle(
                                   fontSize: 13,
                                   color: Colors.grey,
@@ -978,8 +981,19 @@ class _PassengerPickupTabState extends State<PassengerPickupTab> {
 
   Future<void> _refreshData() async {
     setState(() {
-      _futurePickups = fetchPendingTrips(); // 🔄 refresh
+      _futurePickups = fetchPendingTrips(); //refresh
     });
+  }
+
+  String timeAgo(String isoDate) {
+    final date = DateTime.parse(isoDate);
+    final diff = DateTime.now().difference(date);
+
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
+    if (diff.inHours < 24) return '${diff.inHours} hours ago';
+    if (diff.inDays < 7) return '${diff.inDays} days ago';
+    return DateFormat('MMM dd').format(date);
   }
 
   @override
@@ -1093,7 +1107,7 @@ class _PassengerPickupTabState extends State<PassengerPickupTab> {
                               style: const TextStyle(fontSize: 14),
                             ),
                             trailing: Text(
-                              pickup['created_at'] ?? '',
+                              timeAgo(pickup['created_at'] ?? ''),
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: Colors.grey,
@@ -1137,6 +1151,11 @@ class _MessagingTabState extends State<MessagingTab> {
     super.initState();
     final userProvider = context.read<UserProvider>();
     conductorId = userProvider.currentUser!.id;
+  }
+
+  String _formatTime(String isoDate) {
+    final dateTime = DateTime.parse(isoDate).toLocal();
+    return DateFormat('hh:mm a').format(dateTime);
   }
 
   @override
@@ -1247,7 +1266,7 @@ class _MessagingTabState extends State<MessagingTab> {
                                     ),
                                   ),
                                   subtitle: Text(
-                                    "Started: ${trip['start_time'] ?? '--'} - Ended: ${trip['end_time'] ?? '--'}",
+                                    "Started: ${_formatTime(trip['start_time'] ?? '--')} - Ended: ${_formatTime(trip['end_time'] ?? '--')}",
                                   ),
                                 ),
                               ),
