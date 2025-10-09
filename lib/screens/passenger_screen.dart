@@ -16,6 +16,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import 'dart:async';
+import 'package:intl/intl.dart';
 
 final baseUrl = dotenv.env['API_BASE_URL'];
 
@@ -98,8 +99,7 @@ class _SearchFieldState extends State<SearchField> {
   List<Map<String, dynamic>> _suggestions = [];
 
   Future<void> _searchPlace(String query) async {
-    final accessToken =
-        'INSERT TOKEN HERE'; // Replace with your Mapbox access token
+    final accessToken = ''; // Replace with your Mapbox access token
     final encodedQuery = Uri.encodeComponent(query);
 
     final url = Uri.parse(
@@ -340,17 +340,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     notifications = fetchNotifications('All Commuters');
   }
 
-  IconData mapIcon(String iconName) {
-    switch (iconName) {
-      case "directions_bus":
-        return Icons.directions_bus;
-      case "location_on":
-        return Icons.location_on;
-      case "star":
-        return Icons.star;
-      default:
-        return Icons.notifications;
-    }
+  String timeAgo(String isoDate) {
+    final date = DateTime.parse(isoDate);
+    final diff = DateTime.now().difference(date);
+
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
+    if (diff.inHours < 24) return '${diff.inHours} hours ago';
+    if (diff.inDays < 7) return '${diff.inDays} days ago';
+    return DateFormat('MMM dd').format(date);
   }
 
   @override
@@ -410,14 +408,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               borderRadius: BorderRadius.circular(18),
                             ),
                             child: ListTile(
-                              leading: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFBFC6F7),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
                               title: Text(
                                 notif["notif_title"],
                                 style: const TextStyle(
@@ -430,7 +420,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 style: const TextStyle(fontSize: 14),
                               ),
                               trailing: Text(
-                                notif["notif_date"],
+                                timeAgo(notif["notif_date"]),
                                 style: const TextStyle(
                                   fontSize: 13,
                                   color: Colors.grey,
@@ -737,8 +727,13 @@ class _MapScreenState extends State<MapScreen> {
               onLocationSelected: (latLng, placeName) {
                 setState(() {
                   _pickedLocation = latLng;
-                  _mapController.move(latLng, 16);
+                  _pickedLocationName = placeName; // save the name
+                  _showPinnedLocation = true; // ensure the green pin shows
+                  _showVehicleInfo = false; // hide vehicle info if visible
                 });
+
+                // Smooth camera movement
+                _mapController.move(latLng, 16);
               },
             ),
           ),
@@ -779,6 +774,8 @@ class _MapScreenState extends State<MapScreen> {
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(24),
                     topRight: Radius.circular(24),
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -814,26 +811,61 @@ class _MapScreenState extends State<MapScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Plate No: DAL 7674',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 4),
                     Text(
                       '${_selectedVehicle?["route_name"] ?? "Unknown"}',
                       style: TextStyle(fontSize: 16),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Progress',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 4),
+                    //Animated progress bar
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(
+                        begin: 0.2,
+                        end:
+                            (double.tryParse(
+                                  _selectedVehicle!["route_progress_percent"]
+                                      .toString(),
+                                ) ??
+                                0) /
+                            100.clamp(0.0, 1.0),
+                      ),
+                      duration: const Duration(
+                        milliseconds: 800,
+                      ), // animation duration
+                      curve: Curves.easeOut, // makes it smooth
+                      builder: (context, value, _) => ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: value,
+                          minHeight: 8,
+                          backgroundColor: Colors.grey[300],
+                          color: Colors.blueAccent,
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text(
+                      children: [
+                        const Text(
                           'Estimated Time of Arrival',
                           style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                         Text(
-                          '8:30 AM',
-                          style: TextStyle(
+                          _selectedVehicle != null &&
+                                  _selectedVehicle!['eta'] != null
+                              ? DateFormat.jm().format(
+                                  DateTime.parse(
+                                    _selectedVehicle!['eta'],
+                                  ).toLocal(),
+                                )
+                              : '--:--',
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -845,11 +877,11 @@ class _MapScreenState extends State<MapScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: const [
                         Text(
-                          'Current Location',
+                          'Current Capacity',
                           style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                         Text(
-                          'Lalayat San Jose',
+                          '12/20',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -865,7 +897,7 @@ class _MapScreenState extends State<MapScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: const [
                             Text(
-                              "Driver's Name",
+                              "Plate Number",
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey,
@@ -873,7 +905,7 @@ class _MapScreenState extends State<MapScreen> {
                             ),
                             SizedBox(height: 2),
                             Text(
-                              'Nelson Suarez',
+                              'DAL 1234',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -1339,7 +1371,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onPressed: () {
                           Navigator.pop(context);
                           context.read<UserProvider>().logout();
-                          Navigator.of(context).popUntil((route) => route.isFirst);
+                          Navigator.of(
+                            context,
+                          ).popUntil((route) => route.isFirst);
                         },
                         child: const Text('Logout'),
                       ),

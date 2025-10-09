@@ -10,6 +10,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
+import 'package:intl/intl.dart';
 
 final baseUrl = dotenv.env['API_BASE_URL'];
 
@@ -31,7 +32,7 @@ enum AdminSection {
   notifications,
   schedule,
   vehicleAssignment,
-  
+
   tripHistory,
   accountManagement,
   activityLogs,
@@ -494,7 +495,7 @@ class _AdminScreenState extends State<AdminScreen> {
                                   });
                                 },
                               ),
-                              
+
                               _SidebarItem(
                                 icon: Icons.history,
                                 label: 'Trip History',
@@ -528,36 +529,39 @@ class _AdminScreenState extends State<AdminScreen> {
                           ),
 
                           // Logout (standalone)
-                              _SidebarItem(
-                                icon: Icons.logout,
-                                label: 'Logout',
-                                selected: false,
-                                onTap: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: const Text('Logout'),
-                                      content: const Text('Are you sure you want to log out?'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(context),
-                                          child: const Text('Cancel'),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                  Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute(
-                                      builder: (_) => const AdminLoginScreen(),
+                          _SidebarItem(
+                            icon: Icons.logout,
+                            label: 'Logout',
+                            selected: false,
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Logout'),
+                                  content: const Text(
+                                    'Are you sure you want to log out?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Cancel'),
                                     ),
-                                  );
-                                },
-                                          child: const Text('Logout'),
-                              ),
-                            ],
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        Navigator.of(context).pushReplacement(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const AdminLoginScreen(),
+                                          ),
+                                        );
+                                      },
+                                      child: const Text('Logout'),
                                     ),
-                                  );
-                                },
+                                  ],
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -606,7 +610,7 @@ class _AdminScreenState extends State<AdminScreen> {
           color: Colors.grey[100],
           child: const VehicleAssignmentScreen(),
         );
-      
+
       case AdminSection.tripHistory:
         return Container(
           color: Colors.grey[100],
@@ -1139,26 +1143,61 @@ class _MapScreenState extends State<MapScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Plate No: DAL 7674',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 4),
                     Text(
                       '${_selectedVehicle?["route_name"] ?? "Unknown"}',
                       style: TextStyle(fontSize: 16),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Progress',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 4),
+                    //Animated progress bar
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(
+                        begin: 0.2,
+                        end:
+                            (double.tryParse(
+                                  _selectedVehicle!["route_progress_percent"]
+                                      .toString(),
+                                ) ??
+                                0) /
+                            100.clamp(0.0, 1.0),
+                      ),
+                      duration: const Duration(
+                        milliseconds: 800,
+                      ), // animation duration
+                      curve: Curves.easeOut, // makes it smooth
+                      builder: (context, value, _) => ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: value,
+                          minHeight: 8,
+                          backgroundColor: Colors.grey[300],
+                          color: Colors.blueAccent,
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text(
+                      children: [
+                        const Text(
                           'Estimated Time of Arrival',
                           style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                         Text(
-                          '8:30 AM',
-                          style: TextStyle(
+                          _selectedVehicle != null &&
+                                  _selectedVehicle!['eta'] != null
+                              ? DateFormat.jm().format(
+                                  DateTime.parse(
+                                    _selectedVehicle!['eta'],
+                                  ).toLocal(),
+                                )
+                              : '--:--',
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -1170,11 +1209,11 @@ class _MapScreenState extends State<MapScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: const [
                         Text(
-                          'Current Location',
+                          'Current Capacity',
                           style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                         Text(
-                          'Lalayat San Jose',
+                          '12/20',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -1190,7 +1229,7 @@ class _MapScreenState extends State<MapScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: const [
                             Text(
-                              "Driver's Name",
+                              "Plate Number",
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey,
@@ -1198,7 +1237,7 @@ class _MapScreenState extends State<MapScreen> {
                             ),
                             SizedBox(height: 2),
                             Text(
-                              'Nelson Suarez',
+                              'DAL 1234',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -1723,6 +1762,17 @@ class _ExpandableSidebarItem extends StatelessWidget {
 class NotificationList extends StatelessWidget {
   const NotificationList({super.key});
 
+  String timeAgo(String isoDate) {
+    final date = DateTime.parse(isoDate);
+    final diff = DateTime.now().difference(date);
+
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
+    if (diff.inHours < 24) return '${diff.inHours} hours ago';
+    if (diff.inDays < 7) return '${diff.inDays} days ago';
+    return DateFormat('MMM dd').format(date);
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<dynamic>>(
@@ -1744,7 +1794,7 @@ class NotificationList extends StatelessWidget {
             final notif = notifications[index];
             final title = notif['notif_title'] ?? '';
             final subtitle = notif['content'] ?? '';
-            final time = notif['notif_date'] ?? '';
+            final time = timeAgo(notif['notif_date'] ?? '');
             final type = notif['notif_type'] ?? '';
             final isUrgent = type.toLowerCase() == "urgent";
 
@@ -4029,7 +4079,8 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                         const SizedBox(width: 16),
                         // Edit toggle
                         ElevatedButton(
-                          onPressed: () => setState(() => _showActions = !_showActions),
+                          onPressed: () =>
+                              setState(() => _showActions = !_showActions),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF3E4795),
                             minimumSize: const Size(44, 44),
@@ -4126,15 +4177,15 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                               // Reason column removed
                               if (_showActions)
                                 const Expanded(
-                                flex: 1,
-                                child: Text(
-                                  'Actions',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
+                                  flex: 1,
+                                  child: Text(
+                                    'Actions',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
-                              ),
                             ],
                           ),
                         ),
@@ -4192,37 +4243,37 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                                           ),
                                           // Reason cell removed
                                           if (_showActions)
-                                          Expanded(
-                                            flex: 1,
-                                            child: Row(
-                                              children: [
-                                                IconButton(
-                                                  icon: const Icon(
-                                                    Icons.edit,
-                                                    color: Colors.blue,
-                                                    size: 20,
+                                            Expanded(
+                                              flex: 1,
+                                              child: Row(
+                                                children: [
+                                                  IconButton(
+                                                    icon: const Icon(
+                                                      Icons.edit,
+                                                      color: Colors.blue,
+                                                      size: 20,
+                                                    ),
+                                                    onPressed: () =>
+                                                        _showEditFormDialog(
+                                                          schedule,
+                                                        ),
+                                                    tooltip: 'Edit',
                                                   ),
-                                                  onPressed: () =>
-                                                      _showEditFormDialog(
-                                                        schedule,
-                                                      ),
-                                                  tooltip: 'Edit',
-                                                ),
-                                                IconButton(
-                                                  icon: const Icon(
-                                                    Icons.delete,
-                                                    color: Colors.red,
-                                                    size: 20,
+                                                  IconButton(
+                                                    icon: const Icon(
+                                                      Icons.delete,
+                                                      color: Colors.red,
+                                                      size: 20,
+                                                    ),
+                                                    onPressed: () =>
+                                                        _deleteSchedule(
+                                                          schedule['id'],
+                                                        ),
+                                                    tooltip: 'Delete',
                                                   ),
-                                                  onPressed: () =>
-                                                      _deleteSchedule(
-                                                        schedule['id'],
-                                                      ),
-                                                  tooltip: 'Delete',
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
-                                          ),
                                         ],
                                       ),
                                     );
@@ -4323,28 +4374,35 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                                 ? 'Loading vehicles...'
                                 : 'Select Unit',
                           ),
-                          items: (_vehicles.isEmpty
-                                  ? List.generate(15, (i) => {
-                                        'vehicle_id': i + 1,
-                                        'unit_number': 'Unit ${i + 1}',
-                                      })
-                                  : _vehicles.take(15))
-                              .map((vehicle) {
-                            // Normalize and cap to 15 units
-                            final int vehicleId =
-                                vehicle['vehicle_id'] ?? vehicle['id'] ?? 0;
-                            final String unitName =
-                                vehicle['unit_number'] ??
-                                vehicle['unitNumber'] ??
-                                vehicle['plate_number'] ??
-                                vehicle['plateNumber'] ??
-                                'Unit $vehicleId';
+                          items:
+                              (_vehicles.isEmpty
+                                      ? List.generate(
+                                          15,
+                                          (i) => {
+                                            'vehicle_id': i + 1,
+                                            'unit_number': 'Unit ${i + 1}',
+                                          },
+                                        )
+                                      : _vehicles.take(15))
+                                  .map((vehicle) {
+                                    // Normalize and cap to 15 units
+                                    final int vehicleId =
+                                        vehicle['vehicle_id'] ??
+                                        vehicle['id'] ??
+                                        0;
+                                    final String unitName =
+                                        vehicle['unit_number'] ??
+                                        vehicle['unitNumber'] ??
+                                        vehicle['plate_number'] ??
+                                        vehicle['plateNumber'] ??
+                                        'Unit $vehicleId';
 
-                            return DropdownMenuItem<int>(
-                              value: vehicleId,
-                              child: Text(unitName),
-                            );
-                          }).toList(),
+                                    return DropdownMenuItem<int>(
+                                      value: vehicleId,
+                                      child: Text(unitName),
+                                    );
+                                  })
+                                  .toList(),
                           onChanged: _vehicles.isEmpty
                               ? null
                               : (value) {
@@ -4380,14 +4438,19 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                               vertical: 8,
                             ),
                           ),
-                          items: ['Active', 'Sick', 'Maintenance', 'Coding', 'Other']
-                              .map((status) {
+                          items:
+                              [
+                                'Active',
+                                'Sick',
+                                'Maintenance',
+                                'Coding',
+                                'Other',
+                              ].map((status) {
                                 return DropdownMenuItem<String>(
                                   value: status,
                                   child: Text(status),
                                 );
-                              })
-                              .toList(),
+                              }).toList(),
                           onChanged: (value) {
                             setState(() {
                               _statusController.text = value ?? 'Active';
@@ -4398,24 +4461,24 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                         ),
                         const SizedBox(height: 16),
                         if (_statusController.text == 'Other') ...[
-                        const Text(
+                          const Text(
                             'Specify Status',
-                          style: TextStyle(fontWeight: FontWeight.w500),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _reasonController,
-                          decoration: InputDecoration(
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _reasonController,
+                            decoration: InputDecoration(
                               hintText: 'Enter custom status',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                             ),
                           ),
-                        ),
                           const SizedBox(height: 16),
                         ],
                         const SizedBox(height: 24),
