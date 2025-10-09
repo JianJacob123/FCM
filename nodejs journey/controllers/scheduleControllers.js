@@ -24,7 +24,7 @@ async function create(req, res) {
     return send(res, 201, { success: true, id: created.id });
   } catch (e) {
     console.error('create schedule error', e);
-    return err(res, 500, 'Failed to create schedule');
+    return err(res, 500, `Failed to create schedule: ${e.message}`);
   }
 }
 

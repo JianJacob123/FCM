@@ -49,6 +49,32 @@ const getRecentTripsByVehicleId = async (vehicleId) => {
     return res.rows;
 }
 
+// Count trips per vehicle for a specific date (00:00-23:59)
+const countTripsPerVehicleForDate = async (dateYmd) => {
+    const sql = `
+        SELECT vehicle_id, COUNT(*)::int AS trips
+        FROM trips
+        WHERE status = 'completed'
+          AND DATE(start_time) = $1
+        GROUP BY vehicle_id
+        ORDER BY vehicle_id
+    `;
+    const res = await client.query(sql, [dateYmd]);
+    return res.rows; // [{vehicle_id, trips}]
+}
+
+// Count distinct active vehicles per hour of day for a date
+const countActiveVehiclesByHour = async (dateYmd) => {
+    const sql = `
+      SELECT EXTRACT(HOUR FROM start_time)::int AS hour, COUNT(DISTINCT vehicle_id)::int AS buses
+      FROM trips
+      WHERE DATE(start_time) = $1
+      GROUP BY 1
+    `;
+    const res = await client.query(sql, [dateYmd]);
+    return res.rows; // [{hour, buses}]
+}
+
 module.exports = {
     getActiveTripsByVehicle,
     insertTrip,
@@ -57,5 +83,7 @@ module.exports = {
     updateGeofenceState,
     getVehicleByConductorId,
     getTripCountByVehicleId,
-    getRecentTripsByVehicleId
+    getRecentTripsByVehicleId,
+    countTripsPerVehicleForDate,
+    countActiveVehiclesByHour
 };

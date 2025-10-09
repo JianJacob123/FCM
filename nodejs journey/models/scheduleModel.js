@@ -16,9 +16,10 @@ async function listByDate(date) {
 }
 
 async function create(data) {
+  // Some databases may not have an auto-increment default on id. Ensure an id is generated.
   const sql = `
-    INSERT INTO schedules (schedule_date, time_start, vehicle_id, status, reason)
-    VALUES ($1, $2, $3, $4, $5)
+    INSERT INTO schedules (id, schedule_date, time_start, vehicle_id, status, reason)
+    VALUES ((SELECT COALESCE(MAX(id), 0) + 1 FROM schedules), $1, $2, $3, $4, $5)
     RETURNING id
   `;
   const rows = await query(sql, [

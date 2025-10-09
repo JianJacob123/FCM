@@ -3790,7 +3790,8 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
     final scheduleData = {
       'schedule_date': _formatDate(_selectedDate),
       'time_start': timeString,
-      'vehicle_id': _selectedVehicleId ?? 1,
+      // Send null unless the user actually selected a vehicle to avoid FK errors
+      'vehicle_id': _selectedVehicleId,
       'status': _statusController.text.trim(),
       'reason': _reasonController.text.trim().isEmpty
           ? null
@@ -3820,7 +3821,8 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
         _closeForm();
         _loadSchedules();
       } else {
-        _showErrorSnackBar('Failed to save schedule');
+        final msg = 'Failed to save schedule (HTTP ${response.statusCode})\n${response.body}';
+        _showErrorSnackBar(msg);
       }
     } catch (e) {
       _showErrorSnackBar('Error saving schedule: $e');
