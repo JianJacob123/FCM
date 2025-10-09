@@ -1,5 +1,4 @@
 const vehicleModel = require('../models/vehicleModels');
-const coordinatesData = require('../services/coordinates');
 
 const getVehicles = async (req, res) => {
     try {

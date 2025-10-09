@@ -32,10 +32,24 @@ const getAllVehicles = async () => {
   ) AS remaining_route_polyline,
 
   -- ETA based on current progress and route_duration
-  NOW() + r.route_duration * (1 - ST_LineLocatePoint(r.route_geom, ST_ClosestPoint(r.route_geom, v.current_location))) AS eta
+  NOW() + r.route_duration * (1 - ST_LineLocatePoint(r.route_geom, ST_ClosestPoint(r.route_geom, v.current_location))) AS eta,
+
+  -- Distance (in meters) from current location to the nearest point on the route
+  ST_DistanceSphere(
+    v.current_location,
+    ST_ClosestPoint(r.route_geom, v.current_location)
+  ) AS distance_from_route_meters,
+
+  -- Off-route detection (TRUE if vehicle is farther than 30m from the route)
+  CASE
+    WHEN ST_DistanceSphere(v.current_location, ST_ClosestPoint(r.route_geom, v.current_location)) > 30 THEN TRUE
+    ELSE FALSE
+  END AS is_off_route
 
 FROM vehicles v
 INNER JOIN routes r ON v.route_id = r.route_id;
+
+
             `);
         return res.rows;
     } catch (err) {
@@ -70,6 +84,14 @@ const getVehicleByConductor = async (userId) => {
               ST_Y(v.current_location) AS lat,
               r.route_name,
               r.route_id,
+
+              -- Route progress as percentage (cast to numeric before rounding)
+  ROUND(
+    (ST_LineLocatePoint(r.route_geom, ST_ClosestPoint(r.route_geom, v.current_location)) * 100)::numeric,
+    2
+  ) AS route_progress_percent,
+
+
               ST_AsGeoJSON(
                 ST_LineSubstring(
                   r.route_geom,
@@ -77,11 +99,27 @@ const getVehicleByConductor = async (userId) => {
                   1
                 ),
                 6
-              ) AS remaining_route_polyline
+              ) AS remaining_route_polyline,
+
+    -- ETA based on current progress and route_duration
+  NOW() + r.route_duration * (1 - ST_LineLocatePoint(r.route_geom, ST_ClosestPoint(r.route_geom, v.current_location))) AS eta,
+
+  -- Distance (in meters) from current location to the nearest point on the route
+  ST_DistanceSphere(
+    v.current_location,
+    ST_ClosestPoint(r.route_geom, v.current_location)
+  ) AS distance_from_route_meters,
+
+  -- Off-route detection (TRUE if vehicle is farther than 30m from the route)
+  CASE
+    WHEN ST_DistanceSphere(v.current_location, ST_ClosestPoint(r.route_geom, v.current_location)) > 30 THEN TRUE
+    ELSE FALSE
+  END AS is_off_route
+
             FROM vehicle_assignment va
             INNER JOIN vehicles v ON va.vehicle_id = v.vehicle_id
             INNER JOIN routes r ON v.route_id = r.route_id
-            WHERE va.user_id = $1
+            WHERE va.conductor_id = $1 OR va.driver_id = $1
         `, [userId]);
 
         return res.rows;

@@ -1148,11 +1148,28 @@ class _MapScreenState extends State<MapScreen> {
                       style: TextStyle(fontSize: 16),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      'Progress',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Progress',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        Text(
+                          _selectedVehicle?["is_off_route"] == true
+                              ? 'Off Route'
+                              : 'On Route',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: _selectedVehicle?["is_off_route"] == true
+                                ? Colors.red
+                                : Colors.green,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     //Animated progress bar
                     TweenAnimationBuilder<double>(
                       tween: Tween(
@@ -1175,7 +1192,7 @@ class _MapScreenState extends State<MapScreen> {
                           value: value,
                           minHeight: 8,
                           backgroundColor: Colors.grey[300],
-                          color: Colors.blueAccent,
+                          color: Color(0xFF3E4795),
                         ),
                       ),
                     ),
