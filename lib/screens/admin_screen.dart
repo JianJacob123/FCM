@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'admin_login_screen.dart';
 import 'vehicle_assignment_screen.dart';
+import 'analytics_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api.dart';
@@ -592,7 +593,7 @@ class _AdminScreenState extends State<AdminScreen> {
       case AdminSection.liveTracking:
         return const MapScreen();
       case AdminSection.analytics:
-        return _AnalyticsPage();
+        return const ForecastAnalyticsScreen();
       case AdminSection.notifications:
         return Container(
           color: Colors.grey[100],
@@ -629,7 +630,7 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Widget _AnalyticsPage() {
-    return Container(color: Colors.white);
+    return const ForecastAnalyticsScreen();
   }
 
   Widget _buildAnalyticsCard(
