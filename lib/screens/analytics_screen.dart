@@ -883,7 +883,11 @@ class _Card extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        child,
+        // Ensure inner drawings never overflow and expand to available width
+        SizedBox(
+          width: double.infinity,
+          child: ClipRRect(borderRadius: BorderRadius.circular(8), child: child),
+        ),
       ]),
     );
   }
