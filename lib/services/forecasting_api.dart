@@ -66,6 +66,24 @@ Future<({List<int> hours, List<double> predictions, int peakHour, double peakVal
   return (hours: hours, predictions: preds, peakHour: peakHour, peakValue: peakValue);
 }
 
+// Get yearly daily forecast grid (12 x 31)
+Future<({int year, List<List<double?>> grid})> forecastYearlyDaily(int year) async {
+  final res = await http.get(_baseUri('/yearly_daily?year=$year'));
+  if (res.statusCode != 200) {
+    throw Exception('Yearly forecast failed: ${res.statusCode} ${res.body}');
+  }
+  final data = jsonDecode(res.body) as Map<String, dynamic>;
+  final int yr = data['year'] as int;
+  final List<dynamic> rawGrid = data['grid'] as List<dynamic>;
+  // Convert dynamic -> List<List<double?>> with nulls preserved
+  final List<List<double?>> grid = rawGrid
+      .map<List<double?>>((row) => (row as List<dynamic>)
+          .map<double?>((e) => e == null ? null : (e as num).toDouble())
+          .toList())
+      .toList();
+  return (year: yr, grid: grid);
+}
+
 // Convenience: compute per-hour predictions (0..23) and return the peak hour
   Future<({int hour, double value, List<double> byHour})> forecastPeakHour(
     {required int dayOfWeek,

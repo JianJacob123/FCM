@@ -25,6 +25,9 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   List<Map<String, dynamic>> _tripsPerUnit = const [];
   List<int> _fleetHours = const [];
   List<int> _fleetCounts = const [];
+  // Yearly heatmap (12 x 31)
+  int _yearlyYear = DateTime.now().year;
+  List<List<double?>> _yearlyGrid = const [];
 
   String _formatHour12(int hour) {
     if (hour == 0) return '12 AM';
@@ -308,6 +311,8 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       final fleetActivityF = _fetchFleetActivity();
       final hourly = await hourlyF;
       final daily = await dailyF;
+      final yearlyF = fapi.forecastYearlyDaily(DateTime.now().year);
+      final yearly = await yearlyF;
       final schedules = await schedulesF;
       final tripsPU = await tripsPerUnitF;
       final fleet = await fleetActivityF;
@@ -323,6 +328,8 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
         _tripsPerUnit = tripsPU;
         _fleetHours = fleet['hours'] ?? const [];
         _fleetCounts = fleet['counts'] ?? const [];
+        _yearlyYear = yearly.year;
+        _yearlyGrid = yearly.grid;
       });
     } catch (e) {
       setState(() => _error = e.toString());
@@ -551,20 +558,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
             // Static operational metrics section
             _OperationalMetricsSection(),
             const SizedBox(height: 16),
-            // Hourly Passenger Forecast Heatmap
-            _Card(
-              title: 'Hourly Passenger Forecast Heatmap',
-              child: SizedBox(
-                height: 200,
-                width: double.infinity,
-                child: _HourlyHeatmap(
-                  hours: _hours,
-                  hourlyPredictions: _hourlyPredictions,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Charts in a row
+            // Charts in a row (Daily + Hourly) directly below Fleet Activity
             Row(
               children: [
                 Expanded(
@@ -576,6 +570,18 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            // Yearly daily passenger forecast heatmap at the bottom
+            if (_yearlyGrid.isNotEmpty)
+              _Card(
+                title: 'Yearly Passenger Forecast Heatmap ' + _yearlyYear.toString(),
+                titleIcon: Icons.calendar_today_outlined,
+                child: SizedBox(
+                  height: 200,
+                  width: double.infinity,
+                  child: _YearlyHeatmap(grid: _yearlyGrid, year: _yearlyYear),
+                ),
+              ),
           ],
         ),
       ),
@@ -606,20 +612,26 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   }
 }
 
-class _DailyAreaChart extends StatelessWidget {
+class _DailyAreaChart extends StatefulWidget {
   final List<DateTime> dates;
   final List<double> values;
   const _DailyAreaChart({required this.dates, required this.values});
-  
+
+  @override
+  State<_DailyAreaChart> createState() => _DailyAreaChartState();
+}
+
+class _DailyAreaChartState extends State<_DailyAreaChart> {
+  int? _hoveredIndex;
+
   @override
   Widget build(BuildContext context) {
-    if (values.isEmpty || dates.isEmpty) return const SizedBox.shrink();
-    
+    if (widget.values.isEmpty || widget.dates.isEmpty) return const SizedBox.shrink();
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey[200],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[400]!),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -631,24 +643,38 @@ class _DailyAreaChart extends StatelessWidget {
           const Text('Prophet-based predicted demand for Mon-Sun', 
               style: TextStyle(fontSize: 12, color: Colors.grey)),
           const SizedBox(height: 20),
-          SizedBox(
-            height: 200,
-            child: CustomPaint(
-              painter: _AreaChartPainter(values: values),
-              size: const Size(double.infinity, 200),
+          GestureDetector(
+            onPanStart: (details) => _updateHover(details.globalPosition),
+            onPanUpdate: (details) => _updateHover(details.globalPosition),
+            onPanEnd: (_) => setState(() => _hoveredIndex = null),
+            child: SizedBox(
+              height: 200,
+              child: CustomPaint(
+                painter: _AreaChartPainter(
+                  values: widget.values,
+                  dates: widget.dates,
+                  hoveredIndex: _hoveredIndex,
+                ),
+                size: const Size(double.infinity, 200),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Container(width: 12, height: 12, color: const Color(0xFF2196F3)),
-              const SizedBox(width: 8),
-              const Text('Daily Demand', style: TextStyle(fontSize: 12, color: Colors.black87)),
-            ],
           ),
         ],
       ),
     );
+  }
+
+  void _updateHover(Offset global) {
+    final RenderBox box = context.findRenderObject() as RenderBox;
+    final Offset local = box.globalToLocal(global);
+    const double leftPad = 0; // padding inside CustomPaint already handled
+    const double rightPad = 0;
+    final double width = box.size.width - 0; // full width of paintable area
+    final count = widget.values.length;
+    if (count <= 1) return;
+    int index = ((local.dx - leftPad) / (width) * (count - 1)).round();
+    index = index.clamp(0, count - 1);
+    setState(() => _hoveredIndex = index);
   }
 }
 
@@ -679,9 +705,8 @@ class _HourlyBarChart extends StatelessWidget {
     
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey[200],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[400]!),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -695,50 +720,63 @@ class _HourlyBarChart extends StatelessWidget {
           const SizedBox(height: 20),
           SizedBox(
             height: 200,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
+            child: Column(
               children: [
-                for (int i = 0; i < hours.length; i++)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 1),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          // Hour labels
-                          if (hours[i] % 2 == 0)
-                            Text(_formatHour12(hours[i]), 
-                                style: const TextStyle(fontSize: 10, color: Colors.black54, fontWeight: FontWeight.w500)),
-                          const SizedBox(height: 4),
-                          // Bar
-                          Container(
-                            height: maxV == 0 ? 0 : ((values[i] - minV) / range) * 160,
-                            decoration: BoxDecoration(
-                              color: top3Indices.contains(i) 
-                                ? Colors.red  // Top 3 peak hours in red
-                                : const Color(0xFF9C27B0), // Regular hours in purple
-                              borderRadius: BorderRadius.circular(2),
+                // Bars area (fills most of the height)
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      for (int i = 0; i < hours.length; i++)
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 1),
+                            child: Tooltip(
+                              message: '${values[i].round()} pax',
+                              waitDuration: Duration(milliseconds: 200),
+                              child: Container(
+                                height: (() {
+                                  // Ensure every hour shows a visible bar
+                                  if (values.isEmpty) return 0.0;
+                                  if (maxV == 0) return 3.0; // all zeros -> tiny bars
+                                  final normalized = (values[i] - minV) / range;
+                                  final h = normalized * 160.0;
+                                  return h < 3.0 ? 3.0 : h; // minimum 3px height
+                                })(),
+                                decoration: BoxDecoration(
+                                  color: top3Indices.contains(i)
+                                    ? const Color(0xFF1E3A8A)
+                                    : const Color(0xFF3B82F6),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
                             ),
                           ),
-                        ],
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                // Labels row (fixed height, does not affect bar heights)
+                Row(
+                  children: [
+                    for (int i = 0; i < hours.length; i++)
+                      Expanded(
+                        child: Center(
+                          child: hours[i] % 2 == 0
+                              ? Text(
+                                  _formatHour12(hours[i]),
+                                  style: const TextStyle(fontSize: 10, color: Colors.black54, fontWeight: FontWeight.w500),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
                       ),
-                    ),
-                  )
+                  ],
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Container(width: 12, height: 12, color: const Color(0xFF9C27B0)),
-              const SizedBox(width: 8),
-              const Text('Hourly Passengers', style: TextStyle(fontSize: 12, color: Colors.black87)),
-              const SizedBox(width: 16),
-              Container(width: 12, height: 12, color: Colors.red),
-              const SizedBox(width: 8),
-              const Text('Top 3 peak hours', style: TextStyle(fontSize: 12, color: Colors.black87)),
-            ],
-          ),
+          // Legend removed as requested
         ],
       ),
     );
@@ -748,13 +786,18 @@ class _HourlyBarChart extends StatelessWidget {
 
 class _AreaChartPainter extends CustomPainter {
   final List<double> values;
+  final List<DateTime>? dates;
+  final int? hoveredIndex;
   
-  _AreaChartPainter({required this.values});
+  _AreaChartPainter({required this.values, this.dates, this.hoveredIndex});
   
   @override
   void paint(Canvas canvas, Size size) {
     if (values.isEmpty) return;
-    
+    // Reserve space at the bottom for x-axis labels so content fits exactly
+    const double bottomPad = 18.0;
+    final double chartHeight = size.height - bottomPad;
+
     final paint = Paint()
       ..color = const Color(0xFF2196F3)
       ..style = PaintingStyle.stroke
@@ -768,7 +811,7 @@ class _AreaChartPainter extends CustomPainter {
           const Color(0xFF2196F3).withOpacity(0.3),
           const Color(0xFF2196F3).withOpacity(0.1),
         ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+      ).createShader(Rect.fromLTWH(0, 0, size.width, chartHeight));
     
     final maxValue = values.reduce((a, b) => a > b ? a : b);
     final minValue = values.reduce((a, b) => a < b ? a : b);
@@ -779,11 +822,11 @@ class _AreaChartPainter extends CustomPainter {
     
     for (int i = 0; i < values.length; i++) {
       final x = (i / (values.length - 1)) * size.width;
-      final y = size.height - ((values[i] - minValue) / range) * size.height;
+      final y = chartHeight - ((values[i] - minValue) / range) * chartHeight;
       
       if (i == 0) {
         path.moveTo(x, y);
-        fillPath.moveTo(x, size.height);
+        fillPath.moveTo(x, chartHeight);
         fillPath.lineTo(x, y);
       } else {
         path.lineTo(x, y);
@@ -792,7 +835,7 @@ class _AreaChartPainter extends CustomPainter {
     }
     
     // Complete the fill path
-    fillPath.lineTo(size.width, size.height);
+    fillPath.lineTo(size.width, chartHeight);
     fillPath.close();
     
     // Draw fill
@@ -807,25 +850,67 @@ class _AreaChartPainter extends CustomPainter {
       ..strokeWidth = 0.5;
     
     for (int i = 0; i <= 4; i++) {
-      final y = (i / 4) * size.height;
+      final y = (i / 4) * chartHeight;
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
     
-    // Draw day labels
+    // Draw day labels with optional date numbers
     final textPainter = TextPainter(
       textAlign: TextAlign.center,
       textDirection: TextDirection.ltr,
     );
     
-    final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final fallbackDayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     for (int i = 0; i < values.length; i++) {
       final x = (i / (values.length - 1)) * size.width;
+      String dayLabel;
+      if (dates != null && dates!.length > i) {
+        final d = dates![i];
+        final dow = fallbackDayNames[(d.weekday + 6) % 7]; // convert Mon=1..Sun=7 to index 0..6 with Mon first
+        dayLabel = '$dow\n${d.day}';
+      } else {
+        dayLabel = fallbackDayNames[i % fallbackDayNames.length];
+      }
       textPainter.text = TextSpan(
-        text: dayNames[i % dayNames.length],
-        style: const TextStyle(fontSize: 10, color: Colors.black54),
+        text: dayLabel,
+        style: const TextStyle(fontSize: 10, color: Colors.black54, height: 1.2),
       );
       textPainter.layout();
-      textPainter.paint(canvas, Offset(x - textPainter.width / 2, size.height + 4));
+      textPainter.paint(canvas, Offset(x - textPainter.width / 2, chartHeight + 2));
+    }
+
+    // Hover indicator and tooltip
+    if (hoveredIndex != null && hoveredIndex! >= 0 && hoveredIndex! < values.length) {
+      final idx = hoveredIndex!;
+      final x = (idx / (values.length - 1)) * size.width;
+      final y = chartHeight - ((values[idx] - minValue) / range) * chartHeight;
+
+      // Highlight circle
+      final hoverFill = Paint()..color = const Color(0xFF1E3A8A).withOpacity(0.15);
+      final hoverDot = Paint()..color = const Color(0xFF1E3A8A);
+      canvas.drawCircle(Offset(x, y), 8, hoverFill);
+      canvas.drawCircle(Offset(x, y), 3, hoverDot);
+
+      // Tooltip
+      final label = '${values[idx].round()} pax';
+      final tp2 = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      tp2.layout();
+      final boxW = tp2.width + 12;
+      final boxH = tp2.height + 10;
+      double boxX = x + 8;
+      double boxY = y - boxH - 8;
+      if (boxX + boxW > size.width) boxX = x - boxW - 8;
+      if (boxY < 0) boxY = y + 8;
+      final rrect = RRect.fromRectAndRadius(Rect.fromLTWH(boxX, boxY, boxW, boxH), const Radius.circular(6));
+      final bg = Paint()..color = Colors.black.withOpacity(0.8);
+      canvas.drawRRect(rrect, bg);
+      tp2.paint(canvas, Offset(boxX + 6, boxY + 5));
     }
   }
   
@@ -870,8 +955,9 @@ class _OperationalMetricsSection extends StatelessWidget {
 
 class _Card extends StatelessWidget {
   final String title;
+  final IconData? titleIcon;
   final Widget child;
-  const _Card({required this.title, required this.child});
+  const _Card({required this.title, this.titleIcon, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -881,7 +967,15 @@ class _Card extends StatelessWidget {
       ]),
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Row(
+          children: [
+            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            if (titleIcon != null) ...[
+              const SizedBox(width: 6),
+              Icon(titleIcon, size: 18, color: Colors.black87),
+            ],
+          ],
+        ),
         const SizedBox(height: 12),
         // Ensure inner drawings never overflow and expand to available width
         SizedBox(
@@ -1791,6 +1885,261 @@ class _DonutChartPainter extends CustomPainter {
     );
   }
   
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+class _YearlyHeatmap extends StatefulWidget {
+  final List<List<double?>> grid; // 12 x 31 with nulls for invalid days
+  final int year;
+  const _YearlyHeatmap({required this.grid, required this.year});
+
+  @override
+  State<_YearlyHeatmap> createState() => _YearlyHeatmapState();
+}
+
+class _YearlyHeatmapState extends State<_YearlyHeatmap> {
+  Offset? _hoverPos;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onHover: (e) => setState(() => _hoverPos = e.localPosition),
+      onExit: (_) => setState(() => _hoverPos = null),
+      child: GestureDetector(
+        onPanStart: (e) => setState(() => _hoverPos = e.localPosition),
+        onPanUpdate: (e) => setState(() => _hoverPos = e.localPosition),
+        onPanEnd: (_) => setState(() => _hoverPos = null),
+        child: CustomPaint(
+          painter: _YearlyHeatmapPainter(
+            grid: widget.grid,
+            year: widget.year,
+            hoverPos: _hoverPos,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _YearlyHeatmapPainter extends CustomPainter {
+  final List<List<double?>> grid; // months x days
+  final int year;
+  final Offset? hoverPos;
+  _YearlyHeatmapPainter({required this.grid, required this.year, required this.hoverPos});
+
+  static const List<String> _monthLabels = [
+    'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'
+  ];
+  static const List<String> _dowLabels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Layout paddings
+    const double leftPad = 36; // for day-of-week labels
+    const double topPad = 22;  // for month labels
+    const double rightPad = 8;
+    const double bottomPad = 8;
+
+    final double chartWidth = size.width - leftPad - rightPad;
+    final double chartHeight = size.height - topPad - bottomPad;
+
+    const int months = 12;
+    const int weeksPerMonth = 5; // fixed 5 columns per month
+    final int cols = months * weeksPerMonth; // 60 columns total
+    final int rows = 7; // days of week (Sun..Sat)
+
+    // Use square cells: side length is the limiting dimension
+    final double cellSize = (chartWidth / cols).clamp(0, double.infinity)
+        .compareTo(chartHeight / rows) < 0
+        ? chartWidth / cols
+        : chartHeight / rows;
+    final double cellW = cellSize;
+    final double cellH = cellSize;
+
+    // Center the grid within the available chart area
+    final double usedWidth = cellW * cols;
+    final double usedHeight = cellH * rows;
+    final double originX = leftPad + (chartWidth - usedWidth) / 2;
+    final double originY = topPad + (chartHeight - usedHeight) / 2;
+
+    // Aggregate provided 12x31 grid into 12 x 5 x 7 (month x week x dow)
+    // Prepare accumulators (month-major then week, then dow)
+    final sums = List.generate(months, (_) => List.generate(weeksPerMonth, (_) => List<double>.filled(rows, 0.0)));
+    final counts = List.generate(months, (_) => List.generate(weeksPerMonth, (_) => List<int>.filled(rows, 0)));
+
+    int daysInMonth(int year, int month) {
+      final firstNext = month == 12 ? DateTime(year + 1, 1, 1) : DateTime(year, month + 1, 1);
+      return firstNext.subtract(const Duration(days: 1)).day;
+    }
+
+    final DateTime today = DateTime.now();
+    final DateTime todayDate = DateTime(today.year, today.month, today.day);
+    for (int m = 0; m < months; m++) {
+      final dim = m < grid.length ? grid[m].length : 0; // up to 31
+      final maxDay = daysInMonth(year, m + 1);
+      final upto = dim < maxDay ? dim : maxDay;
+      final firstDow = DateTime(year, m + 1, 1).weekday % 7; // Sun=0..Sat=6
+      for (int d = 0; d < upto; d++) {
+        final v = grid[m][d]; // day index d = 0..30 (represents day d+1)
+        final date = DateTime(year, m + 1, d + 1);
+        // Hide future dates by skipping aggregation beyond today
+        if (date.isAfter(todayDate)) continue;
+        if (v == null) continue;
+        final dow = date.weekday % 7; // Sun=0 .. Sat=6
+        // Compute week-of-month column 0..4 based on Sun-start weeks
+        final linearIndex = firstDow + d; // offset within a Sun-started grid
+        int week = (linearIndex / 7).floor();
+        if (week < 0) week = 0; else if (week >= weeksPerMonth) week = weeksPerMonth - 1;
+        sums[m][week][dow] += v;
+        counts[m][week][dow] += 1;
+      }
+    }
+
+    // Compute averages and global min/max for color scaling
+    double minV = double.infinity;
+    double maxV = -double.infinity;
+    final avg = List.generate(months, (m) => List.generate(weeksPerMonth, (w) => List<double?>.filled(rows, null)));
+    for (int m = 0; m < months; m++) {
+      for (int w = 0; w < weeksPerMonth; w++) {
+        for (int r = 0; r < rows; r++) {
+          if (counts[m][w][r] > 0) {
+            final v = sums[m][w][r] / counts[m][w][r];
+            avg[m][w][r] = v;
+            if (v < minV) minV = v;
+            if (v > maxV) maxV = v;
+          }
+        }
+      }
+    }
+    if (!minV.isFinite || !maxV.isFinite || (maxV - minV).abs() < 1e-9) {
+      minV = 0.0;
+      maxV = 1.0;
+    }
+
+    // Draw cells (60 columns: 12 months x 5 weeks, 7 rows)
+    for (int m = 0; m < months; m++) {
+      for (int w = 0; w < weeksPerMonth; w++) {
+        final colIndex = m * weeksPerMonth + w;
+        for (int r = 0; r < rows; r++) {
+          final x = originX + colIndex * cellW;
+          final y = originY + r * cellH;
+          final rect = Rect.fromLTWH(x, y, cellW, cellH);
+          final v = avg[m][w][r];
+          if (v == null) {
+            final paint = Paint()..color = Colors.grey[100]!;
+            canvas.drawRect(rect, paint);
+          } else {
+            final t = ((v - minV) / (maxV - minV)).clamp(0.0, 1.0);
+            final paint = Paint()..color = _heatColor(t);
+            canvas.drawRect(rect, paint);
+          }
+        }
+      }
+    }
+
+    // Month labels across the top
+    final tp = TextPainter(textAlign: TextAlign.center, textDirection: TextDirection.ltr);
+    for (int m = 0; m < months; m++) {
+      tp.text = TextSpan(text: _monthLabels[m], style: const TextStyle(fontSize: 10, color: Colors.black87));
+      tp.layout();
+      final monthStartX = originX + (m * weeksPerMonth) * cellW;
+      final monthCenterX = monthStartX + (weeksPerMonth * cellW) / 2 - tp.width / 2;
+      tp.paint(canvas, Offset(monthCenterX, originY - tp.height - 4));
+    }
+
+    // Day-of-week labels (Sun..Sat) on the left
+    for (int r = 0; r < rows; r++) {
+      tp.text = TextSpan(text: _dowLabels[r], style: const TextStyle(fontSize: 10, color: Colors.black87));
+      tp.layout();
+      final y = originY + r * cellH + (cellH - tp.height) / 2;
+      tp.paint(canvas, Offset(originX - tp.width - 6, y));
+    }
+
+    // Light grid lines (optional)
+    final gridPaint = Paint()
+      ..color = Colors.grey[300]!
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5;
+    for (int c = 0; c <= cols; c++) {
+      final x = originX + c * cellW;
+      canvas.drawLine(Offset(x, originY), Offset(x, originY + rows * cellH), gridPaint);
+    }
+    for (int d = 0; d <= rows; d++) {
+      final y = originY + d * cellH;
+      canvas.drawLine(Offset(originX, y), Offset(originX + cols * cellW, y), gridPaint);
+    }
+
+    // Thicker separator at month boundaries
+    final sepPaint = Paint()
+      ..color = Colors.grey[400]!
+      ..strokeWidth = 1.0;
+    for (int m = 0; m <= months; m++) {
+      final x = originX + (m * weeksPerMonth) * cellW;
+      canvas.drawLine(Offset(x, originY), Offset(x, originY + rows * cellH), sepPaint);
+    }
+
+    // Hover tooltip
+    if (hoverPos != null) {
+      final dx = hoverPos!.dx;
+      final dy = hoverPos!.dy;
+      final withinX = dx >= originX && dx <= originX + cols * cellW;
+      final withinY = dy >= originY && dy <= originY + rows * cellH;
+      if (withinX && withinY) {
+        final col = ((dx - originX) / cellW).floor().clamp(0, cols - 1);
+        final row = ((dy - originY) / cellH).floor().clamp(0, rows - 1);
+        final m = (col / weeksPerMonth).floor();
+        final w = col % weeksPerMonth;
+        final value = avg[m][w][row];
+        if (value != null) {
+          // Highlight cell
+          final hx = originX + col * cellW;
+          final hy = originY + row * cellH;
+          final highlight = Paint()
+            ..color = Colors.black.withOpacity(0.08)
+            ..style = PaintingStyle.fill;
+          canvas.drawRect(Rect.fromLTWH(hx, hy, cellW, cellH), highlight);
+
+          // Tooltip text
+          final label = '${_monthLabels[m]} W${w + 1}, ${_dowLabels[row]}\n${value.round()} pax';
+          final tp2 = TextPainter(
+            text: TextSpan(
+              text: label,
+              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+            ),
+            textDirection: TextDirection.ltr,
+          );
+          tp2.layout();
+
+          final boxW = tp2.width + 14;
+          final boxH = tp2.height + 12;
+          double boxX = hx + cellW + 8;
+          double boxY = hy - boxH / 2 + cellH / 2;
+          if (boxX + boxW > size.width) boxX = hx - boxW - 8;
+          if (boxY < 0) boxY = 2;
+          if (boxY + boxH > size.height) boxY = size.height - boxH - 2;
+
+          final rrect = RRect.fromRectAndRadius(
+            Rect.fromLTWH(boxX, boxY, boxW, boxH),
+            const Radius.circular(6),
+          );
+          final bg = Paint()..color = Colors.black.withOpacity(0.8);
+          canvas.drawRRect(rrect, bg);
+          tp2.paint(canvas, Offset(boxX + 7, boxY + 6));
+        }
+      }
+    }
+  }
+
+  Color _heatColor(double t) {
+    // light -> dark blue gradient
+    if (t < 0.2) return const Color(0xFFE3F2FD);
+    if (t < 0.4) return const Color(0xFFBBDEFB);
+    if (t < 0.6) return const Color(0xFF90CAF9);
+    if (t < 0.8) return const Color(0xFF64B5F6);
+    return const Color(0xFF1E3A8A);
+  }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
