@@ -249,11 +249,11 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
             children: [
               // Donut chart
               SizedBox(
-                width: 80,
-                height: 80,
+                width: 120,
+                height: 120,
                 child: CustomPaint(
                   painter: _DonutChartPainter(),
-                  size: const Size(80, 80),
+                  size: const Size(120, 120),
                 ),
               ),
               const SizedBox(width: 16),
