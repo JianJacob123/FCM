@@ -65,9 +65,16 @@ const getVehicleById = async (vehicleId) => {
 }
 
 
-const updateVehicleCoordinates = async (vehicleId, latitude, longitude) => {
-    const sql = `UPDATE vehicles SET lat = $1, lng = $2,  current_location = ST_SetSRID(ST_MakePoint($2, $1), 4326)  WHERE vehicle_id = $3;`
-    await client.query(sql, [latitude, longitude, vehicleId]);
+const updateVehicleCoordinates = async (vehicleId, latitude, longitude, currentPassengerCount, addedPassengers) => {
+    const sql = `UPDATE vehicles SET lat = $1, lng = $2,  current_location = ST_SetSRID(ST_MakePoint($2, $1), 4326), current_passenger_count = $3, total_passengers = total_passengers + $4  WHERE vehicle_id = $5;`
+    await client.query(sql, [latitude, longitude, currentPassengerCount, addedPassengers, vehicleId]);
+}
+
+// For extracting the added passengers to the current_passenger_count
+const getCurrentPassengerCount = async (vehicleId) => {
+    const sql = 'SELECT current_passenger_count FROM vehicles WHERE vehicle_id = $1;';
+    const res = await client.query(sql, [vehicleId]);
+    return res.rows.length ? res.rows[0].current_passenger_count : 0;
 }
 
 const updateRouteId = async (vehicleId, routeId) => {
@@ -150,6 +157,7 @@ module.exports = {
     getAllVehicles,
     getVehicleById,
     updateVehicleCoordinates,
+    getCurrentPassengerCount,
     updateRouteId,
     getVehicleByConductor,
     getConductorIdByVehicle

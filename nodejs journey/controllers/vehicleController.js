@@ -16,6 +16,7 @@ const getVehiclesDirect = async () => {
 };
 
 const updateCoordinatesLogic = async (io, iotResponse) => {
+    let addedPassengers = 0;
     try {
         
         //const iotResponse = await coordinatesData.getIoTData();
@@ -29,10 +30,23 @@ const updateCoordinatesLogic = async (io, iotResponse) => {
         const vehicles = Array.isArray(iotResponse) ? iotResponse : [iotResponse];
         
         for (const vehicle of vehicles) {
+            const currentCount = await vehicleModel.getCurrentPassengerCount(vehicle.bus_id);
+            console.log(currentCount);
+
+            // To extract the added passengers from the current_passenger_count
+            if (vehicle.passenger_count > currentCount) {
+                addedPassengers = vehicle.passenger_count - currentCount;
+                console.log('Added passengers:', addedPassengers);
+            } else {
+                addedPassengers = 0; // No negative subtraction
+            }
+
             await vehicleModel.updateVehicleCoordinates(
                 vehicle.bus_id, 
                 vehicle.lat,
-                vehicle.lon
+                vehicle.lon,
+                vehicle.passenger_count,
+                addedPassengers
             );
         }
         console.log('Coordinates updated successfully');
