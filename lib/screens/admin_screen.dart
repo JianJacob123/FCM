@@ -1224,13 +1224,13 @@ class _MapScreenState extends State<MapScreen> {
                     const SizedBox(height: 4),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
+                      children: [
                         Text(
                           'Current Capacity',
                           style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                         Text(
-                          '12/20',
+                          '${_selectedVehicle?["current_passenger_count"] ?? "--"}/20',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -3838,7 +3838,8 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
         _closeForm();
         _loadSchedules();
       } else {
-        final msg = 'Failed to save schedule (HTTP ${response.statusCode})\n${response.body}';
+        final msg =
+            'Failed to save schedule (HTTP ${response.statusCode})\n${response.body}';
         _showErrorSnackBar(msg);
       }
     } catch (e) {

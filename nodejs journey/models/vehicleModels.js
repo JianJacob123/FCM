@@ -12,6 +12,7 @@ const getAllVehicles = async () => {
   v.vehicle_id AS vehicle_id,
   ST_X(v.current_location) AS lng,
   ST_Y(v.current_location) AS lat,
+  current_passenger_count,
   r.route_name,
   r.route_id,
 

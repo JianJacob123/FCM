@@ -740,9 +740,9 @@ class _MapScreenState extends State<MapScreen> {
                     const SizedBox(height: 4),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
+                      children: [
                         Text(
-                          'Current Capacity',
+                          '${_selectedVehicle?["current_passenger_count"] ?? "--"}/20',
                           style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                         Text(
