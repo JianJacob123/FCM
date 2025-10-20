@@ -4767,6 +4767,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return AlertDialog(
+              backgroundColor: Colors.white,
               title: Row(
                 children: [
                   Icon(Icons.calendar_month, color: Color(0xFF3E4795)),
@@ -4774,7 +4775,12 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                   Text('Filter by Date'),
                 ],
               ),
-              content: Column(
+              content: Container(
+                width: MediaQuery.of(context).size.width < 520
+                    ? MediaQuery.of(context).size.width * 0.85
+                    : 450,
+                height: 280,
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Start Date
@@ -4806,13 +4812,16 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                         children: [
                           Icon(Icons.calendar_today, size: 20, color: Color(0xFF3E4795)),
                           SizedBox(width: 12),
-                          Text(
+                          Expanded(
+                            child: Text(
                             startDate != null 
                               ? '${startDate!.month.toString().padLeft(2, '0')}/${startDate!.day.toString().padLeft(2, '0')}/${startDate!.year}'
-                              : 'Select Start Date',
+                                : 'Start Date',
                             style: TextStyle(
                               color: startDate != null ? Colors.black : Colors.grey[600],
                               fontSize: 16,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -4846,41 +4855,65 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                         children: [
                           Icon(Icons.calendar_today, size: 20, color: Color(0xFF3E4795)),
                           SizedBox(width: 12),
-                          Text(
+                          Expanded(
+                            child: Text(
                             endDate != null 
                               ? '${endDate!.month.toString().padLeft(2, '0')}/${endDate!.day.toString().padLeft(2, '0')}/${endDate!.year}'
-                              : 'Select End Date',
+                                : 'End Date',
                             style: TextStyle(
                               color: endDate != null ? Colors.black : Colors.grey[600],
                               fontSize: 16,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  SizedBox(height: 16),
-                  // Filter options
+                  SizedBox(height: 32),
+                  // Clear button
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Expanded(
-                        child: ElevatedButton(
+                      OutlinedButton(
                           onPressed: () {
                             setModalState(() {
                               startDate = null;
                               endDate = null;
                             });
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey[300],
+                        style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.black,
+                          side: BorderSide(color: Colors.grey[300]!),
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                           ),
                           child: Text('Clear'),
                         ),
+                    ],
+                  ),
+                  SizedBox(height: 24),
+                ],
+                ),
+              ),
+              actions: [
+                OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Color(0xFF3E4795),
+                    side: BorderSide(color: Colors.grey[300]!),
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text('Cancel'),
                       ),
                       SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
+                ElevatedButton(
                           onPressed: () {
                             setState(() {
                               _filterAndSortTrips();
@@ -4890,14 +4923,15 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFF3E4795),
                             foregroundColor: Colors.white,
-                          ),
-                          child: Text('Apply Filter'),
-                        ),
-                      ),
-                    ],
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
                   ),
-                ],
-              ),
+                  child: Text('Apply'),
+                ),
+              ],
             );
           },
         );
@@ -4927,6 +4961,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return AlertDialog(
+              backgroundColor: Colors.white,
               title: Row(
                 children: [
                   Icon(Icons.filter_list, color: Color(0xFF3E4795)),
@@ -4937,36 +4972,32 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
               content: Container(
                 width: MediaQuery.of(context).size.width < 520
                     ? MediaQuery.of(context).size.width * 0.9
-                    : 420,
-                child: Column(
+                    : 480,
+                height: 280,
+      child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: times.isNotEmpty && selectedStartTimes.length == times.length,
-                              activeColor: Color(0xFF3E4795),
-                              onChanged: (v) {
-                                setModalState(() {
-                                  if (v == true) {
-                                    selectedStartTimes = List.from(times);
-                                  } else {
-                                    selectedStartTimes.clear();
-                                  }
-                                });
-                              },
-                            ),
-                            Text('Select All'),
-                          ],
-                        ),
-                      ],
+        children: [
+                    // Select All option
+                    CheckboxListTile(
+                      title: Text('Select All'),
+                      value: times.isNotEmpty && selectedStartTimes.length == times.length,
+                      onChanged: (bool? value) {
+                              setModalState(() {
+                          if (value == true) {
+                            selectedStartTimes = List.from(times);
+                          } else {
+                            selectedStartTimes.clear();
+                          }
+                        });
+                      },
+                      activeColor: Color(0xFF3E4795),
+                      contentPadding: EdgeInsets.zero,
                     ),
-                    SizedBox(height: 12),
+                    // Separator line
+                    Divider(color: Colors.grey[300]),
+                    // Filter options
                     Container(
-                      height: 260,
+                      height: 200,
                       child: ListView.builder(
                         itemCount: times.length,
                         itemBuilder: (context, index) {
@@ -4986,30 +5017,45 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                               });
                             },
                             activeColor: Color(0xFF3E4795),
+                            contentPadding: EdgeInsets.zero,
                           );
                         },
                       ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
               ),
               actions: [
-                TextButton(
+                OutlinedButton(
                   onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Color(0xFF3E4795),
+                    side: BorderSide(color: Colors.grey[300]!),
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                   child: Text('Cancel'),
                 ),
+                SizedBox(width: 12),
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
                       _filterAndSortTrips();
                     });
                     Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF3E4795),
-                    foregroundColor: Colors.white,
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF3E4795),
+                              foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
                   ),
-                  child: Text('Apply Filter'),
+                  child: Text('Apply'),
                 ),
               ],
             );
@@ -5041,6 +5087,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return AlertDialog(
+              backgroundColor: Colors.white,
               title: Row(
                 children: [
                   Icon(Icons.filter_list, color: Color(0xFF3E4795)),
@@ -5051,36 +5098,32 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
               content: Container(
                 width: MediaQuery.of(context).size.width < 520
                     ? MediaQuery.of(context).size.width * 0.9
-                    : 420,
-                child: Column(
+                    : 480,
+                height: 280,
+      child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: times.isNotEmpty && selectedEndTimes.length == times.length,
-                              activeColor: Color(0xFF3E4795),
-                              onChanged: (v) {
-                                setModalState(() {
-                                  if (v == true) {
-                                    selectedEndTimes = List.from(times);
-                                  } else {
-                                    selectedEndTimes.clear();
-                                  }
-                                });
-                              },
-                            ),
-                            Text('Select All'),
-                          ],
-                        ),
-                      ],
+        children: [
+                    // Select All option
+                    CheckboxListTile(
+                      title: Text('Select All'),
+                      value: times.isNotEmpty && selectedEndTimes.length == times.length,
+                      onChanged: (bool? value) {
+                              setModalState(() {
+                          if (value == true) {
+                            selectedEndTimes = List.from(times);
+                          } else {
+                            selectedEndTimes.clear();
+                          }
+                        });
+                      },
+                      activeColor: Color(0xFF3E4795),
+                      contentPadding: EdgeInsets.zero,
                     ),
-                    SizedBox(height: 12),
+                    // Separator line
+                    Divider(color: Colors.grey[300]),
+                    // Filter options
                     Container(
-                      height: 260,
+                      height: 200,
                       child: ListView.builder(
                         itemCount: times.length,
                         itemBuilder: (context, index) {
@@ -5100,6 +5143,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                               });
                             },
                             activeColor: Color(0xFF3E4795),
+                            contentPadding: EdgeInsets.zero,
                           );
                         },
                       ),
@@ -5108,22 +5152,36 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                 ),
               ),
               actions: [
-                TextButton(
+                OutlinedButton(
                   onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Color(0xFF3E4795),
+                    side: BorderSide(color: Colors.grey[300]!),
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                   child: Text('Cancel'),
                 ),
+                SizedBox(width: 12),
                 ElevatedButton(
-                  onPressed: () {
+                            onPressed: () {
                     setState(() {
                       _filterAndSortTrips();
                     });
                     Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF3E4795),
-                    foregroundColor: Colors.white,
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF3E4795),
+                              foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
                   ),
-                  child: Text('Apply Filter'),
+                  child: Text('Apply'),
                 ),
               ],
             );
@@ -5155,46 +5213,43 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return AlertDialog(
+              backgroundColor: Colors.white,
               title: Row(
                 children: [
                   Icon(Icons.filter_list, color: Color(0xFF3E4795)),
-                  SizedBox(width: 8),
+                        SizedBox(width: 8),
                   Text('Filter by Trip Duration'),
                 ],
               ),
               content: Container(
                 width: MediaQuery.of(context).size.width < 520
                     ? MediaQuery.of(context).size.width * 0.9
-                    : 420,
+                    : 480,
+                height: 280,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: durations.isNotEmpty && selectedDurations.length == durations.length,
-                              activeColor: Color(0xFF3E4795),
-                              onChanged: (v) {
-                                setModalState(() {
-                                  if (v == true) {
-                                    selectedDurations = List.from(durations);
-                                  } else {
-                                    selectedDurations.clear();
-                                  }
-                                });
-                              },
-                            ),
-                            Text('Select All'),
-                          ],
-                        ),
-                      ],
+                    // Select All option
+                    CheckboxListTile(
+                      title: Text('Select All'),
+                      value: durations.isNotEmpty && selectedDurations.length == durations.length,
+                      onChanged: (bool? value) {
+                              setModalState(() {
+                          if (value == true) {
+                            selectedDurations = List.from(durations);
+                          } else {
+                            selectedDurations.clear();
+                          }
+                        });
+                      },
+                      activeColor: Color(0xFF3E4795),
+                      contentPadding: EdgeInsets.zero,
                     ),
-                    SizedBox(height: 12),
+                    // Separator line
+                    Divider(color: Colors.grey[300]),
+                    // Filter options
                     Container(
-                      height: 260,
+                      height: 200,
                       child: ListView.builder(
                         itemCount: durations.length,
                         itemBuilder: (context, index) {
@@ -5214,6 +5269,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                               });
                             },
                             activeColor: Color(0xFF3E4795),
+                            contentPadding: EdgeInsets.zero,
                           );
                         },
                       ),
@@ -5222,22 +5278,36 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                 ),
               ),
               actions: [
-                TextButton(
+                OutlinedButton(
                   onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Color(0xFF3E4795),
+                    side: BorderSide(color: Colors.grey[300]!),
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                   child: Text('Cancel'),
                 ),
+                SizedBox(width: 12),
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
                       _filterAndSortTrips();
                     });
                     Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
+                            },
+                            style: ElevatedButton.styleFrom(
                     backgroundColor: Color(0xFF3E4795),
                     foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
                   ),
-                  child: Text('Apply Filter'),
+                  child: Text('Apply'),
                 ),
               ],
             );
@@ -5254,6 +5324,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return AlertDialog(
+              backgroundColor: Colors.white,
               title: Row(
                 children: [
                   Icon(Icons.filter_list, color: Color(0xFF3E4795)),
@@ -5265,38 +5336,31 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                 width: MediaQuery.of(context).size.width < 520
                     ? MediaQuery.of(context).size.width * 0.9
                     : 480,
+                height: 280,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Select All checkbox + Clear All action
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: availableVehicles.isNotEmpty && selectedVehicles.length == availableVehicles.length,
-                              activeColor: Color(0xFF3E4795),
-                              onChanged: (bool? value) {
-                                setModalState(() {
-                                  if (value == true) {
-                                    selectedVehicles = List.from(availableVehicles);
-                                  } else {
-                                    selectedVehicles.clear();
-                                  }
-                                });
-                              },
-                            ),
-                            Text('Select All'),
-                          ],
-                        ),
-                        // Removed Clear All action per UI update
-                      ],
+                    // Select All option
+                    CheckboxListTile(
+                      title: Text('Select All'),
+                      value: availableVehicles.isNotEmpty && selectedVehicles.length == availableVehicles.length,
+                      onChanged: (bool? value) {
+                        setModalState(() {
+                          if (value == true) {
+                            selectedVehicles = List.from(availableVehicles);
+                          } else {
+                            selectedVehicles.clear();
+                          }
+                        });
+                      },
+                      activeColor: Color(0xFF3E4795),
+                      contentPadding: EdgeInsets.zero,
                     ),
-          SizedBox(height: 16),
+                    // Separator line
+                    Divider(color: Colors.grey[300]),
                     // Vehicle checklist
                     Container(
-                      height: 300,
+                      height: 200,
                       child: ListView.builder(
                         itemCount: availableVehicles.length,
                         itemBuilder: (context, index) {
@@ -5316,16 +5380,29 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                               });
                             },
                             activeColor: Color(0xFF3E4795),
+                            contentPadding: EdgeInsets.zero,
                           );
                         },
                       ),
                     ),
-                    SizedBox(height: 16),
-                    // Apply button
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
+                  ],
+                ),
+              ),
+              actions: [
+                OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Color(0xFF3E4795),
+                    side: BorderSide(color: Colors.grey[300]!),
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text('Cancel'),
+                ),
+                SizedBox(width: 12),
+                ElevatedButton(
                             onPressed: () {
                               setState(() {
                                 _filterAndSortTrips();
@@ -5335,15 +5412,15 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Color(0xFF3E4795),
                               foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Text('Apply Filter'),
+                    elevation: 0,
                           ),
+                  child: Text('Apply'),
                         ),
                       ],
-                    ),
-                  ],
-                ),
-              ),
             );
           },
         );
@@ -5621,7 +5698,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                                 onTap: _showVehicleFilterModal,
                                 child: Icon(
                                   Icons.filter_list,
-                                  color: Colors.white,
+                                  color: selectedVehicles.isNotEmpty ? Colors.lightBlue : Colors.white,
                                   size: 16,
                                 ),
                               ),
@@ -5639,7 +5716,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                                 onTap: _showStartTimeFilterModal,
                                 child: Icon(
                                   Icons.filter_list,
-                                  color: Colors.white,
+                                  color: selectedStartTimes.isNotEmpty ? Colors.lightBlue : Colors.white,
                                   size: 16,
                                 ),
                               ),
@@ -5657,7 +5734,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                                 onTap: _showEndTimeFilterModal,
                                 child: Icon(
                                   Icons.filter_list,
-                                  color: Colors.white,
+                                  color: selectedEndTimes.isNotEmpty ? Colors.lightBlue : Colors.white,
                                   size: 16,
                                 ),
                               ),
@@ -5675,7 +5752,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                                 onTap: _showDurationFilterModal,
                                 child: Icon(
                                   Icons.filter_list,
-                                  color: Colors.white,
+                                  color: selectedDurations.isNotEmpty ? Colors.lightBlue : Colors.white,
                                   size: 16,
                                 ),
                               ),
@@ -5747,7 +5824,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                                 onTap: _showVehicleFilterModal,
                                 child: Icon(
                                   Icons.filter_list,
-                                  color: Colors.white,
+                                  color: selectedVehicles.isNotEmpty ? Colors.lightBlue : Colors.white,
                                   size: 16,
                                 ),
                               ),
@@ -5765,7 +5842,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                                 onTap: _showStartTimeFilterModal,
                                 child: Icon(
                                   Icons.filter_list,
-                                  color: Colors.white,
+                                  color: selectedStartTimes.isNotEmpty ? Colors.lightBlue : Colors.white,
                                   size: 16,
                                 ),
                               ),
@@ -5783,7 +5860,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                                 onTap: _showEndTimeFilterModal,
                                 child: Icon(
                                   Icons.filter_list,
-                                  color: Colors.white,
+                                  color: selectedEndTimes.isNotEmpty ? Colors.lightBlue : Colors.white,
                                   size: 16,
                                 ),
                               ),
@@ -5801,7 +5878,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                                 onTap: _showDurationFilterModal,
                                 child: Icon(
                                   Icons.filter_list,
-                                  color: Colors.white,
+                                  color: selectedDurations.isNotEmpty ? Colors.lightBlue : Colors.white,
                                   size: 16,
                                 ),
                               ),

@@ -29,10 +29,10 @@ class VehicleAssignment {
 
   factory VehicleAssignment.fromJson(Map<String, dynamic> json) {
     return VehicleAssignment(
-      assignmentId: json['assignment_id'],
-      vehicleId: json['vehicle_id'],
-      driverId: json['driver_id'],
-      conductorId: json['conductor_id'],
+      assignmentId: int.parse(json['assignment_id'].toString()),
+      vehicleId: int.parse(json['vehicle_id'].toString()),
+      driverId: json['driver_id'] != null ? int.parse(json['driver_id'].toString()) : null,
+      conductorId: json['conductor_id'] != null ? int.parse(json['conductor_id'].toString()) : null,
       driverName: json['driver_name'],
       conductorName: json['conductor_name'],
       assignedAt: DateTime.parse(json['assigned_at']),
@@ -273,7 +273,13 @@ class VehicleAssignmentApiService {
     int assignmentId,
   ) async {
     try {
+      print('Frontend: Attempting to delete assignment with ID: $assignmentId');
+      print('Frontend: API URL: $baseUrl/$assignmentId');
+      
       final response = await http.delete(Uri.parse('$baseUrl/$assignmentId'));
+      
+      print('Frontend: Response status code: ${response.statusCode}');
+      print('Frontend: Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         return VehicleAssignmentResponse.fromJson(json.decode(response.body));
@@ -289,6 +295,7 @@ class VehicleAssignmentApiService {
         );
       }
     } catch (e) {
+      print('Frontend: Error deleting assignment: $e');
       return VehicleAssignmentResponse(
         success: false,
         message: 'Error deleting assignment: $e',

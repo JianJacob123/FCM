@@ -118,14 +118,43 @@ class VehicleAssignmentController {
   static async deleteAssignment(req, res) {
     try {
       const { id } = req.params;
-      await VehicleAssignment.delete(id);
+      console.log('=== DELETE ASSIGNMENT DEBUG ===');
+      console.log('Raw ID from params:', id);
+      console.log('ID type:', typeof id);
+      
+      // Validate ID
+      if (!id) {
+        console.log('ERROR: No ID provided');
+        return res.status(400).json({
+          success: false,
+          message: 'Assignment ID is required'
+        });
+      }
+      
+      const assignmentId = parseInt(id);
+      if (isNaN(assignmentId)) {
+        console.log('ERROR: Invalid ID format:', id);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid assignment ID format'
+        });
+      }
+      
+      console.log('Parsed assignment ID:', assignmentId);
+      
+      const result = await VehicleAssignment.delete(assignmentId);
+      console.log('Delete result:', result);
 
       res.json({
         success: true,
         message: 'Assignment deleted successfully'
       });
     } catch (error) {
-      console.error('Error deleting assignment:', error);
+      console.error('=== DELETE ERROR ===');
+      console.error('Error type:', error.constructor.name);
+      console.error('Error message:', error.message);
+      console.error('Full error:', error);
+      
       res.status(400).json({
         success: false,
         message: error.message || 'Failed to delete assignment'

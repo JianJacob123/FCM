@@ -213,18 +213,28 @@ class VehicleAssignment {
   // Delete assignment
   static async delete(assignmentId) {
     try {
-      // Get the assignment details before deleting
-      const assignment = await this.getById(assignmentId);
-      if (!assignment) {
-        throw new Error('Assignment not found');
+      console.log('Model: Attempting to delete assignment with ID:', assignmentId);
+      
+      // Try to delete directly without checking existence first
+      const query = 'DELETE FROM vehicle_assignment WHERE assignment_id = $1';
+      const result = await db.query(query, [assignmentId]);
+      
+      console.log('Model: Delete query executed, affected rows:', result.rowCount);
+      
+      if (result.rowCount === 0) {
+        throw new Error('Assignment not found or already deleted');
       }
 
-      // Delete the assignment
-      const query = 'DELETE FROM vehicle_assignment WHERE assignment_id = $1';
-      await db.query(query, [assignmentId]);
-
+      console.log('Model: Assignment deleted successfully');
       return true;
     } catch (error) {
+      console.error('Model: Error in delete method:', error);
+      console.error('Model: Error details:', {
+        message: error.message,
+        code: error.code,
+        detail: error.detail,
+        hint: error.hint
+      });
       throw error;
     }
   }
