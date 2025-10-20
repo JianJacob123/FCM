@@ -82,10 +82,21 @@ const updateCoordinates = async (req, res) => {
   }
 };
 
+// Get average trip duration per vehicle for the day
+const getAverageTripDurationPerVehicle = async (req, res) => {
+  try {
+    const analytics = await vehicleModel.getAverageTripDurationPerVehicle();
+    res.json(analytics);
+  } catch (err) {
+    console.error('Error fetching average trip duration per vehicle:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
 
 module.exports = {
     getVehicles,
     getVehiclesDirect,
     updateCoordinates,
-    updateCoordinatesLogic
+    updateCoordinatesLogic,
+    getAverageTripDurationPerVehicle
 };

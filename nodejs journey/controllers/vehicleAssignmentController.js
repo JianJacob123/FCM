@@ -66,6 +66,16 @@ class VehicleAssignmentController {
         });
       }
 
+      // Validate vehicle_id exists
+      const vehicleModel = require('../models/vehicleModels');
+      const vehicle = await vehicleModel.getVehicleById(vehicle_id);
+      if (!vehicle) {
+        return res.status(400).json({
+          success: false,
+          message: `Vehicle with ID ${vehicle_id} does not exist`
+        });
+      }
+
       const assignment = await VehicleAssignment.create(vehicle_id, driver_id, conductor_id);
 
       res.status(201).json({

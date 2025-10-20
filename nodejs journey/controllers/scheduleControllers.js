@@ -20,6 +20,16 @@ async function create(req, res) {
     const b = req.body || {};
     const required = ['schedule_date', 'status'];
     for (const k of required) if (!b[k]) return err(res, 400, `${k} is required`);
+    
+    // Validate vehicle_id if provided
+    if (b.vehicle_id) {
+      const vehicleModel = require('../models/vehicleModels');
+      const vehicle = await vehicleModel.getVehicleById(b.vehicle_id);
+      if (!vehicle) {
+        return err(res, 400, `Vehicle with ID ${b.vehicle_id} does not exist`);
+      }
+    }
+    
     const created = await model.create(b);
     return send(res, 201, { success: true, id: created.id });
   } catch (e) {

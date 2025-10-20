@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import '../services/forecasting_api.dart' as fapi;
 import '../services/api.dart' show baseUrl;
 
@@ -29,6 +30,9 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   // Yearly heatmap (12 x 31)
   int _yearlyYear = DateTime.now().year;
   List<List<double?>> _yearlyGrid = const [];
+  
+  // Trip duration analytics
+  Map<String, dynamic>? _tripDurationAnalytics;
 
   String _formatHour12(int hour) {
     if (hour == 0) return '12 AM';
@@ -378,13 +382,25 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       final schedulesF = _fetchTodaySchedules();
       final tripsPerUnitF = _fetchTripsPerUnit();
       final fleetActivityF = _fetchFleetActivity();
+      final tripDurationF = _fetchTripDurationAnalytics();
       final hourly = await hourlyF;
       final daily = await dailyF;
-      final yearlyF = fapi.forecastYearlyDaily(DateTime.now().year);
-      final yearly = await yearlyF;
+      late final yearly;
+      try {
+        final yearlyF = fapi.forecastYearlyDaily(DateTime.now().year);
+        yearly = await yearlyF;
+        print('Yearly forecast loaded: year=${yearly.year}, grid length=${yearly.grid.length}');
+        if (yearly.grid.isEmpty) {
+          print('WARNING: Yearly grid is empty!');
+        }
+      } catch (e) {
+        print('Error loading yearly forecast: $e');
+        yearly = (year: DateTime.now().year, grid: <List<double?>>[]);
+      }
       final schedules = await schedulesF;
       final tripsPU = await tripsPerUnitF;
       final fleet = await fleetActivityF;
+      final tripDuration = await tripDurationF;
 
       setState(() {
         _peakHour = hourly.peakHour;
@@ -399,6 +415,8 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
         _fleetCounts = fleet['counts'] ?? const [];
         _yearlyYear = yearly.year;
         _yearlyGrid = yearly.grid;
+        _tripDurationAnalytics = tripDuration;
+        print('Yearly grid set: ${_yearlyGrid.length} months, first month has ${_yearlyGrid.isNotEmpty ? _yearlyGrid[0].length : 0} days');
       });
     } catch (e) {
       setState(() => _error = e.toString());
@@ -485,6 +503,19 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       final labels = List<int>.generate(17, (i) => i + 4);
       final counts = List<int>.filled(labels.length, 0);
       return {'hours': labels, 'counts': counts};
+    }
+  }
+
+  Future<Map<String, dynamic>?> _fetchTripDurationAnalytics() async {
+    try {
+      final uri = Uri.parse('$baseUrl/api/vehicles/analytics/trip-duration');
+      final res = await http.get(uri);
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -657,7 +688,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
             ),
             const SizedBox(height: 32),
             // Static operational metrics section
-            _OperationalMetricsSection(),
+            _OperationalMetricsSection(tripDurationAnalytics: _tripDurationAnalytics),
             const SizedBox(height: 16),
             // Charts in a row (Daily + Hourly) directly below Fleet Activity
             Row(
@@ -679,18 +710,29 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
             ),
             const SizedBox(height: 8),
             // Yearly daily passenger forecast heatmap at the bottom
-            if (_yearlyGrid.isNotEmpty)
-              _Card(
-                title:
-                    'Yearly Passenger Forecast Heatmap ' +
-                    _yearlyYear.toString(),
-                titleIcon: Icons.calendar_today_outlined,
-                child: SizedBox(
-                  height: 200,
-                  width: double.infinity,
-                  child: _YearlyHeatmap(grid: _yearlyGrid, year: _yearlyYear),
-                ),
+            _Card(
+              title: 'Yearly Passenger Forecast Heatmap ${_yearlyYear.toString()}',
+              titleIcon: Icons.calendar_today_outlined,
+              child: SizedBox(
+                height: 200,
+                width: double.infinity,
+                child: _yearlyGrid.isNotEmpty 
+                  ? _YearlyHeatmap(grid: _yearlyGrid, year: _yearlyYear)
+                  : Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.refresh, size: 32, color: Colors.grey),
+                          const SizedBox(height: 8),
+                          Text(
+                            _loading ? 'Loading yearly forecast...' : 'No yearly data available',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
               ),
+            ),
           ],
         ),
       ),
@@ -1100,7 +1142,9 @@ class _AreaChartPainter extends CustomPainter {
 
 // Static operational metrics section (mock visuals)
 class _OperationalMetricsSection extends StatelessWidget {
-  const _OperationalMetricsSection();
+  final Map<String, dynamic>? tripDurationAnalytics;
+  
+  const _OperationalMetricsSection({this.tripDurationAnalytics});
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -2238,8 +2282,8 @@ class _YearlyHeatmapPainter extends CustomPainter {
       for (int d = 0; d < upto; d++) {
         final v = grid[m][d]; // day index d = 0..30 (represents day d+1)
         final date = DateTime(year, m + 1, d + 1);
-        // Hide future dates by skipping aggregation beyond today
-        if (date.isAfter(todayDate)) continue;
+        // Show all dates for the full year forecast
+        // if (date.isAfter(todayDate)) continue;
         if (v == null) continue;
         final dow = date.weekday % 7; // Sun=0 .. Sat=6
         // Compute week-of-month column 0..4 based on Sun-start weeks
@@ -2431,4 +2475,42 @@ class _YearlyHeatmapPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+
+class _PerformanceMetric extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _PerformanceMetric({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
 }

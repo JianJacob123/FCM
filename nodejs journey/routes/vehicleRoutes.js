@@ -4,6 +4,7 @@ const vehicleController = require('../controllers/vehicleController');
 
 router.get('/getVehicles', vehicleController.getVehicles);
 router.post('/update-coordinates', vehicleController.updateCoordinates);
+router.get('/analytics/trip-duration', vehicleController.getAverageTripDurationPerVehicle);
 
 
 module.exports = router;

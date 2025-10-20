@@ -11,8 +11,8 @@ String _host() {
   return isAndroid ? '10.0.2.2' : 'localhost';
 }
 
-// NOTE: Flask is configured to run on 5001 to avoid conflicts
-Uri _baseUri(String path) => Uri.parse('http://${_host()}:5001$path');
+// NOTE: Flask is configured to run on 5004 to avoid conflicts
+Uri _baseUri(String path) => Uri.parse('http://${_host()}:5004$path');
 
 // Health check
 Future<bool> forecastingHealth() async {
