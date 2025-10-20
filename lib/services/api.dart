@@ -152,3 +152,15 @@ Future<void> createNotification(
     print('Error sending request: $e');
   }
 }
+
+Future<Map<String, dynamic>> fetchAdminTrips({int page = 1, int limit = 50}) async {
+  final response = await http.get(
+    Uri.parse("$baseUrl/trips/api/admin/trips?page=$page&limit=$limit"),
+  );
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  } else {
+    throw Exception("Failed to load admin trips");
+  }
+}
