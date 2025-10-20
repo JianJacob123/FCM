@@ -4599,6 +4599,10 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
   // Date filter variables
   DateTime? startDate;
   DateTime? endDate;
+  
+  // Vehicle filter variables
+  List<String> selectedVehicles = [];
+  List<String> availableVehicles = [];
 
   @override
   void initState() {
@@ -4631,6 +4635,10 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
         final query = searchQuery.toLowerCase();
         final matchesSearch = vehicleNumber.contains(query);
         
+        // Vehicle filter
+        final matchesVehicle = selectedVehicles.isEmpty || 
+                              selectedVehicles.contains(trip['vehicle_number'] ?? '');
+        
         // Date filter
         bool matchesDate = true;
         if (startDate != null || endDate != null) {
@@ -4656,7 +4664,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
           }
         }
         
-        return matchesSearch && matchesDate;
+        return matchesSearch && matchesDate && matchesVehicle;
       }).toList();
 
       // Sort trips
@@ -4866,6 +4874,117 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
     );
   }
 
+  void _showVehicleFilterModal() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.filter_list, color: Color(0xFF3E4795)),
+                  SizedBox(width: 8),
+                  Text('Filter by Unit Number'),
+                ],
+              ),
+              content: Container(
+                width: double.maxFinite,
+      child: Column(
+                  mainAxisSize: MainAxisSize.min,
+        children: [
+                    // Select All / Clear All buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              setModalState(() {
+                                selectedVehicles = List.from(availableVehicles);
+                              });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF3E4795),
+                              foregroundColor: Colors.white,
+                            ),
+                            child: Text('Select All'),
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              setModalState(() {
+                                selectedVehicles.clear();
+                              });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[300],
+                              foregroundColor: Colors.black,
+                            ),
+                            child: Text('Clear All'),
+                          ),
+                        ),
+                      ],
+                    ),
+          SizedBox(height: 16),
+                    // Vehicle checklist
+                    Container(
+                      height: 300,
+                      child: ListView.builder(
+                        itemCount: availableVehicles.length,
+                        itemBuilder: (context, index) {
+                          final vehicle = availableVehicles[index];
+                          final isSelected = selectedVehicles.contains(vehicle);
+                          
+                          return CheckboxListTile(
+                            title: Text(vehicle),
+                            value: isSelected,
+                            onChanged: (bool? value) {
+                              setModalState(() {
+                                if (value == true) {
+                                  selectedVehicles.add(vehicle);
+                                } else {
+                                  selectedVehicles.remove(vehicle);
+                                }
+                              });
+                            },
+                            activeColor: Color(0xFF3E4795),
+                          );
+                        },
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    // Apply button
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _filterAndSortTrips();
+                              });
+                              Navigator.of(context).pop();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF3E4795),
+                              foregroundColor: Colors.white,
+                            ),
+                            child: Text('Apply Filter'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _loadTrips() async {
     try {
       setState(() {
@@ -4880,6 +4999,14 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
           totalPages = response['pagination']['totalPages'];
           totalTrips = response['pagination']['total'];
           isLoading = false;
+          
+          // Extract unique vehicle numbers for filtering
+          availableVehicles = trips
+              .map((trip) => trip['vehicle_number']?.toString() ?? '')
+              .where((vehicle) => vehicle.isNotEmpty)
+              .toSet()
+              .toList()
+              ..sort();
         });
         _filterAndSortTrips();
       }
@@ -5005,7 +5132,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                     controller: _searchController,
                     onChanged: _onSearchChanged,
                     decoration: InputDecoration(
-                    hintText: 'Search by vehicle...',
+                    hintText: 'Search by unit number...',
                       prefixIcon: Icon(Icons.search, color: Color(0xFF3E4795)),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -5039,7 +5166,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                     ),
                     items: [
                       DropdownMenuItem(value: 'start_time', child: Text('Date')),
-                      DropdownMenuItem(value: 'vehicle_id', child: Text('Vehicle')),
+                      DropdownMenuItem(value: 'vehicle_id', child: Text('Unit Number')),
                       DropdownMenuItem(value: 'duration', child: Text('Duration')),
                     ],
                   ),
@@ -5118,7 +5245,23 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                             ],
                           ),
                         ),
-                        Expanded(flex: 2, child: Text('Vehicle', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                        Expanded(
+                          flex: 2, 
+                          child: Row(
+                            children: [
+                              Text('Unit Number', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: _showVehicleFilterModal,
+                                child: Icon(
+                                  Icons.filter_list,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         Expanded(flex: 2, child: Text('Start Time', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                         Expanded(flex: 2, child: Text('End Time', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                         Expanded(flex: 1, child: Text('Trip Duration', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
@@ -5177,7 +5320,23 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                             ],
                           ),
                         ),
-                        Expanded(flex: 2, child: Text('Vehicle', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                        Expanded(
+                          flex: 2, 
+                          child: Row(
+                            children: [
+                              Text('Unit Number', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: _showVehicleFilterModal,
+                                child: Icon(
+                                  Icons.filter_list,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         Expanded(flex: 2, child: Text('Start Time', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                         Expanded(flex: 2, child: Text('End Time', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                         Expanded(flex: 1, child: Text('Trip Duration', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
