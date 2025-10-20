@@ -33,4 +33,31 @@ async function fleetActivityByHour(req, res) {
 
 module.exports.fleetActivityByHour = fleetActivityByHour;
 
+// Get all trips for admin dashboard
+async function getAllTripsForAdmin(req, res) {
+  try {
+    const { page = 1, limit = 50 } = req.query;
+    const offset = (page - 1) * limit;
+    
+    const trips = await model.getAllTrips(parseInt(limit), parseInt(offset));
+    const totalCount = await model.getTotalTripsCount();
+    
+    return send(res, 200, { 
+      success: true, 
+      data: trips, 
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: parseInt(totalCount),
+        totalPages: Math.ceil(totalCount / limit)
+      }
+    });
+  } catch (e) {
+    console.error('getAllTripsForAdmin error', e);
+    return err(res, 500, `Failed to fetch trips: ${e.message}`);
+  }
+}
+
+module.exports.getAllTripsForAdmin = getAllTripsForAdmin;
+
 

@@ -11,4 +11,7 @@ router.get('/trip-count', tripController.fetchTripDetails);
 router.get('/api/trips-per-unit', metricsCtrl.tripsPerUnit);
 router.get('/api/fleet-activity', metricsCtrl.fleetActivityByHour);
 
+// Admin trips route
+router.get('/api/admin/trips', metricsCtrl.getAllTripsForAdmin);
+
 module.exports = router;

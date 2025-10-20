@@ -75,6 +75,35 @@ const countActiveVehiclesByHour = async (dateYmd) => {
     return res.rows; // [{hour, buses}]
 }
 
+// Get all trips for admin dashboard
+const getAllTrips = async (limit = 50, offset = 0) => {
+    const sql = `
+        SELECT 
+            t.trip_id,
+            t.vehicle_id,
+            CONCAT('Vehicle ', t.vehicle_id) as vehicle_number,
+            t.start_time,
+            t.end_time,
+            t.start_lat,
+            t.start_lng,
+            t.end_lat,
+            t.end_lng,
+            t.status
+        FROM trips t
+        ORDER BY t.start_time DESC
+        LIMIT $1 OFFSET $2
+    `;
+    const res = await client.query(sql, [limit, offset]);
+    return res.rows;
+}
+
+// Get total count of trips
+const getTotalTripsCount = async () => {
+    const sql = `SELECT COUNT(*) as total FROM trips`;
+    const res = await client.query(sql);
+    return res.rows[0].total;
+}
+
 module.exports = {
     getActiveTripsByVehicle,
     insertTrip,
@@ -85,5 +114,7 @@ module.exports = {
     getTripCountByVehicleId,
     getRecentTripsByVehicleId,
     countTripsPerVehicleForDate,
-    countActiveVehiclesByHour
+    countActiveVehiclesByHour,
+    getAllTrips,
+    getTotalTripsCount
 };
