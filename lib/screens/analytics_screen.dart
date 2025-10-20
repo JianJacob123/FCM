@@ -1165,7 +1165,7 @@ class _OperationalMetricsSection extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: _Card(
-                title: 'Passenger distribution',
+                title: 'Average Trip Duration',
                 child: SizedBox(
                   height: 180,
                   child: _InteractivePassengerChart(),
