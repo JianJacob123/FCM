@@ -1942,66 +1942,206 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
     }
   }
 
+  String _formatTimestamp(dynamic timestamp) {
+    if (timestamp == null || timestamp == '') {
+      return '';
+    }
+    
+    try {
+      // Parse the timestamp and format it as YYYY-MM-DD HH:MM:SS
+      DateTime dateTime;
+      if (timestamp is String) {
+        dateTime = DateTime.parse(timestamp);
+      } else {
+        return timestamp.toString();
+      }
+      
+      return '${dateTime.year.toString().padLeft(4, '0')}-'
+             '${dateTime.month.toString().padLeft(2, '0')}-'
+             '${dateTime.day.toString().padLeft(2, '0')} '
+             '${dateTime.hour.toString().padLeft(2, '0')}:'
+             '${dateTime.minute.toString().padLeft(2, '0')}:'
+             '${dateTime.second.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return timestamp.toString();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text(
-          "Activity Logs",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header row with date and buttons
+            // Title Header (matching Trip History)
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                OutlinedButton.icon(
-                  onPressed: _pickDate,
-                  icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                  label: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
+                Text(
+                  'Activity Logs',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF3E4795),
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.edit, color: Colors.deepPurple),
-                ),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.add, color: Colors.deepPurple),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          // Refresh activity logs
+                        });
+                      },
+                      child: Icon(
+                        Icons.refresh,
+                        size: 16,
+                        color: Color(0xFF3E4795),
+                      ),
+                    ),
+                    SizedBox(width: 4),
+                    FutureBuilder<List<dynamic>>(
+                      future: fetchActivityLogs(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          return Text(
+                            'Total: ${snapshot.data!.length} logs',
+                            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                          );
+                        }
+                        return Text(
+                          'Total: 0 logs',
+                          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-
-            // Table header
+            SizedBox(height: 16),
+            // Search and Sort Controls (matching Trip History)
             Container(
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.deepPurple.shade700,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(10),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: TextField(
+                      onChanged: (value) {
+                        // Add search functionality
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Search by activity type...',
+                        prefixIcon: Icon(Icons.search, color: Color(0xFF3E4795)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Color(0xFF3E4795)),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<String>(
+                      value: 'timestamp',
+                      onChanged: (value) {
+                        // Add sort functionality
+                      },
+                      decoration: InputDecoration(
+                        labelText: 'Sort by',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Color(0xFF3E4795)),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: [
+                        DropdownMenuItem(
+                          value: 'timestamp',
+                          child: Text('Timestamp'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'activity_type',
+                          child: Text('Activity Type'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    flex: 1,
+                    child: DropdownButtonFormField<String>(
+                      value: 'desc',
+                      onChanged: (value) {
+                        // Add sort order functionality
+                      },
+                      decoration: InputDecoration(
+                        labelText: 'Order',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Color(0xFF3E4795)),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: [
+                        DropdownMenuItem(value: 'desc', child: Text('Desc')),
+                        DropdownMenuItem(value: 'asc', child: Text('Asc')),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 16),
+
+            // Table header (matching Trip History)
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Color(0xFF3E4795),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(8),
+                  topRight: Radius.circular(8),
                 ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Row(
                 children: [
                   Expanded(
                     flex: 2,
                     child: Text(
-                      "Activity Type",
+                      'Activity Type',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -2011,7 +2151,7 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                   Expanded(
                     flex: 3,
                     child: Text(
-                      "Description",
+                      'Description',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -2021,7 +2161,7 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                   Expanded(
                     flex: 2,
                     child: Text(
-                      "Timestamp",
+                      'Timestamp',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -2032,51 +2172,107 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
               ),
             ),
 
-            // Table body (now using FutureBuilder)
+            // Table body (matching Trip History)
             Expanded(
               child: FutureBuilder<List<dynamic>>(
                 future: fetchActivityLogs(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(color: Color(0xFF3E4795)),
+                          SizedBox(height: 16),
+                          Text('Loading activity logs...'),
+                        ],
+                      ),
+                    );
                   } else if (snapshot.hasError) {
                     return Center(child: Text("Error: ${snapshot.error}"));
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text("No activity logs found."));
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.history, size: 64, color: Colors.grey[400]),
+                          SizedBox(height: 16),
+                          Text(
+                            "No activity logs found.",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
                   }
 
                   final logs = snapshot.data!;
 
-                  return ListView.builder(
-                    itemCount: logs.length,
-                    itemBuilder: (context, index) {
-                      final log = logs[index];
-                      return Container(
-                        color: index % 2 == 0
-                            ? Colors.white
-                            : Colors.grey.shade50,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: Text(log['activity_type'] ?? ''),
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(8),
+                        bottomRight: Radius.circular(8),
+                      ),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: ListView.builder(
+                      itemCount: logs.length,
+                      itemBuilder: (context, index) {
+                        final log = logs[index];
+                        final isLast = index == logs.length - 1;
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: index % 2 == 0 ? Colors.white : Colors.grey[50],
+                            border: isLast ? null : Border(
+                              bottom: BorderSide(color: Colors.grey[200]!),
                             ),
-                            Expanded(
-                              flex: 3,
-                              child: Text(log['description'] ?? ''),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(log['created_at'] ?? ''),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  log['activity_type'] ?? '',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF232A4D),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 3,
+                                child: Text(
+                                  log['description'] ?? '',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF232A4D),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  _formatTimestamp(log['created_at']),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF232A4D),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   );
                 },
               ),
