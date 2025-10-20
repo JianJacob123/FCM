@@ -18,6 +18,29 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
   String _searchQuery = '';
   String _sortBy = 'name'; // name | role | username
   bool _sortAsc = true;
+  // Role filter
+  List<String> _selectedRoles = [];
+
+  void _finishEditAndNotify() {
+    setState(() => _showActions = false);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Saved'),
+        content: const Text('Edits were saved successfully.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _cancelEdit() {
+    setState(() => _showActions = false);
+  }
 
   @override
   void initState() {
@@ -129,6 +152,11 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
           u.username.toLowerCase().contains(_searchQuery);
     }).toList();
 
+    // Apply role filter if any selected
+    if (_selectedRoles.isNotEmpty) {
+      list = list.where((u) => _selectedRoles.contains(u.userRole)).toList();
+    }
+
     int cmp<T extends Comparable>(T a, T b) =>
         _sortAsc ? a.compareTo(b) : b.compareTo(a);
     list.sort((a, b) {
@@ -145,12 +173,114 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
     return list;
   }
 
+  void _showRoleFilterModal() {
+    final roles = _users.map((u) => u.userRole).toSet().toList()..sort();
+    List<String> tempSelected = List.from(_selectedRoles);
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final allSelected = roles.isNotEmpty && tempSelected.length == roles.length;
+            return AlertDialog(
+              title: Row(
+                children: const [
+                  Icon(Icons.filter_list, color: Color(0xFF3E4795)),
+                  SizedBox(width: 8),
+                  Text('Filter by Role'),
+                ],
+              ),
+              content: SizedBox(
+                width: MediaQuery.of(context).size.width < 520
+                    ? MediaQuery.of(context).size.width * 0.9
+                    : 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Select all toggle
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: allSelected,
+                              activeColor: const Color(0xFF3E4795),
+                              onChanged: (v) {
+                                setModalState(() {
+                                  if (v == true) {
+                                    tempSelected = List.from(roles);
+                                  } else {
+                                    tempSelected.clear();
+                                  }
+                                });
+                              },
+                            ),
+                            const Text('Select All'),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 260,
+                      child: ListView.builder(
+                        itemCount: roles.length,
+                        itemBuilder: (context, index) {
+                          final role = roles[index];
+                          final checked = tempSelected.contains(role);
+                          return CheckboxListTile(
+                            title: Text(role),
+                            value: checked,
+                            activeColor: const Color(0xFF3E4795),
+                            onChanged: (v) {
+                              setModalState(() {
+                                if (v == true) {
+                                  tempSelected.add(role);
+                                } else {
+                                  tempSelected.remove(role);
+                                }
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() => _selectedRoles = List.from(tempSelected));
+                    Navigator.of(ctx).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3E4795),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Apply Filter'),
+                )
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _createOrEdit({UserAccount? existing}) async {
     final fullNameCtrl = TextEditingController(text: existing?.fullName ?? '');
     String role = existing?.userRole ?? 'Driver';
     final usernameCtrl = TextEditingController(text: existing?.username ?? '');
     final passwordCtrl = TextEditingController();
     bool active = existing?.active ?? true;
+    bool _obscurePassword = true;
 
     final isEdit = existing != null;
 
@@ -158,7 +288,15 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          title: Text(isEdit ? 'Edit Account' : 'Add Account'),
+          backgroundColor: Colors.white,
+          title: Text(
+            isEdit ? 'Edit Employee Account' : 'Add Employee Account',
+            style: const TextStyle(
+              color: Color(0xFF3E4795),
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
           content: SizedBox(
             width: 420,
             child: Column(
@@ -166,13 +304,25 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
               children: [
                 TextField(
                   controller: fullNameCtrl,
-                  decoration: const InputDecoration(labelText: 'Full Name'),
+                  decoration: InputDecoration(
+                    labelText: 'Full Name',
+                    labelStyle: const TextStyle(color: Colors.black87),
+                    border: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    enabledBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFF3E4795)),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                  ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: role,
                   items: const [
-                    DropdownMenuItem(value: 'Admin', child: Text('Admin')),
                     DropdownMenuItem(value: 'Driver', child: Text('Driver')),
                     DropdownMenuItem(
                       value: 'Conductor',
@@ -180,22 +330,74 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     ),
                   ],
                   onChanged: (v) => role = v ?? role,
-                  decoration: const InputDecoration(labelText: 'Role'),
+                  decoration: InputDecoration(
+                    labelText: 'Role',
+                    labelStyle: const TextStyle(color: Colors.black87),
+                    border: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    enabledBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFF3E4795)),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                  ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 TextField(
                   controller: usernameCtrl,
-                  decoration: const InputDecoration(labelText: 'Username'),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: passwordCtrl,
                   decoration: InputDecoration(
-                    labelText: isEdit
-                        ? 'Password (leave blank to keep)'
-                        : 'Password',
+                    labelText: 'Username',
+                    labelStyle: const TextStyle(color: Colors.black87),
+                    border: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    enabledBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFF3E4795)),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                   ),
-                  obscureText: true,
+                ),
+                const SizedBox(height: 16),
+                StatefulBuilder(
+                  builder: (context, setState) {
+                    return TextField(
+                      controller: passwordCtrl,
+                      decoration: InputDecoration(
+                        labelText: isEdit
+                            ? 'Password (leave blank to keep)'
+                            : 'Password',
+                        labelStyle: const TextStyle(color: Colors.black87),
+                        border: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey),
+                        ),
+                        enabledBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey),
+                        ),
+                        focusedBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF3E4795)),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            color: Colors.grey[600],
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
+                      ),
+                      obscureText: _obscurePassword,
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
                 // Active toggle removed; new users default to active=true and edits preserve existing state
@@ -203,12 +405,36 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             ),
           ),
           actions: [
-            TextButton(
+            OutlinedButton(
               onPressed: () => Navigator.pop(ctx, false),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF3E4795),
+                side: const BorderSide(color: Color(0xFF3E4795)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
               child: const Text('Cancel'),
             ),
-            FilledButton(
+            const SizedBox(width: 16),
+            ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3E4795),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                elevation: 2,
+              ),
               child: const Text('Save'),
             ),
           ],
@@ -337,29 +563,51 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        IconButton(
-                          onPressed: () =>
-                              setState(() => _showActions = !_showActions),
-                          icon: Icon(
-                            _showActions ? Icons.edit_off : Icons.edit,
-                            color: const Color(0xFF3E4795),
+                        _showActions
+                            ? Row(
+                                children: [
+                                  ElevatedButton(
+                                    onPressed: _finishEditAndNotify,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF3E4795),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    child: const Text('Save'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  OutlinedButton(
+                                    onPressed: _cancelEdit,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFF3E4795),
+                                      side: const BorderSide(color: Color(0xFF3E4795)),
+                                    ),
+                                    child: const Text('Cancel'),
+                                  ),
+                                ],
+                              )
+                            : IconButton(
+                                onPressed: () =>
+                                    setState(() => _showActions = true),
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Color(0xFF3E4795),
+                                ),
+                                tooltip: 'Edit mode',
+                              ),
+                        if (!_showActions) ...[
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: _createOrEdit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3E4795),
+                              minimumSize: const Size(44, 44),
+                              shape: const CircleBorder(),
+                              padding: EdgeInsets.zero,
+                              elevation: 0,
+                            ),
+                            child: const Icon(Icons.add, color: Colors.white),
                           ),
-                          tooltip: _showActions
-                              ? 'Exit edit mode'
-                              : 'Edit mode',
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: _createOrEdit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3E4795),
-                            minimumSize: const Size(44, 44),
-                            shape: const CircleBorder(),
-                            padding: EdgeInsets.zero,
-                            elevation: 0,
-                          ),
-                          child: const Icon(Icons.add, color: Colors.white),
-                        ),
+                        ],
                       ],
                     ),
                   ],
@@ -377,36 +625,58 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     ),
                     Row(
                       children: [
-                        IconButton(
-                          onPressed: () =>
-                              setState(() => _showActions = !_showActions),
-                          icon: Icon(
-                            _showActions ? Icons.edit_off : Icons.edit,
-                            color: const Color(0xFF3E4795),
+                        _showActions
+                            ? Row(
+                                children: [
+                                  ElevatedButton(
+                                    onPressed: _finishEditAndNotify,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF3E4795),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    child: const Text('Save'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  OutlinedButton(
+                                    onPressed: _cancelEdit,
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFF3E4795),
+                                      side: const BorderSide(color: Color(0xFF3E4795)),
+                                    ),
+                                    child: const Text('Cancel'),
+                                  ),
+                                ],
+                              )
+                            : IconButton(
+                                onPressed: () =>
+                                    setState(() => _showActions = true),
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Color(0xFF3E4795),
+                                ),
+                                tooltip: 'Edit mode',
+                              ),
+                        if (!_showActions) ...[
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: _createOrEdit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3E4795),
+                              minimumSize: const Size(44, 44),
+                              shape: const CircleBorder(),
+                              padding: EdgeInsets.zero,
+                              elevation: 0,
+                            ),
+                            child: const Icon(Icons.add, color: Colors.white),
                           ),
-                          tooltip: _showActions
-                              ? 'Exit edit mode'
-                              : 'Edit mode',
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: _createOrEdit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3E4795),
-                            minimumSize: const Size(44, 44),
-                            shape: const CircleBorder(),
-                            padding: EdgeInsets.zero,
-                            elevation: 0,
-                          ),
-                          child: const Icon(Icons.add, color: Colors.white),
-                        ),
+                        ],
                       ],
                     ),
                   ],
                 ),
           const SizedBox(height: 24),
 
-          // Search/sort block under title
+          // Search/sort block under title (inline like Trip History controls)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
@@ -423,96 +693,134 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
               ],
             ),
             child: isMobile
-                ? Row(
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Search employees',
-                            prefixIcon: const Icon(Icons.search),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE0E0E0),
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE0E0E0),
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF3E4795),
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
+                      TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search employees...',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        icon: const Icon(Icons.filter_list),
-                        onPressed: () => _showSortOptions(context),
-                        tooltip: 'Sort Options',
-                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: _sortBy,
+                              onChanged: (v) => setState(() => _sortBy = v ?? _sortBy),
+                              decoration: InputDecoration(
+                                labelText: 'Sort by',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 12,
+                                ),
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: 'name', child: Text('Name')),
+                                DropdownMenuItem(value: 'role', child: Text('Role')),
+                                DropdownMenuItem(value: 'username', child: Text('Username')),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: _sortAsc ? 'asc' : 'desc',
+                              onChanged: (v) => setState(() => _sortAsc = (v ?? 'asc') == 'asc'),
+                              decoration: InputDecoration(
+                                labelText: 'Order',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 12,
+                                ),
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: 'asc', child: Text('Asc')),
+                                DropdownMenuItem(value: 'desc', child: Text('Desc')),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
                     ],
                   )
                 : Row(
                     children: [
                       Expanded(
+                        flex: 3,
                         child: TextField(
                           controller: _searchController,
                           decoration: InputDecoration(
-                            hintText: 'Search employees',
+                            hintText: 'Search employees...',
                             prefixIcon: const Icon(Icons.search),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE0E0E0),
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE0E0E0),
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF3E4795),
-                              ),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
-                              vertical: 8,
+                              vertical: 12,
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 16),
-                      ElevatedButton.icon(
-                        onPressed: () => _showSortOptions(context),
-                        icon: const Icon(Icons.sort, size: 18),
-                        label: const Text('Sort'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3E4795),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
+                      Expanded(
+                        flex: 2,
+                        child: DropdownButtonFormField<String>(
+                          value: _sortBy,
+                          onChanged: (v) => setState(() => _sortBy = v ?? _sortBy),
+                          decoration: InputDecoration(
+                            labelText: 'Sort by',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                          items: const [
+                            DropdownMenuItem(value: 'name', child: Text('Name')),
+                            DropdownMenuItem(value: 'role', child: Text('Role')),
+                            DropdownMenuItem(value: 'username', child: Text('Username')),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 1,
+                        child: DropdownButtonFormField<String>(
+                          value: _sortAsc ? 'asc' : 'desc',
+                          onChanged: (v) => setState(() => _sortAsc = (v ?? 'asc') == 'asc'),
+                          decoration: InputDecoration(
+                            labelText: 'Order',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
                           ),
+                          items: const [
+                            DropdownMenuItem(value: 'asc', child: Text('Asc')),
+                            DropdownMenuItem(value: 'desc', child: Text('Desc')),
+                          ],
                         ),
                       ),
                     ],
@@ -565,15 +873,29 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                                   ),
                                 ),
                               ),
-                              const Expanded(
+                              Expanded(
                                 flex: 1,
-                                child: Text(
-                                  'Role',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text(
+                                      'Role',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    InkWell(
+                                      onTap: _showRoleFilterModal,
+                                      child: const Icon(
+                                        Icons.filter_list,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                               const Expanded(
@@ -624,14 +946,28 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                                   ),
                                 ),
                               ),
-                              const Expanded(
+                              Expanded(
                                 flex: 1,
-                                child: Text(
-                                  'Role',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text(
+                                      'Role',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    InkWell(
+                                      onTap: _showRoleFilterModal,
+                                      child: const Icon(
+                                        Icons.filter_list,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                               const Expanded(

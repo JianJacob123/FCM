@@ -2830,6 +2830,22 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
+                        OutlinedButton(
+                          onPressed: widget.onCancel,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF3E4795),
+                            side: const BorderSide(color: Color(0xFF3E4795)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                        const SizedBox(width: 16),
                         ElevatedButton(
                           onPressed: () {
                             if (_formKey.currentState!.validate()) {
@@ -2853,22 +2869,6 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
                             ),
                           ),
                           child: const Text('Save'),
-                        ),
-                        const SizedBox(width: 16),
-                        OutlinedButton(
-                          onPressed: widget.onCancel,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF3E4795),
-                            side: const BorderSide(color: Color(0xFF3E4795)),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: const Text('Cancel'),
                         ),
                       ],
                     ),
@@ -4603,12 +4603,27 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
   // Vehicle filter variables
   List<String> selectedVehicles = [];
   List<String> availableVehicles = [];
+  List<String> selectedStartTimes = [];
+  List<String> selectedEndTimes = [];
+  List<String> selectedDurations = [];
+  List<String> availableStartTimes = [];
+  List<String> availableEndTimes = [];
+  List<String> availableDurations = [];
 
   @override
   void initState() {
     super.initState();
     // Initialize filteredTrips with empty list
     filteredTrips = [];
+    // Initialize filter lists
+    selectedVehicles = [];
+    selectedStartTimes = [];
+    selectedEndTimes = [];
+    selectedDurations = [];
+    availableVehicles = [];
+    availableStartTimes = [];
+    availableEndTimes = [];
+    availableDurations = [];
     _loadTrips();
   }
 
@@ -4639,6 +4654,21 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
         final matchesVehicle = selectedVehicles.isEmpty || 
                               selectedVehicles.contains(trip['vehicle_number'] ?? '');
         
+        // Start time filter
+        final startTime = _formatTime(trip['start_time']);
+        final matchesStartTime = selectedStartTimes.isEmpty || 
+                                selectedStartTimes.contains(startTime);
+        
+        // End time filter
+        final endTime = _formatTime(trip['end_time']);
+        final matchesEndTime = selectedEndTimes.isEmpty || 
+                              selectedEndTimes.contains(endTime);
+        
+        // Duration filter
+        final duration = _formatDuration(trip['start_time'], trip['end_time']);
+        final matchesDuration = selectedDurations.isEmpty || 
+                              selectedDurations.contains(duration);
+        
         // Date filter
         bool matchesDate = true;
         if (startDate != null || endDate != null) {
@@ -4664,7 +4694,8 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
           }
         }
         
-        return matchesSearch && matchesDate && matchesVehicle;
+        return matchesSearch && matchesDate && matchesVehicle && 
+               matchesStartTime && matchesEndTime && matchesDuration;
       }).toList();
 
       // Sort trips
@@ -4874,6 +4905,348 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
     );
   }
 
+  void _showStartTimeFilterModal() {
+    if (trips.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No trips available to filter')),
+      );
+      return;
+    }
+    
+    final times = trips
+        .where((trip) => trip != null)
+        .map((trip) => _formatTime(trip['start_time']))
+        .where((time) => time.isNotEmpty && time != 'N/A')
+        .toSet()
+        .toList()
+      ..sort();
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.filter_list, color: Color(0xFF3E4795)),
+                  SizedBox(width: 8),
+                  Text('Filter by Start Time'),
+                ],
+              ),
+              content: Container(
+                width: MediaQuery.of(context).size.width < 520
+                    ? MediaQuery.of(context).size.width * 0.9
+                    : 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: times.isNotEmpty && selectedStartTimes.length == times.length,
+                              activeColor: Color(0xFF3E4795),
+                              onChanged: (v) {
+                                setModalState(() {
+                                  if (v == true) {
+                                    selectedStartTimes = List.from(times);
+                                  } else {
+                                    selectedStartTimes.clear();
+                                  }
+                                });
+                              },
+                            ),
+                            Text('Select All'),
+                          ],
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12),
+                    Container(
+                      height: 260,
+                      child: ListView.builder(
+                        itemCount: times.length,
+                        itemBuilder: (context, index) {
+                          final time = times[index];
+                          final isSelected = selectedStartTimes.contains(time);
+                          
+                          return CheckboxListTile(
+                            title: Text(time),
+                            value: isSelected,
+                            onChanged: (bool? value) {
+                              setModalState(() {
+                                if (value == true) {
+                                  selectedStartTimes.add(time);
+                                } else {
+                                  selectedStartTimes.remove(time);
+                                }
+                              });
+                            },
+                            activeColor: Color(0xFF3E4795),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _filterAndSortTrips();
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF3E4795),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text('Apply Filter'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showEndTimeFilterModal() {
+    if (trips.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No trips available to filter')),
+      );
+      return;
+    }
+    
+    final times = trips
+        .where((trip) => trip != null)
+        .map((trip) => _formatTime(trip['end_time']))
+        .where((time) => time.isNotEmpty && time != 'N/A')
+        .toSet()
+        .toList()
+      ..sort();
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.filter_list, color: Color(0xFF3E4795)),
+                  SizedBox(width: 8),
+                  Text('Filter by End Time'),
+                ],
+              ),
+              content: Container(
+                width: MediaQuery.of(context).size.width < 520
+                    ? MediaQuery.of(context).size.width * 0.9
+                    : 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: times.isNotEmpty && selectedEndTimes.length == times.length,
+                              activeColor: Color(0xFF3E4795),
+                              onChanged: (v) {
+                                setModalState(() {
+                                  if (v == true) {
+                                    selectedEndTimes = List.from(times);
+                                  } else {
+                                    selectedEndTimes.clear();
+                                  }
+                                });
+                              },
+                            ),
+                            Text('Select All'),
+                          ],
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12),
+                    Container(
+                      height: 260,
+                      child: ListView.builder(
+                        itemCount: times.length,
+                        itemBuilder: (context, index) {
+                          final time = times[index];
+                          final isSelected = selectedEndTimes.contains(time);
+                          
+                          return CheckboxListTile(
+                            title: Text(time),
+                            value: isSelected,
+                            onChanged: (bool? value) {
+                              setModalState(() {
+                                if (value == true) {
+                                  selectedEndTimes.add(time);
+                                } else {
+                                  selectedEndTimes.remove(time);
+                                }
+                              });
+                            },
+                            activeColor: Color(0xFF3E4795),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _filterAndSortTrips();
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF3E4795),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text('Apply Filter'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showDurationFilterModal() {
+    if (trips.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No trips available to filter')),
+      );
+      return;
+    }
+    
+    final durations = trips
+        .where((trip) => trip != null)
+        .map((trip) => _formatDuration(trip['start_time'], trip['end_time']))
+        .where((duration) => duration.isNotEmpty && duration != 'N/A')
+        .toSet()
+        .toList()
+      ..sort();
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.filter_list, color: Color(0xFF3E4795)),
+                  SizedBox(width: 8),
+                  Text('Filter by Trip Duration'),
+                ],
+              ),
+              content: Container(
+                width: MediaQuery.of(context).size.width < 520
+                    ? MediaQuery.of(context).size.width * 0.9
+                    : 420,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: durations.isNotEmpty && selectedDurations.length == durations.length,
+                              activeColor: Color(0xFF3E4795),
+                              onChanged: (v) {
+                                setModalState(() {
+                                  if (v == true) {
+                                    selectedDurations = List.from(durations);
+                                  } else {
+                                    selectedDurations.clear();
+                                  }
+                                });
+                              },
+                            ),
+                            Text('Select All'),
+                          ],
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12),
+                    Container(
+                      height: 260,
+                      child: ListView.builder(
+                        itemCount: durations.length,
+                        itemBuilder: (context, index) {
+                          final duration = durations[index];
+                          final isSelected = selectedDurations.contains(duration);
+                          
+                          return CheckboxListTile(
+                            title: Text(duration),
+                            value: isSelected,
+                            onChanged: (bool? value) {
+                              setModalState(() {
+                                if (value == true) {
+                                  selectedDurations.add(duration);
+                                } else {
+                                  selectedDurations.remove(duration);
+                                }
+                              });
+                            },
+                            activeColor: Color(0xFF3E4795),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _filterAndSortTrips();
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF3E4795),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text('Apply Filter'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showVehicleFilterModal() {
     showDialog(
       context: context,
@@ -4889,42 +5262,35 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                 ],
               ),
               content: Container(
-                width: double.maxFinite,
-      child: Column(
+                width: MediaQuery.of(context).size.width < 520
+                    ? MediaQuery.of(context).size.width * 0.9
+                    : 480,
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
-        children: [
-                    // Select All / Clear All buttons
+                  children: [
+                    // Select All checkbox + Clear All action
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              setModalState(() {
-                                selectedVehicles = List.from(availableVehicles);
-                              });
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF3E4795),
-                              foregroundColor: Colors.white,
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: availableVehicles.isNotEmpty && selectedVehicles.length == availableVehicles.length,
+                              activeColor: Color(0xFF3E4795),
+                              onChanged: (bool? value) {
+                                setModalState(() {
+                                  if (value == true) {
+                                    selectedVehicles = List.from(availableVehicles);
+                                  } else {
+                                    selectedVehicles.clear();
+                                  }
+                                });
+                              },
                             ),
-                            child: Text('Select All'),
-                          ),
+                            Text('Select All'),
+                          ],
                         ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              setModalState(() {
-                                selectedVehicles.clear();
-                              });
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.grey[300],
-                              foregroundColor: Colors.black,
-                            ),
-                            child: Text('Clear All'),
-                          ),
-                        ),
+                        // Removed Clear All action per UI update
                       ],
                     ),
           SizedBox(height: 16),
@@ -5262,9 +5628,60 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                             ],
                           ),
                         ),
-                        Expanded(flex: 2, child: Text('Start Time', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                        Expanded(flex: 2, child: Text('End Time', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                        Expanded(flex: 1, child: Text('Trip Duration', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                        Expanded(
+                          flex: 2,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('Start Time', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: _showStartTimeFilterModal,
+                                child: Icon(
+                                  Icons.filter_list,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('End Time', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: _showEndTimeFilterModal,
+                                child: Icon(
+                                  Icons.filter_list,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('Trip Duration', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: _showDurationFilterModal,
+                                child: Icon(
+                                  Icons.filter_list,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -5337,9 +5754,60 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                             ],
                           ),
                         ),
-                        Expanded(flex: 2, child: Text('Start Time', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                        Expanded(flex: 2, child: Text('End Time', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                        Expanded(flex: 1, child: Text('Trip Duration', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                        Expanded(
+                          flex: 2,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('Start Time', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: _showStartTimeFilterModal,
+                                child: Icon(
+                                  Icons.filter_list,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('End Time', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: _showEndTimeFilterModal,
+                                child: Icon(
+                                  Icons.filter_list,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('Trip Duration', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: _showDurationFilterModal,
+                                child: Icon(
+                                  Icons.filter_list,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
