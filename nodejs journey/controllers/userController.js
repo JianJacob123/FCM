@@ -1,5 +1,7 @@
 const userModel = require('../models/userModels');
+const activityLogsModel = require('../models/activityLogsModel');
 
+// Verify login credentials
 const verifyLogin = async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -8,6 +10,7 @@ const verifyLogin = async (req, res) => {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
         res.json({ message: 'Login successful', data: user });
+        await activityLogsModel.logActivity('Login', `User ${username} logged in`);
     } catch (err) {
         console.error('Error during login:', err);
         res.status(500).json({ error: err.message });

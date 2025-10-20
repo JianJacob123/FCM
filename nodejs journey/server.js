@@ -12,6 +12,7 @@ const PORT = process.env.PORT || 8080;
 
 //route imports
 const vehicleRoutes = require('./routes/vehicleRoutes');
+const activityLogsRoute = require('./routes/activityLogsRoute');
 const notificationRoutes = require('./routes/notificationRoutes');
 const tripRoutes = require('./routes/tripRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -30,6 +31,7 @@ const notificationHandler = require("./sockets/notificationHandler");
 app.use(express.json());
 app.use(cors());
 app.use('/vehicles', vehicleRoutes);
+app.use('/activityLogs', activityLogsRoute);
 app.use('/notifications', notificationRoutes)
 app.use('/users', userRoutes);
 app.use('/trips', tripRoutes);

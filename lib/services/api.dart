@@ -6,6 +6,19 @@ import '../models/trip_request.dart';
 
 final baseUrl = dotenv.env['API_BASE_URL'];
 
+//Fetch Activity Logs
+Future<List<dynamic>> fetchActivityLogs() async {
+  final response = await http.get(
+    Uri.parse("$baseUrl/activityLogs/fetchActivityLogs"),
+  );
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  } else {
+    throw Exception("Failed to load activity logs");
+  }
+}
+
 Future<List<dynamic>> fetchNotifications(String recipient) async {
   final response = await http.get(
     Uri.parse("$baseUrl/notifications/getNotifications?recipient=$recipient"),
@@ -153,7 +166,10 @@ Future<void> createNotification(
   }
 }
 
-Future<Map<String, dynamic>> fetchAdminTrips({int page = 1, int limit = 50}) async {
+Future<Map<String, dynamic>> fetchAdminTrips({
+  int page = 1,
+  int limit = 50,
+}) async {
   final response = await http.get(
     Uri.parse("$baseUrl/trips/api/admin/trips?page=$page&limit=$limit"),
   );
