@@ -109,8 +109,60 @@ class VehicleAssignmentController {
   static async updateAssignment(req, res) {
     try {
       const { id } = req.params;
-      const { vehicle_id, driver_id, conductor_id } = req.body;
+      const { vehicle_id, driver_id, conductor_id, plate_number } = req.body;
 
+      // Validate required fields
+      if (!vehicle_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vehicle ID is required'
+        });
+      }
+
+      if (!plate_number) {
+        return res.status(400).json({
+          success: false,
+          message: 'Plate number is required'
+        });
+      }
+
+      // Get the current assignment to check if vehicle_id changed
+      const currentAssignment = await VehicleAssignment.getById(id);
+      if (!currentAssignment) {
+        return res.status(404).json({
+          success: false,
+          message: 'Assignment not found'
+        });
+      }
+
+      const oldVehicleId = currentAssignment.vehicle_id;
+      const newVehicleId = vehicle_id;
+
+      // If vehicle ID changed, we need to handle the vehicle update
+      if (oldVehicleId !== newVehicleId) {
+        console.log(`Vehicle ID changed from ${oldVehicleId} to ${newVehicleId}`);
+        
+        // Check if new vehicle exists
+        const vehicleModel = require('../models/vehicleModels');
+        const existingVehicle = await vehicleModel.getVehicleById(newVehicleId);
+        
+        if (!existingVehicle) {
+          // Create new vehicle if it doesn't exist
+          console.log(`Creating new vehicle with ID: ${newVehicleId} and plate: ${plate_number}`);
+          await vehicleModel.createVehicle(newVehicleId, plate_number);
+        } else {
+          // Update existing vehicle's plate number
+          console.log(`Updating existing vehicle ${newVehicleId} with new plate: ${plate_number}`);
+          await vehicleModel.updateVehiclePlateNumber(newVehicleId, plate_number);
+        }
+      } else {
+        // Same vehicle, just update plate number
+        console.log(`Updating plate number for vehicle ${newVehicleId} to: ${plate_number}`);
+        const vehicleModel = require('../models/vehicleModels');
+        await vehicleModel.updateVehiclePlateNumber(newVehicleId, plate_number);
+      }
+
+      // Update the assignment
       const assignment = await VehicleAssignment.update(id, vehicle_id, driver_id, conductor_id);
 
       res.json({

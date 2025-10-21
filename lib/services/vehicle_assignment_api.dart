@@ -239,12 +239,14 @@ class VehicleAssignmentApiService {
   static Future<VehicleAssignmentResponse> updateAssignment({
     required int assignmentId,
     int? vehicleId,
+    String? plateNumber,
     int? driverId,
     int? conductorId,
   }) async {
     try {
       final body = <String, dynamic>{};
       if (vehicleId != null) body['vehicle_id'] = vehicleId;
+      if (plateNumber != null) body['plate_number'] = plateNumber;
       if (driverId != null) body['driver_id'] = driverId;
       if (conductorId != null) body['conductor_id'] = conductorId;
 

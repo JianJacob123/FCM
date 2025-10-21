@@ -287,6 +287,21 @@ const createVehicle = async (vehicleId, plateNumber) => {
     }
 };
 
+const updateVehiclePlateNumber = async (vehicleId, plateNumber) => {
+    try {
+        const res = await client.query(`
+            UPDATE vehicles 
+            SET plate_number = $2
+            WHERE vehicle_id = $1
+            RETURNING *
+        `, [vehicleId, plateNumber]);
+        return res.rows[0];
+    } catch (error) {
+        console.error('Error updating vehicle plate number:', error);
+        throw error;
+    }
+};
+
 module.exports = {
     getAllVehicles,
     getVehicleById,
@@ -297,5 +312,6 @@ module.exports = {
     getConductorIdByVehicle,
     getDailyPassengerAnalytics,
     getAverageTripDurationPerVehicle,
-    createVehicle
+    createVehicle,
+    updateVehiclePlateNumber
 };

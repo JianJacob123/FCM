@@ -277,6 +277,10 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
   Future<void> _createOrEdit({UserAccount? existing}) async {
     final fullNameCtrl = TextEditingController(text: existing?.fullName ?? '');
     String role = existing?.userRole ?? 'Driver';
+    // If existing user is admin, default to Driver since admin is no longer selectable
+    if (role == 'admin') {
+      role = 'Driver';
+    }
     final usernameCtrl = TextEditingController(text: existing?.username ?? '');
     final passwordCtrl = TextEditingController();
     bool active = existing?.active ?? true;
@@ -320,6 +324,31 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                if (existing?.userRole == 'admin')
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      border: Border.all(color: Colors.orange.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.orange.shade700, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Note: Admin role is no longer available. This user will be converted to Driver role.',
+                            style: TextStyle(
+                              color: Colors.orange.shade700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 DropdownButtonFormField<String>(
                   value: role,
                   items: const [

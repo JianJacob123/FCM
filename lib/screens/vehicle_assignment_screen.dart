@@ -91,66 +91,6 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
     return items;
   }
 
-  void _showSortOptions(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Sort Options'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Sort by:', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              RadioListTile<String>(
-                title: const Text('Vehicle'),
-                value: 'vehicle',
-                groupValue: _sortBy,
-                onChanged: (String? value) { setState(() => _sortBy = value!); },
-              ),
-              RadioListTile<String>(
-                title: const Text('Driver'),
-                value: 'driver',
-                groupValue: _sortBy,
-                onChanged: (String? value) { setState(() => _sortBy = value!); },
-              ),
-              RadioListTile<String>(
-                title: const Text('Conductor'),
-                value: 'conductor',
-                groupValue: _sortBy,
-                onChanged: (String? value) { setState(() => _sortBy = value!); },
-              ),
-              RadioListTile<String>(
-                title: const Text('Assigned At'),
-                value: 'assigned',
-                groupValue: _sortBy,
-                onChanged: (String? value) { setState(() => _sortBy = value!); },
-              ),
-              const Divider(),
-              const Text('Order:', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              RadioListTile<String>(
-                title: const Text('Ascending'),
-                value: 'asc',
-                groupValue: _sortAsc ? 'asc' : 'desc',
-                onChanged: (String? value) { setState(() => _sortAsc = value == 'asc'); },
-              ),
-              RadioListTile<String>(
-                title: const Text('Descending'),
-                value: 'desc',
-                groupValue: _sortAsc ? 'asc' : 'desc',
-                onChanged: (String? value) { setState(() => _sortAsc = value == 'asc'); },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-            ElevatedButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Apply')),
-          ],
-        );
-      },
-    );
-  }
 
   Future<void> _loadAssignments() async {
     try {
@@ -232,7 +172,7 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
     
     // Populate vehicle input fields for editing
     _vehicleNumberController.text = assignment.vehicleId.toString();
-    _plateNumberController.text = ''; // Plate number not stored in assignment, so leave empty
+    _plateNumberController.text = assignment.plateNumber ?? ''; // Use plate number from assignment
     
     setState(() {
       _showAddForm = true;
@@ -252,9 +192,11 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
       if (_editingAssignment != null) {
         // Update existing assignment
         final vehicleId = int.parse(_vehicleNumberController.text);
+        final plateNumber = _plateNumberController.text;
         final response = await VehicleAssignmentApiService.updateAssignment(
           assignmentId: _editingAssignment!.assignmentId,
           vehicleId: vehicleId,
+          plateNumber: plateNumber,
           driverId: _selectedDriverId,
           conductorId: _selectedConductorId,
         );
@@ -363,30 +305,67 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
                       ),
                       const SizedBox(height: 16),
                       Row(
-                        children: [
-                          // Edit mode toggle
-                          IconButton(
-                            onPressed: () => setState(() => _showActions = !_showActions),
-                            icon: Icon(
-                              _showActions ? Icons.edit_off : Icons.edit,
-                              color: const Color(0xFF3E4795),
-                            ),
-                            tooltip: _showActions ? 'Exit edit mode' : 'Edit mode',
-                          ),
-                          const SizedBox(width: 8),
-                          // Add assignment as + icon
-                          ElevatedButton(
-                            onPressed: _showAddFormDialog,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF3E4795),
-                              minimumSize: const Size(44, 44),
-                              shape: const CircleBorder(),
-                              padding: EdgeInsets.zero,
-                              elevation: 0,
-                            ),
-                            child: const Icon(Icons.add, color: Colors.white),
-                          ),
-                        ],
+                        children: (_editingAssignment != null || _showActions)
+                          ? [
+                              // Save and Cancel buttons when editing
+                              OutlinedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _showAddForm = false;
+                                    _editingAssignment = null;
+                                    _showActions = false;
+                                  });
+                                  // Clear form fields
+                                  _vehicleNumberController.clear();
+                                  _plateNumberController.clear();
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFF3E4795),
+                                  side: const BorderSide(color: Colors.grey),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                ),
+                                child: const Text('Cancel'),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                onPressed: _editingAssignment != null ? _saveAssignment : () {
+                                  setState(() => _showActions = false);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF3E4795),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                  elevation: 0,
+                                ),
+                                child: Text(_editingAssignment != null ? 'Save' : 'Done'),
+                              ),
+                            ]
+                          : [
+                              // Edit mode toggle
+                              IconButton(
+                                onPressed: () => setState(() => _showActions = !_showActions),
+                                icon: Icon(
+                                  _showActions ? Icons.edit_off : Icons.edit,
+                                  color: const Color(0xFF3E4795),
+                                ),
+                                tooltip: _showActions ? 'Exit edit mode' : 'Edit mode',
+                              ),
+                              const SizedBox(width: 8),
+                              // Add assignment as + icon
+                              ElevatedButton(
+                                onPressed: _showAddFormDialog,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF3E4795),
+                                  minimumSize: const Size(44, 44),
+                                  shape: const CircleBorder(),
+                                  padding: EdgeInsets.zero,
+                                  elevation: 0,
+                                ),
+                                child: const Icon(Icons.add, color: Colors.white),
+                              ),
+                            ],
                       ),
                     ],
                   )
@@ -402,30 +381,67 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
                         ),
                       ),
                       Row(
-                        children: [
-                          // Edit mode toggle
-                          IconButton(
-                            onPressed: () => setState(() => _showActions = !_showActions),
-                            icon: Icon(
-                              _showActions ? Icons.edit_off : Icons.edit,
-                              color: const Color(0xFF3E4795),
-                            ),
-                            tooltip: _showActions ? 'Exit edit mode' : 'Edit mode',
-                          ),
-                          const SizedBox(width: 8),
-                          // Add assignment as + icon
-                          ElevatedButton(
-                            onPressed: _showAddFormDialog,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF3E4795),
-                              minimumSize: const Size(44, 44),
-                              shape: const CircleBorder(),
-                              padding: EdgeInsets.zero,
-                              elevation: 0,
-                            ),
-                            child: const Icon(Icons.add, color: Colors.white),
-                          ),
-                        ],
+                        children: (_editingAssignment != null || _showActions)
+                          ? [
+                              // Save and Cancel buttons when editing
+                              OutlinedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _showAddForm = false;
+                                    _editingAssignment = null;
+                                    _showActions = false;
+                                  });
+                                  // Clear form fields
+                                  _vehicleNumberController.clear();
+                                  _plateNumberController.clear();
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: const Color(0xFF3E4795),
+                                  side: const BorderSide(color: Colors.grey),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                ),
+                                child: const Text('Cancel'),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                onPressed: _editingAssignment != null ? _saveAssignment : () {
+                                  setState(() => _showActions = false);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF3E4795),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                  elevation: 0,
+                                ),
+                                child: Text(_editingAssignment != null ? 'Save' : 'Done'),
+                              ),
+                            ]
+                          : [
+                              // Edit mode toggle
+                              IconButton(
+                                onPressed: () => setState(() => _showActions = !_showActions),
+                                icon: Icon(
+                                  _showActions ? Icons.edit_off : Icons.edit,
+                                  color: const Color(0xFF3E4795),
+                                ),
+                                tooltip: _showActions ? 'Exit edit mode' : 'Edit mode',
+                              ),
+                              const SizedBox(width: 8),
+                              // Add assignment as + icon
+                              ElevatedButton(
+                                onPressed: _showAddFormDialog,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF3E4795),
+                                  minimumSize: const Size(44, 44),
+                                  shape: const CircleBorder(),
+                                  padding: EdgeInsets.zero,
+                                  elevation: 0,
+                                ),
+                                child: const Icon(Icons.add, color: Colors.white),
+                              ),
+                            ],
                       ),
                     ],
                   ),
@@ -433,7 +449,7 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
               // Search/sort block below title
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
@@ -447,75 +463,135 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
                   ],
                 ),
                 child: isMobile
-                    ? Row(
+                    ? Column(
                         children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              decoration: InputDecoration(
-                                hintText: 'Search vehicle, driver, or conductor',
-                                prefixIcon: const Icon(Icons.search),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: Color(0xFF3E4795)),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Search vehicle, driver, or conductor',
+                              prefixIcon: const Icon(Icons.search),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: const Icon(Icons.filter_list),
-                            onPressed: () => _showSortOptions(context),
-                            tooltip: 'Sort Options',
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  value: _sortBy,
+                                  onChanged: (v) => setState(() => _sortBy = v ?? _sortBy),
+                                  decoration: InputDecoration(
+                                    labelText: 'Sort by',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(value: 'vehicle', child: Text('Vehicle')),
+                                    DropdownMenuItem(value: 'driver', child: Text('Driver')),
+                                    DropdownMenuItem(value: 'conductor', child: Text('Conductor')),
+                                    DropdownMenuItem(value: 'assigned_at', child: Text('Date Assigned')),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  value: _sortAsc ? 'asc' : 'desc',
+                                  onChanged: (v) => setState(() => _sortAsc = (v ?? 'asc') == 'asc'),
+                                  decoration: InputDecoration(
+                                    labelText: 'Order',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(value: 'asc', child: Text('Ascending')),
+                                    DropdownMenuItem(value: 'desc', child: Text('Descending')),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       )
                     : Row(
                         children: [
                           Expanded(
+                            flex: 3,
                             child: TextField(
                               controller: _searchController,
                               decoration: InputDecoration(
                                 hintText: 'Search vehicle, driver, or conductor',
                                 prefixIcon: const Icon(Icons.search),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 12,
                                 ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(color: Color(0xFF3E4795)),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          ElevatedButton.icon(
-                            onPressed: () => _showSortOptions(context),
-                            icon: const Icon(Icons.sort, size: 18),
-                            label: const Text('Sort'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF3E4795),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: DropdownButtonFormField<String>(
+                              value: _sortBy,
+                              onChanged: (v) => setState(() => _sortBy = v ?? _sortBy),
+                              decoration: InputDecoration(
+                                labelText: 'Sort by',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
                               ),
+                              items: const [
+                                DropdownMenuItem(value: 'vehicle', child: Text('Vehicle')),
+                                DropdownMenuItem(value: 'driver', child: Text('Driver')),
+                                DropdownMenuItem(value: 'conductor', child: Text('Conductor')),
+                                DropdownMenuItem(value: 'assigned_at', child: Text('Date Assigned')),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 1,
+                            child: DropdownButtonFormField<String>(
+                              value: _sortAsc ? 'asc' : 'desc',
+                              onChanged: (v) => setState(() => _sortAsc = (v ?? 'asc') == 'asc'),
+                              decoration: InputDecoration(
+                                labelText: 'Order',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: 'asc', child: Text('Ascending')),
+                                DropdownMenuItem(value: 'desc', child: Text('Descending')),
+                              ],
                             ),
                           ),
                         ],
