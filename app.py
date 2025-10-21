@@ -13,7 +13,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=['*'], methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], 
+     allow_headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'])
+
+# Add CORS headers to all responses
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 # Database connection
 def get_db_connection():
@@ -113,13 +122,15 @@ def forecast_peak():
 def daily_forecast():
     """Get weekly passenger forecast (Sunday to Saturday) using Prophet model"""
     try:
-        # Generate next 7 days starting from the upcoming Sunday
+        # Generate current week starting from the current Sunday
         today = datetime.now()
-        days_until_sunday = (6 - today.weekday()) % 7  # Days until next Sunday
-        if days_until_sunday == 0:  # If today is Sunday, start from next Sunday
-            days_until_sunday = 7
+        # Calculate days since last Sunday (weekday: Monday=0, Sunday=6)
+        if today.weekday() == 6:  # If today is Sunday
+            days_since_sunday = 0
+        else:  # Calculate days since last Sunday
+            days_since_sunday = (today.weekday() + 1) % 7
         
-        start_date = today + timedelta(days=days_until_sunday)
+        start_date = today - timedelta(days=days_since_sunday)
         dates = [start_date + timedelta(days=i) for i in range(7)]  # Sunday to Saturday
         
         # Generate realistic daily predictions with proper demand patterns
