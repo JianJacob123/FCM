@@ -537,16 +537,23 @@ class _AdminScreenState extends State<AdminScreen> {
                               showDialog(
                                 context: context,
                                 builder: (context) => AlertDialog(
+                                  backgroundColor: Colors.white,
                                   title: const Text('Logout'),
                                   content: const Text(
                                     'Are you sure you want to log out?',
                                   ),
                                   actions: [
-                                    TextButton(
+                                    OutlinedButton(
                                       onPressed: () => Navigator.pop(context),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: const Color(0xFF3E4795),
+                                        side: const BorderSide(color: Colors.grey),
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                      ),
                                       child: const Text('Cancel'),
                                     ),
-                                    TextButton(
+                                    ElevatedButton(
                                       onPressed: () {
                                         Navigator.pop(context);
                                         Navigator.of(context).pushReplacement(
@@ -556,6 +563,13 @@ class _AdminScreenState extends State<AdminScreen> {
                                           ),
                                         );
                                       },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF3E4795),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                        elevation: 0,
+                                      ),
                                       child: const Text('Logout'),
                                     ),
                                   ],
@@ -3981,7 +3995,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
 
   Future<void> _loadVehicles() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/vehicles'));
+      final response = await http.get(Uri.parse('$baseUrl/vehicles/getVehicles'));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -4323,6 +4337,40 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                           ),
                         ),
                         const SizedBox(width: 16),
+                        // Edit mode buttons
+                        if (_showActions) ...[
+                          // Cancel and Save buttons when editing
+                          OutlinedButton(
+                            onPressed: () {
+                              setState(() {
+                                _showActions = false;
+                                _showAddForm = false;
+                                _editingSchedule = null;
+                              });
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF3E4795),
+                              side: const BorderSide(color: Colors.grey),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                            ),
+                            child: const Text('Cancel'),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () {
+                              setState(() => _showActions = false);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3E4795),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                              elevation: 0,
+                            ),
+                            child: const Text('Save'),
+                          ),
+                        ] else ...[
                         // Edit toggle
                         ElevatedButton(
                           onPressed: () =>
@@ -4352,6 +4400,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                           ),
                           child: const Icon(Icons.add, color: Colors.white),
                         ),
+                        ],
                       ],
                     ),
                   ],
@@ -4626,7 +4675,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                                           15,
                                           (i) => {
                                             'vehicle_id': i + 1,
-                                            'unit_number': 'Unit ${i + 1}',
+                                            'plate_number': 'Unit ${i + 1}',
                                           },
                                         )
                                       : _vehicles.take(15))
@@ -4637,8 +4686,6 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                                         vehicle['id'] ??
                                         0;
                                     final String unitName =
-                                        vehicle['unit_number'] ??
-                                        vehicle['unitNumber'] ??
                                         vehicle['plate_number'] ??
                                         vehicle['plateNumber'] ??
                                         'Unit $vehicleId';
