@@ -7,6 +7,7 @@ final baseURL = dotenv.env['API_BASE_URL'];
 class VehicleAssignment {
   final int assignmentId;
   final int vehicleId;
+  final String? plateNumber;
   final int? driverId;
   final int? conductorId;
   final String? driverName;
@@ -18,6 +19,7 @@ class VehicleAssignment {
   VehicleAssignment({
     required this.assignmentId,
     required this.vehicleId,
+    this.plateNumber,
     this.driverId,
     this.conductorId,
     this.driverName,
@@ -31,6 +33,7 @@ class VehicleAssignment {
     return VehicleAssignment(
       assignmentId: int.parse(json['assignment_id'].toString()),
       vehicleId: int.parse(json['vehicle_id'].toString()),
+      plateNumber: json['plate_number'],
       driverId: json['driver_id'] != null ? int.parse(json['driver_id'].toString()) : null,
       conductorId: json['conductor_id'] != null ? int.parse(json['conductor_id'].toString()) : null,
       driverName: json['driver_name'],
@@ -45,6 +48,7 @@ class VehicleAssignment {
     return {
       'assignment_id': assignmentId,
       'vehicle_id': vehicleId,
+      'plate_number': plateNumber,
       'driver_id': driverId,
       'conductor_id': conductorId,
       'driver_name': driverName,
@@ -196,11 +200,15 @@ class VehicleAssignmentApiService {
   // Create new assignment
   static Future<VehicleAssignmentResponse> createAssignment({
     required int vehicleId,
+    required String plateNumber,
     int? driverId,
     int? conductorId,
   }) async {
     try {
-      final body = <String, dynamic>{'vehicle_id': vehicleId};
+      final body = <String, dynamic>{
+        'vehicle_id': vehicleId,
+        'plate_number': plateNumber,
+      };
       if (driverId != null) body['driver_id'] = driverId;
       if (conductorId != null) body['conductor_id'] = conductorId;
 

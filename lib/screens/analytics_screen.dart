@@ -59,6 +59,93 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
     return '${months[d.month - 1]} ${d.day}, ${d.year}';
   }
 
+  void _showYearSelector() {
+    final currentYear = DateTime.now().year;
+    final availableYears = List.generate(5, (index) => currentYear + index);
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: Row(
+            children: [
+              Icon(Icons.calendar_today, color: Color(0xFF3E4795)),
+              SizedBox(width: 8),
+              Text('Select Forecast Year'),
+            ],
+          ),
+          content: Container(
+            width: 300,
+            height: 200,
+            child: ListView.builder(
+              itemCount: availableYears.length,
+              itemBuilder: (context, index) {
+                final year = availableYears[index];
+                final isSelected = year == _yearlyYear;
+                
+                return ListTile(
+                  title: Text(
+                    year.toString(),
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected ? Color(0xFF3E4795) : Colors.black,
+                    ),
+                  ),
+                  trailing: isSelected ? Icon(Icons.check, color: Color(0xFF3E4795)) : null,
+                  onTap: () {
+                    setState(() {
+                      _yearlyYear = year;
+                    });
+                    _loadYearlyForecast();
+                    Navigator.of(context).pop();
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Color(0xFF3E4795),
+                side: BorderSide(color: Colors.grey[300]!),
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _loadYearlyForecast() async {
+    try {
+      setState(() {
+        _loading = true;
+      });
+      
+      final yearlyF = fapi.forecastYearlyDaily(_yearlyYear);
+      final yearly = await yearlyF;
+      
+      setState(() {
+        _yearlyYear = yearly.year;
+        _yearlyGrid = yearly.grid;
+        _loading = false;
+      });
+      
+      print('Yearly forecast loaded for ${_yearlyYear}: grid length=${yearly.grid.length}');
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load forecast for $_yearlyYear: $e';
+        _loading = false;
+      });
+      print('Error loading yearly forecast for $_yearlyYear: $e');
+    }
+  }
+
   Widget _buildPeakTimeCard() {
     // Calculate peak time from actual forecast data
     int? actualPeakHour;
@@ -91,13 +178,26 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Expected Peak Time',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+          Row(
+            children: [
+              Text(
+                'Expected Peak Time',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              SizedBox(width: 8),
+              Tooltip(
+                message: 'Disclaimer: The following forecast uses dummy data calibrated to mirror general passenger demand patterns and does not represent actual recorded values.',
+                child: Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           // Chart on the left, time and date on the right
@@ -387,7 +487,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       final daily = await dailyF;
       late final yearly;
       try {
-        final yearlyF = fapi.forecastYearlyDaily(DateTime.now().year);
+        final yearlyF = fapi.forecastYearlyDaily(_yearlyYear);
         yearly = await yearlyF;
         print('Yearly forecast loaded: year=${yearly.year}, grid length=${yearly.grid.length}');
         if (yearly.grid.isEmpty) {
@@ -395,7 +495,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
         }
       } catch (e) {
         print('Error loading yearly forecast: $e');
-        yearly = (year: DateTime.now().year, grid: <List<double?>>[]);
+        yearly = (year: _yearlyYear, grid: <List<double?>>[]);
       }
       final schedules = await schedulesF;
       final tripsPU = await tripsPerUnitF;
@@ -711,8 +811,60 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
             const SizedBox(height: 8),
             // Yearly daily passenger forecast heatmap at the bottom
             _Card(
-              title: 'Yearly Passenger Forecast Heatmap ${_yearlyYear.toString()}',
-              titleIcon: Icons.calendar_today_outlined,
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    child:                       Stack(
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Yearly Passenger Forecast Heatmap ${_yearlyYear.toString()}',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Tooltip(
+                                message: 'Disclaimer: The following forecast uses dummy data calibrated to mirror general passenger demand patterns and does not represent actual recorded values.',
+                                child: Icon(
+                                  Icons.info_outline,
+                                  size: 16,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: _showYearSelector,
+                            child: Icon(
+                              Icons.calendar_today_outlined,
+                              color: Color(0xFF3E4795),
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'This heatmap provides an overview of the predicted passenger demand throughout the year, helping identify peak and low-demand periods across different months and days.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                      fontStyle: FontStyle.normal,
+                    ),
+                  ),
+                ],
+              ),
               child: SizedBox(
                 height: 200,
                 width: double.infinity,
@@ -802,6 +954,63 @@ class _DailyAreaChart extends StatefulWidget {
 class _DailyAreaChartState extends State<_DailyAreaChart> {
   int? _hoveredIndex;
 
+  void _showDailyYearSelector() {
+    final currentYear = DateTime.now().year;
+    final availableYears = List.generate(5, (index) => currentYear + index);
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: Row(
+            children: [
+              Icon(Icons.calendar_today, color: Color(0xFF3E4795)),
+              SizedBox(width: 8),
+              Text('Select Forecast Year'),
+            ],
+          ),
+          content: Container(
+            width: 300,
+            height: 200,
+            child: ListView.builder(
+              itemCount: availableYears.length,
+              itemBuilder: (context, index) {
+                final year = availableYears[index];
+                
+                return ListTile(
+                  title: Text(
+                    year.toString(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.normal,
+                      color: Colors.black,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    // Add year selection logic here if needed
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Color(0xFF3E4795),
+                side: BorderSide(color: Colors.grey[300]!),
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.values.isEmpty || widget.dates.isEmpty)
@@ -816,17 +1025,49 @@ class _DailyAreaChartState extends State<_DailyAreaChart> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Daily Passenger Forecast',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          Container(
+            width: double.infinity,
+            child: Stack(
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Daily Passenger Forecast',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Tooltip(
+                      message: 'Disclaimer: The following forecast uses dummy data calibrated to mirror general passenger demand patterns and does not represent actual recorded values.',
+                      child: Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onTap: _showDailyYearSelector,
+                    child: Icon(
+                      Icons.calendar_today_outlined,
+                      color: Color(0xFF3E4795),
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 4),
           const Text(
-            'Prophet-based predicted demand for Mon-Sun',
+            'Displays the forecasted passenger demand trend from Sunday to Saturday.',
             style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 20),
@@ -899,17 +1140,30 @@ class _HourlyBarChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Hourly Passenger Forecast',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+          Row(
+            children: [
+              Text(
+                'Hourly Passenger Forecast',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              SizedBox(width: 8),
+              Tooltip(
+                message: 'Disclaimer: The following forecast uses dummy data calibrated to mirror general passenger demand patterns and does not represent actual recorded values.',
+                child: Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           const Text(
-            'XGBoost-based predicted passengers per hour (Top 3 hours highlighted)',
+            'Shows the hourly passenger forecast and highlights the top three busiest hours.',
             style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 20),
@@ -1154,7 +1408,7 @@ class _OperationalMetricsSection extends StatelessWidget {
           children: [
             Expanded(
               child: _Card(
-                title: 'Fleet Activity by Hour',
+                title: Text('Fleet Activity by Hour'),
                 child: SizedBox(
                   height: 180,
                   width: double.infinity,
@@ -1165,7 +1419,7 @@ class _OperationalMetricsSection extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: _Card(
-                title: 'Average Trip Duration',
+                title: Text('Average Trip Duration'),
                 child: SizedBox(
                   height: 180,
                   child: _InteractivePassengerChart(),
@@ -1180,7 +1434,7 @@ class _OperationalMetricsSection extends StatelessWidget {
 }
 
 class _Card extends StatelessWidget {
-  final String title;
+  final Widget title;
   final IconData? titleIcon;
   final Widget child;
   const _Card({required this.title, this.titleIcon, required this.child});
@@ -1205,13 +1459,7 @@ class _Card extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Expanded(child: title),
               if (titleIcon != null) ...[
                 const SizedBox(width: 6),
                 Icon(titleIcon, size: 18, color: Colors.black87),

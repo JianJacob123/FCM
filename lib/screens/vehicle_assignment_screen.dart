@@ -27,6 +27,10 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
   int? _selectedVehicleId;
   int? _selectedDriverId;
   int? _selectedConductorId;
+  
+  // New vehicle input fields
+  final TextEditingController _vehicleNumberController = TextEditingController();
+  final TextEditingController _plateNumberController = TextEditingController();
 
   @override
   void initState() {
@@ -37,6 +41,14 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
         _searchQuery = _searchController.text.trim().toLowerCase();
       });
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _vehicleNumberController.dispose();
+    _plateNumberController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -203,6 +215,10 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
     _selectedConductorId = null;
     _editingAssignment = null;
     
+    // Clear vehicle input fields
+    _vehicleNumberController.clear();
+    _plateNumberController.clear();
+    
     setState(() {
       _showAddForm = true;
     });
@@ -213,6 +229,10 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
     _selectedDriverId = assignment.driverId;
     _selectedConductorId = assignment.conductorId;
     _editingAssignment = assignment;
+    
+    // Populate vehicle input fields for editing
+    _vehicleNumberController.text = assignment.vehicleId.toString();
+    _plateNumberController.text = ''; // Plate number not stored in assignment, so leave empty
     
     setState(() {
       _showAddForm = true;
@@ -231,9 +251,10 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
     try {
       if (_editingAssignment != null) {
         // Update existing assignment
+        final vehicleId = int.parse(_vehicleNumberController.text);
         final response = await VehicleAssignmentApiService.updateAssignment(
           assignmentId: _editingAssignment!.assignmentId,
-          vehicleId: _selectedVehicleId,
+          vehicleId: vehicleId,
           driverId: _selectedDriverId,
           conductorId: _selectedConductorId,
         );
@@ -245,13 +266,19 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
             _showAddForm = false;
             _editingAssignment = null;
           });
+          // Clear form fields
+          _vehicleNumberController.clear();
+          _plateNumberController.clear();
         } else {
           _showErrorSnackBar(response.message ?? 'Failed to update assignment');
         }
       } else {
         // Create new assignment
+        final vehicleId = int.parse(_vehicleNumberController.text);
+        final plateNumber = _plateNumberController.text;
         final response = await VehicleAssignmentApiService.createAssignment(
-          vehicleId: _selectedVehicleId!,
+          vehicleId: vehicleId,
+          plateNumber: plateNumber,
           driverId: _selectedDriverId,
           conductorId: _selectedConductorId,
         );
@@ -262,6 +289,9 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
           setState(() {
             _showAddForm = false;
           });
+          // Clear form fields
+          _vehicleNumberController.clear();
+          _plateNumberController.clear();
         } else {
           _showErrorSnackBar(response.message ?? 'Failed to create assignment');
         }
@@ -534,6 +564,7 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
                           : Row(
                               children: [
                                 const Expanded(flex: 1, child: Text('Unit Number', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                                const Expanded(flex: 1, child: Text('Plate Number', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                                 const Expanded(flex: 2, child: Text('Driver Name', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                                 const Expanded(flex: 2, child: Text('Conductor Name', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                                 if (_showActions)
@@ -595,6 +626,11 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
                                                       ),
                                                   ],
                                                 ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'Plate: ${assignment.plateNumber ?? 'N/A'}',
+                                                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                                                ),
                                                 const SizedBox(height: 8),
                                                 Row(
                                                   children: [
@@ -643,6 +679,13 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
                                                   flex: 1,
                                                   child: Text(
                                                     'Unit ${assignment.vehicleId}',
+                                                    style: const TextStyle(fontWeight: FontWeight.w500),
+                                                  ),
+                                                ),
+                                                Expanded(
+                                                  flex: 1,
+                                                  child: Text(
+                                                    assignment.plateNumber ?? 'N/A',
                                                     style: const TextStyle(fontWeight: FontWeight.w500),
                                                   ),
                                                 ),
@@ -720,28 +763,38 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        DropdownButtonFormField<int>(
-                          value: _selectedVehicleId,
+                        // Vehicle Number Input
+                        TextFormField(
+                          controller: _vehicleNumberController,
                           decoration: const InputDecoration(
-                            labelText: 'Select Vehicle',
+                            labelText: 'Vehicle Number',
+                            hintText: 'Enter vehicle number (e.g., 1, 2, 3...)',
                             border: OutlineInputBorder(),
                           ),
-                          items: [
-                            // Fixed choices Unit 1-15 regardless of API
-                            for (int i = 1; i <= 15; i++)
-                              DropdownMenuItem<int>(
-                                value: i,
-                                child: Text('Unit $i'),
-                              ),
-                          ],
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedVehicleId = value;
-                            });
-                          },
+                          keyboardType: TextInputType.number,
                           validator: (value) {
-                            if (value == null) {
-                              return 'Please select a vehicle';
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter vehicle number';
+                            }
+                            final number = int.tryParse(value);
+                            if (number == null || number <= 0) {
+                              return 'Please enter a valid vehicle number';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        // Plate Number Input
+                        TextFormField(
+                          controller: _plateNumberController,
+                          decoration: const InputDecoration(
+                            labelText: 'Plate Number',
+                            hintText: 'Enter plate number (e.g., ABC-1234)',
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter plate number';
                             }
                             return null;
                           },
@@ -822,6 +875,9 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
                                   _showAddForm = false;
                                   _editingAssignment = null;
                                 });
+                                // Clear form fields
+                                _vehicleNumberController.clear();
+                                _plateNumberController.clear();
                               },
                               child: const Text('Cancel'),
                             ),

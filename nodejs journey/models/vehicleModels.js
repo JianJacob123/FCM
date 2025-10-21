@@ -273,6 +273,20 @@ const getAverageTripDurationPerVehicle = async () => {
     }
 };
 
+const createVehicle = async (vehicleId, plateNumber) => {
+    try {
+        const res = await client.query(`
+            INSERT INTO vehicles (vehicle_id, plate_number, current_location, current_passenger_count, total_passengers, route_id)
+            VALUES ($1, $2, ST_GeomFromText('POINT(0 0)', 4326), 0, 0, NULL)
+            RETURNING *
+        `, [vehicleId, plateNumber]);
+        return res.rows[0];
+    } catch (error) {
+        console.error('Error creating vehicle:', error);
+        throw error;
+    }
+};
+
 module.exports = {
     getAllVehicles,
     getVehicleById,
@@ -282,5 +296,6 @@ module.exports = {
     getVehicleByConductor,
     getConductorIdByVehicle,
     getDailyPassengerAnalytics,
-    getAverageTripDurationPerVehicle
+    getAverageTripDurationPerVehicle,
+    createVehicle
 };

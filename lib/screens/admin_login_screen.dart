@@ -73,7 +73,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
         // 5. Navigate to appropriate screen based on role
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const AdminScreen()),
+          MaterialPageRoute(builder: (_) => AdminScreen()),
         );
       } else {
         final errorData = jsonDecode(response.body);

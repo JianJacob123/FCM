@@ -4,6 +4,7 @@ class VehicleAssignment {
   constructor(data) {
     this.assignment_id = data.assignment_id;
     this.vehicle_id = data.vehicle_id;
+    this.plate_number = data.plate_number;
     this.driver_id = data.driver_id;
     this.conductor_id = data.conductor_id;
     this.assigned_at = data.assigned_at;
@@ -20,6 +21,7 @@ class VehicleAssignment {
         SELECT 
           va.assignment_id,
           va.vehicle_id,
+          v.plate_number,
           va.driver_id,
           va.conductor_id,
           va.assigned_at,
@@ -28,6 +30,7 @@ class VehicleAssignment {
           d.full_name as driver_name,
           c.full_name as conductor_name
         FROM vehicle_assignment va
+        LEFT JOIN vehicles v ON va.vehicle_id = v.vehicle_id
         LEFT JOIN users d ON va.driver_id = d.user_id
         LEFT JOIN users c ON va.conductor_id = c.user_id
         ORDER BY va.assigned_at DESC

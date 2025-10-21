@@ -1915,6 +1915,12 @@ class _ActivityLogsPage extends StatefulWidget {
 class _ActivityLogsPageState extends State<_ActivityLogsPage> {
   DateTime selectedDate = DateTime.now();
 
+  // Filters for Activity Logs
+  List<String> selectedActivityTypes = [];
+  DateTime? logsStartDate;
+  DateTime? logsEndDate;
+  String logsSortOrder = 'asc'; // 'asc' or 'desc'
+
   // Example log data
   final List<Map<String, String>> activityLogs = [
     {
@@ -1967,6 +1973,355 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
     }
   }
 
+  // Apply filters to activity logs list
+  List<dynamic> _applyLogFilters(List<dynamic> logs) {
+    Iterable<dynamic> filtered = logs;
+
+    if (selectedActivityTypes.isNotEmpty) {
+      filtered = filtered.where((log) =>
+          selectedActivityTypes.contains((log['activity_type'] ?? '').toString()));
+    }
+
+    if (logsStartDate != null || logsEndDate != null) {
+      final DateTime? start = logsStartDate != null
+          ? DateTime(logsStartDate!.year, logsStartDate!.month, logsStartDate!.day)
+          : null;
+      final DateTime? end = logsEndDate != null
+          ? DateTime(logsEndDate!.year, logsEndDate!.month, logsEndDate!.day, 23, 59, 59)
+          : null;
+
+      filtered = filtered.where((log) {
+        try {
+          final createdAt = DateTime.parse((log['created_at'] ?? '').toString());
+          if (start != null && createdAt.isBefore(start)) return false;
+          if (end != null && createdAt.isAfter(end)) return false;
+          return true;
+        } catch (_) {
+          return true; // keep if unparsable
+        }
+      });
+    }
+
+    // Apply sorting
+    List<dynamic> sortedList = filtered.toList();
+    sortedList.sort((a, b) {
+      try {
+        final dateA = DateTime.parse((a['created_at'] ?? '').toString());
+        final dateB = DateTime.parse((b['created_at'] ?? '').toString());
+        
+        if (logsSortOrder == 'asc') {
+          return dateA.compareTo(dateB);
+        } else {
+          return dateB.compareTo(dateA);
+        }
+      } catch (_) {
+        return 0; // keep original order if parsing fails
+      }
+    });
+
+    return sortedList;
+  }
+
+  void _showActivityTypeFilterModal(List<String> types) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        List<String> tempSelected = List<String>.from(selectedActivityTypes);
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final bool allSelected = types.isNotEmpty && tempSelected.length == types.length;
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              title: Row(
+                children: const [
+                  Icon(Icons.filter_list, color: Color(0xFF3E4795)),
+                  SizedBox(width: 8),
+                  Text('Filter by Activity Type'),
+                ],
+              ),
+              content: Container(
+                width: MediaQuery.of(context).size.width < 520
+                    ? MediaQuery.of(context).size.width * 0.9
+                    : 480,
+                height: 280,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CheckboxListTile(
+                      title: const Text('Select All'),
+                      value: allSelected,
+                      onChanged: (bool? value) {
+                        setModalState(() {
+                          if (value == true) {
+                            tempSelected = List<String>.from(types);
+                          } else {
+                            tempSelected.clear();
+                          }
+                        });
+                      },
+                      activeColor: const Color(0xFF3E4795),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    Divider(color: Colors.grey[300]),
+                    Container(
+                      height: 200,
+                      child: ListView.builder(
+                        itemCount: types.length,
+                        itemBuilder: (context, index) {
+                          final type = types[index];
+                          final bool isSelected = tempSelected.contains(type);
+                          return CheckboxListTile(
+                            title: Text(type),
+                            value: isSelected,
+                            onChanged: (bool? value) {
+                              setModalState(() {
+                                if (value == true) {
+                                  tempSelected.add(type);
+                                } else {
+                                  tempSelected.remove(type);
+                                }
+                              });
+                            },
+                            activeColor: const Color(0xFF3E4795),
+                            contentPadding: EdgeInsets.zero,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF3E4795),
+                    side: BorderSide(color: Colors.grey[300]!),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      selectedActivityTypes = tempSelected;
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3E4795),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                  child: const Text('Apply'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showTimestampFilterModal() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              title: Row(
+                children: const [
+                  Icon(Icons.calendar_month, color: Color(0xFF3E4795)),
+                  SizedBox(width: 8),
+                  Text('Filter by Date'),
+                ],
+              ),
+              content: Container(
+                width: MediaQuery.of(context).size.width < 520
+                    ? MediaQuery.of(context).size.width * 0.85
+                    : 450,
+                height: 320,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Start Date
+                    InkWell(
+                      onTap: () async {
+                        final DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: logsStartDate ?? DateTime.now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now().add(Duration(days: 365)),
+                        );
+                        if (picked != null) {
+                          setModalState(() {
+                            logsStartDate = picked;
+                            if (logsEndDate != null && picked.isAfter(logsEndDate!)) {
+                              logsEndDate = null;
+                            }
+                          });
+                        }
+                      },
+      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_today, size: 20, color: Color(0xFF3E4795)),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                logsStartDate != null
+                                    ? '${logsStartDate!.month.toString().padLeft(2, '0')}/${logsStartDate!.day.toString().padLeft(2, '0')}/${logsStartDate!.year}'
+                                    : 'Start Date',
+                                style: TextStyle(
+                                  color: logsStartDate != null ? Colors.black : Colors.grey[600],
+                                  fontSize: 16,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+            ),
+          ],
+        ),
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    // End Date
+                    InkWell(
+                      onTap: () async {
+                        final DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: logsEndDate ?? logsStartDate ?? DateTime.now(),
+                          firstDate: logsStartDate ?? DateTime(2020),
+                          lastDate: DateTime.now().add(Duration(days: 365)),
+                        );
+                        if (picked != null) {
+                          setModalState(() {
+                            logsEndDate = picked;
+                          });
+                        }
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_today, size: 20, color: Color(0xFF3E4795)),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                logsEndDate != null
+                                    ? '${logsEndDate!.month.toString().padLeft(2, '0')}/${logsEndDate!.day.toString().padLeft(2, '0')}/${logsEndDate!.year}'
+                                    : 'End Date',
+                                style: TextStyle(
+                                  color: logsEndDate != null ? Colors.black : Colors.grey[600],
+                                  fontSize: 16,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    // Sort Order Dropdown
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: logsSortOrder.isNotEmpty ? logsSortOrder : 'asc',
+                          isExpanded: true,
+                          items: [
+                            DropdownMenuItem(value: 'asc', child: Text('Ascending')),
+                            DropdownMenuItem(value: 'desc', child: Text('Descending')),
+                          ],
+                          onChanged: (String? value) {
+                            setModalState(() {
+                              logsSortOrder = value ?? 'asc';
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 24),
+                    // Clear button (text only, positioned above action buttons)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            setModalState(() {
+                              logsStartDate = null;
+                              logsEndDate = null;
+                              logsSortOrder = 'asc';
+                            });
+                          },
+                          style: TextButton.styleFrom(
+                            foregroundColor: Color(0xFF3E4795),
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          ),
+                          child: Text('Clear'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Color(0xFF3E4795),
+                    side: BorderSide(color: Colors.grey[300]!),
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: Text('Cancel'),
+                ),
+                SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: () {
+                    // Trigger rebuild with the updated date range filters
+                    setState(() {});
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF3E4795),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                  child: Text('Apply'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1998,156 +2353,63 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                       },
                       child: Icon(
                         Icons.refresh,
-                        size: 16,
+                        size: 20,
                         color: Color(0xFF3E4795),
                       ),
-                    ),
-                    SizedBox(width: 4),
-                    FutureBuilder<List<dynamic>>(
-                      future: fetchActivityLogs(),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData) {
-                          return Text(
-                            'Total: ${snapshot.data!.length} logs',
-                            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                          );
-                        }
-                        return Text(
-                          'Total: 0 logs',
-                          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                        );
-                      },
                     ),
                   ],
                 ),
               ],
             ),
             SizedBox(height: 16),
-            // Search and Sort Controls (matching Trip History)
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: TextField(
-                      onChanged: (value) {
-                        // Add search functionality
-                      },
-                      decoration: InputDecoration(
-                        hintText: 'Search by activity type...',
-                        prefixIcon: Icon(Icons.search, color: Color(0xFF3E4795)),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Color(0xFF3E4795)),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    flex: 2,
-                    child: DropdownButtonFormField<String>(
-                      value: 'timestamp',
-                      onChanged: (value) {
-                        // Add sort functionality
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'Sort by',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Color(0xFF3E4795)),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                      ),
-                      items: [
-                        DropdownMenuItem(
-                          value: 'timestamp',
-                          child: Text('Timestamp'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'activity_type',
-                          child: Text('Activity Type'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    flex: 1,
-                    child: DropdownButtonFormField<String>(
-                      value: 'desc',
-                      onChanged: (value) {
-                        // Add sort order functionality
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'Order',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Color(0xFF3E4795)),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                      ),
-                      items: [
-                        DropdownMenuItem(value: 'desc', child: Text('Desc')),
-                        DropdownMenuItem(value: 'asc', child: Text('Asc')),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 16),
 
-            // Table header (matching Trip History)
-            Container(
+            // Table header (matching Trip History) with filter icons
+                    Container(
               padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
+                      decoration: BoxDecoration(
                 color: Color(0xFF3E4795),
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(8),
                   topRight: Radius.circular(8),
                 ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
                     flex: 2,
-                    child: Text(
-                      'Activity Type',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                    child: Row(
+                      children: [
+                          Text(
+                          'Activity Type',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                            GestureDetector(
+                          onTap: () async {
+                            // Build unique list of activity types from current data
+                            final logs = await fetchActivityLogs();
+                            final types = logs
+                                .map((e) => (e['activity_type'] ?? '').toString())
+                                .where((e) => e.isNotEmpty)
+                                .toSet()
+                                .toList()
+                              ..sort();
+                            _showActivityTypeFilterModal(types);
+                          },
+                          child: Icon(
+                            Icons.filter_list,
+                            color: selectedActivityTypes.isNotEmpty
+                                ? Colors.lightBlue
+                                : Colors.white,
+                            size: 16,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
                   Expanded(
                     flex: 3,
                     child: Text(
@@ -2160,16 +2422,31 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                   ),
                   Expanded(
                     flex: 2,
-                    child: Text(
-                      'Timestamp',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                      child: Row(
+                        children: [
+                          Text(
+                          'Timestamp',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                            GestureDetector(
+                          onTap: _showTimestampFilterModal,
+                          child: Icon(
+                            Icons.filter_list,
+                            color: (logsStartDate != null || logsEndDate != null)
+                                ? Colors.lightBlue
+                                : Colors.white,
+                            size: 16,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
             ),
 
             // Table body (matching Trip History)
@@ -2211,6 +2488,8 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
 
                   final logs = snapshot.data!;
 
+                  final filteredLogs = _applyLogFilters(logs);
+
                   return Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -2221,12 +2500,12 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                       border: Border.all(color: Colors.grey[300]!),
                     ),
                     child: ListView.builder(
-                      itemCount: logs.length,
+                      itemCount: filteredLogs.length,
                       itemBuilder: (context, index) {
-                        final log = logs[index];
-                        final isLast = index == logs.length - 1;
+                        final log = filteredLogs[index];
+                        final isLast = index == filteredLogs.length - 1;
                         return Container(
-                          decoration: BoxDecoration(
+              decoration: BoxDecoration(
                             color: index % 2 == 0 ? Colors.white : Colors.grey[50],
                             border: isLast ? null : Border(
                               bottom: BorderSide(color: Colors.grey[200]!),
@@ -2235,9 +2514,9 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                           padding: EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 12,
-                          ),
-                          child: Row(
-                            children: [
+              ),
+              child: Row(
+                          children: [
                               Expanded(
                                 flex: 2,
                                 child: Text(
@@ -2246,9 +2525,9 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                                     fontSize: 14,
                                     color: Color(0xFF232A4D),
                                   ),
-                                ),
-                              ),
-                              Expanded(
+              ),
+            ),
+            Expanded(
                                 flex: 3,
                                 child: Text(
                                   log['description'] ?? '',
@@ -4536,17 +4815,17 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
   int totalPages = 1;
   int totalTrips = 0;
   final int limit = 20;
-
+  
   // Search and sort variables
   String searchQuery = '';
   String sortBy = 'start_time';
   String sortOrder = 'desc';
   final TextEditingController _searchController = TextEditingController();
-
+  
   // Date filter variables
   DateTime? startDate;
   DateTime? endDate;
-
+  
   // Vehicle filter variables
   List<String> selectedVehicles = [];
   List<String> availableVehicles = [];
@@ -4587,23 +4866,23 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
         filteredTrips = [];
         return;
       }
-
+      
       // Filter trips based on search query and date range
       filteredTrips = trips.where((trip) {
         if (trip == null) return false;
-
+        
         // Text search filter
         final vehicleNumber = (trip['vehicle_number'] ?? '')
             .toString()
             .toLowerCase();
         final query = searchQuery.toLowerCase();
         final matchesSearch = vehicleNumber.contains(query);
-
+        
         // Vehicle filter
         final matchesVehicle =
             selectedVehicles.isEmpty ||
-            selectedVehicles.contains(trip['vehicle_number'] ?? '');
-
+                              selectedVehicles.contains(trip['vehicle_number'] ?? '');
+        
         // Start time filter
         final startTime = _formatTime(trip['start_time']);
         final matchesStartTime =
@@ -4619,7 +4898,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
         final duration = _formatDuration(trip['start_time'], trip['end_time']);
         final matchesDuration =
             selectedDurations.isEmpty || selectedDurations.contains(duration);
-
+        
         // Date filter
         bool matchesDate = true;
         if (startDate != null || endDate != null) {
@@ -4630,7 +4909,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
               tripDate.month,
               tripDate.day,
             );
-
+            
             if (startDate != null && endDate != null) {
               final startDateOnly = DateTime(
                 startDate!.year,
@@ -4644,7 +4923,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
               );
               matchesDate =
                   tripDateOnly.isAtSameMomentAs(startDateOnly) ||
-                  tripDateOnly.isAtSameMomentAs(endDateOnly) ||
+                           tripDateOnly.isAtSameMomentAs(endDateOnly) ||
                   (tripDateOnly.isAfter(startDateOnly) &&
                       tripDateOnly.isBefore(endDateOnly));
             } else if (startDate != null) {
@@ -4670,7 +4949,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
             matchesDate = false;
           }
         }
-
+        
         return matchesSearch &&
             matchesDate &&
             matchesVehicle &&
@@ -4682,9 +4961,9 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
       // Sort trips
       filteredTrips.sort((a, b) {
         if (a == null || b == null) return 0;
-
+        
         dynamic aValue, bValue;
-
+        
         switch (sortBy) {
           case 'vehicle_id':
             aValue = a['vehicle_id'] ?? 0;
@@ -4710,7 +4989,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
             bValue = DateTime.tryParse(b['start_time'] ?? '') ?? DateTime(1970);
             break;
         }
-
+        
         if (sortOrder == 'asc') {
           return aValue.compareTo(bValue);
         } else {
@@ -4766,119 +5045,119 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                     : 450,
                 height: 280,
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Start Date
-                    InkWell(
-                      onTap: () async {
-                        final DateTime? picked = await showDatePicker(
-                          context: context,
-                          initialDate: startDate ?? DateTime.now(),
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime.now().add(Duration(days: 365)),
-                        );
-                        if (picked != null) {
-                          setModalState(() {
-                            startDate = picked;
-                            if (endDate != null && picked.isAfter(endDate!)) {
-                              endDate = null;
-                            }
-                          });
-                        }
-                      },
-                      child: Container(
-                        width: double.infinity,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Start Date
+                  InkWell(
+                    onTap: () async {
+                      final DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: startDate ?? DateTime.now(),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now().add(Duration(days: 365)),
+                      );
+                      if (picked != null) {
+                        setModalState(() {
+                          startDate = picked;
+                          if (endDate != null && picked.isAfter(endDate!)) {
+                            endDate = null;
+                          }
+                        });
+                      }
+                    },
+                    child: Container(
+                      width: double.infinity,
                         padding: EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 12,
                         ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
                             Icon(
                               Icons.calendar_today,
                               size: 20,
                               color: Color(0xFF3E4795),
                             ),
-                            SizedBox(width: 12),
+                          SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                startDate != null
-                                    ? '${startDate!.month.toString().padLeft(2, '0')}/${startDate!.day.toString().padLeft(2, '0')}/${startDate!.year}'
+                            startDate != null 
+                              ? '${startDate!.month.toString().padLeft(2, '0')}/${startDate!.day.toString().padLeft(2, '0')}/${startDate!.year}'
                                     : 'Start Date',
-                                style: TextStyle(
+                            style: TextStyle(
                                   color: startDate != null
                                       ? Colors.black
                                       : Colors.grey[600],
-                                  fontSize: 16,
+                              fontSize: 16,
                                 ),
                                 overflow: TextOverflow.ellipsis,
-                              ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                    SizedBox(height: 16),
-                    // End Date
-                    InkWell(
-                      onTap: () async {
-                        final DateTime? picked = await showDatePicker(
-                          context: context,
-                          initialDate: endDate ?? startDate ?? DateTime.now(),
-                          firstDate: startDate ?? DateTime(2020),
-                          lastDate: DateTime.now().add(Duration(days: 365)),
-                        );
-                        if (picked != null) {
-                          setModalState(() {
-                            endDate = picked;
-                          });
-                        }
-                      },
-                      child: Container(
-                        width: double.infinity,
+                  ),
+                  SizedBox(height: 16),
+                  // End Date
+                  InkWell(
+                    onTap: () async {
+                      final DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: endDate ?? startDate ?? DateTime.now(),
+                        firstDate: startDate ?? DateTime(2020),
+                        lastDate: DateTime.now().add(Duration(days: 365)),
+                      );
+                      if (picked != null) {
+                        setModalState(() {
+                          endDate = picked;
+                        });
+                      }
+                    },
+                    child: Container(
+                      width: double.infinity,
                         padding: EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 12,
                         ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
                             Icon(
                               Icons.calendar_today,
                               size: 20,
                               color: Color(0xFF3E4795),
                             ),
-                            SizedBox(width: 12),
+                          SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                endDate != null
-                                    ? '${endDate!.month.toString().padLeft(2, '0')}/${endDate!.day.toString().padLeft(2, '0')}/${endDate!.year}'
+                            endDate != null 
+                              ? '${endDate!.month.toString().padLeft(2, '0')}/${endDate!.day.toString().padLeft(2, '0')}/${endDate!.year}'
                                     : 'End Date',
-                                style: TextStyle(
+                            style: TextStyle(
                                   color: endDate != null
                                       ? Colors.black
                                       : Colors.grey[600],
-                                  fontSize: 16,
+                              fontSize: 16,
                                 ),
                                 overflow: TextOverflow.ellipsis,
-                              ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
+                  ),
                     SizedBox(height: 32),
                     // Clear button
-                    Row(
+                  Row(
                       mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
+                    children: [
                         OutlinedButton(
                           onPressed: () {
                             setModalState(() {
@@ -4917,18 +5196,18 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                     ),
                   ),
                   child: Text('Cancel'),
-                ),
-                SizedBox(width: 12),
+                      ),
+                      SizedBox(width: 12),
                 ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _filterAndSortTrips();
-                    });
-                    Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF3E4795),
-                    foregroundColor: Colors.white,
+                          onPressed: () {
+                            setState(() {
+                              _filterAndSortTrips();
+                            });
+                            Navigator.of(context).pop();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF3E4795),
+                            foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -5030,9 +5309,9 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                           );
                         },
                       ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
               ),
               actions: [
                 OutlinedButton(
@@ -5110,9 +5389,9 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                     ? MediaQuery.of(context).size.width * 0.9
                     : 480,
                 height: 280,
-                child: Column(
+      child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: [
+        children: [
                     // Select All option
                     CheckboxListTile(
                       title: Text('Select All'),
@@ -5120,7 +5399,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                           times.isNotEmpty &&
                           selectedEndTimes.length == times.length,
                       onChanged: (bool? value) {
-                        setModalState(() {
+                              setModalState(() {
                           if (value == true) {
                             selectedEndTimes = List.from(times);
                           } else {
@@ -5183,10 +5462,10 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                       _filterAndSortTrips();
                     });
                     Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF3E4795),
-                    foregroundColor: Colors.white,
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF3E4795),
+                              foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -5232,7 +5511,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
               title: Row(
                 children: [
                   Icon(Icons.filter_list, color: Color(0xFF3E4795)),
-                  SizedBox(width: 8),
+                        SizedBox(width: 8),
                   Text('Filter by Trip Duration'),
                 ],
               ),
@@ -5251,7 +5530,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                           durations.isNotEmpty &&
                           selectedDurations.length == durations.length,
                       onChanged: (bool? value) {
-                        setModalState(() {
+                              setModalState(() {
                           if (value == true) {
                             selectedDurations = List.from(durations);
                           } else {
@@ -5316,8 +5595,8 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                       _filterAndSortTrips();
                     });
                     Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
+                            },
+                            style: ElevatedButton.styleFrom(
                     backgroundColor: Color(0xFF3E4795),
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
@@ -5387,7 +5666,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                         itemBuilder: (context, index) {
                           final vehicle = availableVehicles[index];
                           final isSelected = selectedVehicles.contains(vehicle);
-
+                          
                           return CheckboxListTile(
                             title: Text(vehicle),
                             value: isSelected,
@@ -5424,24 +5703,24 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                 ),
                 SizedBox(width: 12),
                 ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _filterAndSortTrips();
-                    });
-                    Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF3E4795),
-                    foregroundColor: Colors.white,
+                            onPressed: () {
+                              setState(() {
+                                _filterAndSortTrips();
+                              });
+                              Navigator.of(context).pop();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF3E4795),
+                              foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
-                    ),
+                            ),
                     elevation: 0,
-                  ),
+                          ),
                   child: Text('Apply'),
-                ),
-              ],
+                        ),
+                      ],
             );
           },
         );
@@ -5456,22 +5735,22 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
       });
 
       final response = await fetchAdminTrips(page: currentPage, limit: limit);
-
+      
       if (response['success']) {
         setState(() {
           trips = response['data'];
           totalPages = response['pagination']['totalPages'];
           totalTrips = response['pagination']['total'];
           isLoading = false;
-
+          
           // Extract unique vehicle numbers for filtering
           availableVehicles =
               trips
-                  .map((trip) => trip['vehicle_number']?.toString() ?? '')
-                  .where((vehicle) => vehicle.isNotEmpty)
-                  .toSet()
-                  .toList()
-                ..sort();
+              .map((trip) => trip['vehicle_number']?.toString() ?? '')
+              .where((vehicle) => vehicle.isNotEmpty)
+              .toSet()
+              .toList()
+              ..sort();
         });
         _filterAndSortTrips();
       }
@@ -5548,33 +5827,33 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Trip History',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+          Text(
+            'Trip History',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF3E4795),
+            ),
+          ),
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () {
+                  _loadTrips();
+                },
+                child: Icon(
+                  Icons.refresh,
+                  size: 16,
                   color: Color(0xFF3E4795),
                 ),
               ),
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      _loadTrips();
-                    },
-                    child: Icon(
-                      Icons.refresh,
-                      size: 16,
-                      color: Color(0xFF3E4795),
-                    ),
-                  ),
-                  SizedBox(width: 4),
-                  Text(
-                    'Total: $totalTrips trips',
+              SizedBox(width: 4),
+          Text(
+                'Total: $totalTrips trips',
                     style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                  ),
-                ],
               ),
+            ],
+          ),
             ],
           ),
           SizedBox(height: 16),
@@ -5594,7 +5873,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                     controller: _searchController,
                     onChanged: _onSearchChanged,
                     decoration: InputDecoration(
-                      hintText: 'Search by unit number...',
+                    hintText: 'Search by unit number...',
                       prefixIcon: Icon(Icons.search, color: Color(0xFF3E4795)),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -5709,7 +5988,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                     child: Row(
                       children: [
                         Expanded(
-                          flex: 2,
+                          flex: 2, 
                           child: Row(
                             children: [
                               Text(
@@ -5732,7 +6011,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                           ),
                         ),
                         Expanded(
-                          flex: 2,
+                          flex: 2, 
                           child: Row(
                             children: [
                               Text(
@@ -5873,7 +6152,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                     child: Row(
                       children: [
                         Expanded(
-                          flex: 2,
+                          flex: 2, 
                           child: Row(
                             children: [
                               Text(
@@ -5896,7 +6175,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                           ),
                         ),
                         Expanded(
-                          flex: 2,
+                          flex: 2, 
                           child: Row(
                             children: [
                               Text(
@@ -6010,7 +6289,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                         final trip = filteredTrips[index];
                         if (trip == null) return Container();
                         final isEven = index % 2 == 0;
-
+                        
                         return Container(
                           padding: EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -6065,10 +6344,10 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                           IconButton(
                             onPressed: currentPage > 1
                                 ? () {
-                                    setState(() {
-                                      currentPage--;
-                                    });
-                                    _loadTrips();
+                              setState(() {
+                                currentPage--;
+                              });
+                              _loadTrips();
                                   }
                                 : null,
                             icon: Icon(Icons.chevron_left),
@@ -6077,10 +6356,10 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                           IconButton(
                             onPressed: currentPage < totalPages
                                 ? () {
-                                    setState(() {
-                                      currentPage++;
-                                    });
-                                    _loadTrips();
+                              setState(() {
+                                currentPage++;
+                              });
+                              _loadTrips();
                                   }
                                 : null,
                             icon: Icon(Icons.chevron_right),
@@ -6090,7 +6369,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                     ),
                 ],
               ),
-            ),
+          ),
         ],
       ),
     );

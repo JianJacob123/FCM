@@ -4,15 +4,17 @@ import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:http/http.dart' as http;
 
-// Resolve localhost across platforms (Android emulator uses 10.0.2.2)
+// Resolve localhost across platforms (Android emulator uses 10.0.2.2, web uses 127.0.0.1)
 String _host() {
   final bool isAndroid =
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
-  return isAndroid ? '10.0.2.2' : 'localhost';
+  if (isAndroid) return '10.0.2.2';
+  if (kIsWeb) return '127.0.0.1';
+  return 'localhost';
 }
 
-// NOTE: Flask is configured to run on 5004 to avoid conflicts
-Uri _baseUri(String path) => Uri.parse('http://${_host()}:5004$path');
+// NOTE: Flask is configured to run on 5060 to avoid conflicts
+Uri _baseUri(String path) => Uri.parse('http://${_host()}:5060$path');
 
 // Health check
 Future<bool> forecastingHealth() async {

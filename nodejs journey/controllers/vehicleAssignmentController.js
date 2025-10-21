@@ -49,13 +49,20 @@ class VehicleAssignmentController {
   // Create new assignment
   static async createAssignment(req, res) {
     try {
-      const { vehicle_id, driver_id, conductor_id } = req.body;
+      const { vehicle_id, driver_id, conductor_id, plate_number } = req.body;
 
       // Validate required fields
       if (!vehicle_id) {
         return res.status(400).json({
           success: false,
           message: 'Vehicle ID is required'
+        });
+      }
+
+      if (!plate_number) {
+        return res.status(400).json({
+          success: false,
+          message: 'Plate number is required'
         });
       }
 
@@ -66,16 +73,22 @@ class VehicleAssignmentController {
         });
       }
 
-      // Validate vehicle_id exists
+      // Check if vehicle already exists
       const vehicleModel = require('../models/vehicleModels');
-      const vehicle = await vehicleModel.getVehicleById(vehicle_id);
-      if (!vehicle) {
-        return res.status(400).json({
-          success: false,
-          message: `Vehicle with ID ${vehicle_id} does not exist`
-        });
+      const existingVehicle = await vehicleModel.getVehicleById(vehicle_id);
+      
+      let vehicle;
+      if (!existingVehicle) {
+        // Create new vehicle if it doesn't exist
+        console.log(`Creating new vehicle with ID: ${vehicle_id} and plate: ${plate_number}`);
+        vehicle = await vehicleModel.createVehicle(vehicle_id, plate_number);
+      } else {
+        // Use existing vehicle
+        vehicle = existingVehicle;
+        console.log(`Using existing vehicle with ID: ${vehicle_id}`);
       }
 
+      // Create the assignment
       const assignment = await VehicleAssignment.create(vehicle_id, driver_id, conductor_id);
 
       res.status(201).json({
