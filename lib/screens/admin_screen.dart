@@ -3983,6 +3983,9 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
         setState(() {
           _schedules = List<Map<String, dynamic>>.from(data['data'] ?? []);
         });
+        
+        // Reload vehicles to filter out already scheduled ones
+        _loadVehicles();
       } else {
         _showErrorSnackBar('Failed to load schedules');
       }
@@ -3995,21 +3998,81 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
 
   Future<void> _loadVehicles() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/vehicles/getVehicles'));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        print('Vehicles API Response: $data'); // Debug log
+      // Always try vehicle assignments first since they have more complete data
+      print('Loading vehicles from vehicle assignments...');
+      final assignmentsResponse = await http.get(Uri.parse('$baseUrl/api/vehicle-assignments'));
+      
+      if (assignmentsResponse.statusCode == 200) {
+        final assignmentsData = json.decode(assignmentsResponse.body);
+        print('Assignments API Response: $assignmentsData'); // Debug log
+        
+        if (assignmentsData['success'] == true && assignmentsData['data'] != null) {
+          // Extract unique vehicles from assignments
+          final assignments = List<Map<String, dynamic>>.from(assignmentsData['data']);
+          final uniqueVehicles = <int, Map<String, dynamic>>{};
+          
+          for (final assignment in assignments) {
+            final vehicleId = assignment['vehicle_id'];
+            if (vehicleId != null && !uniqueVehicles.containsKey(vehicleId)) {
+              uniqueVehicles[vehicleId] = {
+                'vehicle_id': vehicleId,
+                'plate_number': assignment['plate_number'],
+              };
+            }
+          }
+          
+          // Filter out vehicles that are already scheduled for the selected date
+          final availableVehicles = <Map<String, dynamic>>[];
+          final scheduledVehicleIds = _schedules.map((schedule) => schedule['vehicle_id']).toSet();
+          
+          for (final vehicle in uniqueVehicles.values) {
+            final vehicleId = vehicle['vehicle_id'];
+            if (!scheduledVehicleIds.contains(vehicleId)) {
+              availableVehicles.add(vehicle);
+            }
+          }
 
         setState(() {
-          _vehicles = List<Map<String, dynamic>>.from(data);
-        });
-
-        print('Loaded ${_vehicles.length} vehicles'); // Debug log
-      } else {
-        print('Vehicles API failed with status: ${response.statusCode}');
-        _useDummyVehicles();
+            _vehicles = availableVehicles;
+          });
+          
+          print('Loaded ${_vehicles.length} available vehicles (${scheduledVehicleIds.length} already scheduled): ${availableVehicles.map((v) => v['vehicle_id']).toList()}');
+          return;
+        }
       }
+      
+      // Fallback to vehicles table if assignments fail
+      print('Assignments failed, trying vehicles table...');
+      final vehiclesResponse = await http.get(Uri.parse('$baseUrl/vehicles/getVehicles'));
+      
+      if (vehiclesResponse.statusCode == 200) {
+        final vehiclesData = json.decode(vehiclesResponse.body);
+        print('Vehicles API Response: $vehiclesData'); // Debug log
+        
+        if (vehiclesData.isNotEmpty) {
+          // Filter out vehicles that are already scheduled for the selected date
+          final availableVehicles = <Map<String, dynamic>>[];
+          final scheduledVehicleIds = _schedules.map((schedule) => schedule['vehicle_id']).toSet();
+          
+          for (final vehicle in vehiclesData) {
+            final vehicleId = vehicle['vehicle_id'];
+            if (!scheduledVehicleIds.contains(vehicleId)) {
+              availableVehicles.add(vehicle);
+            }
+          }
+          
+          setState(() {
+            _vehicles = availableVehicles;
+          });
+          print('Loaded ${_vehicles.length} available vehicles from vehicles table (${scheduledVehicleIds.length} already scheduled)');
+          return;
+        }
+      }
+      
+      // If both fail, use empty list
+      print('Both APIs failed, using empty vehicle list');
+      _useDummyVehicles();
+      
     } catch (e) {
       print('Error loading vehicles: $e'); // Debug log
       _useDummyVehicles();
@@ -4018,31 +4081,25 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
 
   void _useDummyVehicles() {
     setState(() {
-      _vehicles = [
-        {'vehicle_id': 1, 'unit_number': 'Unit 1'},
-        {'vehicle_id': 2, 'unit_number': 'Unit 2'},
-        {'vehicle_id': 3, 'unit_number': 'Unit 3'},
-        {'vehicle_id': 4, 'unit_number': 'Unit 4'},
-        {'vehicle_id': 5, 'unit_number': 'Unit 5'},
-        {'vehicle_id': 6, 'unit_number': 'Unit 6'},
-        {'vehicle_id': 7, 'unit_number': 'Unit 7'},
-        {'vehicle_id': 8, 'unit_number': 'Unit 8'},
-        {'vehicle_id': 9, 'unit_number': 'Unit 9'},
-        {'vehicle_id': 10, 'unit_number': 'Unit 10'},
-      ];
+      _vehicles = []; // Don't use dummy data - only show actual vehicles from database
     });
-    print('Using dummy vehicles: ${_vehicles.length} units');
+    print('No vehicles available from database');
   }
 
   Future<void> _saveSchedule() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Format time from time picker
+    // Format time from time picker - only if status is Active
+    String? timeString;
+    if (_statusController.text == 'Active') {
     final hour12 = _selectedHour == 0
         ? 12
         : (_selectedHour > 12 ? _selectedHour - 12 : _selectedHour);
-    final timeString =
+      timeString =
         '${hour12.toString().padLeft(2, '0')}:${_selectedMinute.toString().padLeft(2, '0')} ${_isAM ? 'AM' : 'PM'}';
+    } else {
+      timeString = null; // Send null to backend for non-active statuses
+    }
 
     final scheduleData = {
       'schedule_date': _formatDate(_selectedDate),
@@ -4150,7 +4207,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
       _reasonController.text = schedule['reason'] ?? '';
       _selectedVehicleId = schedule['vehicle_id'];
 
-      // Parse time from schedule
+      // Parse time from schedule - use default if null or empty
       final timeStr = schedule['time_start'] ?? '08:00 AM';
       _parseTimeString(timeStr);
     });
@@ -4196,24 +4253,32 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
   }
 
   Widget _buildSimpleTimePicker() {
+    final bool isActive = _statusController.text == 'Active';
+    
     return GestureDetector(
-      onTap: _selectTime,
+      onTap: isActive ? _selectTime : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: isActive ? Colors.grey.shade300 : Colors.grey.shade200),
           borderRadius: BorderRadius.circular(8),
-          color: Colors.white,
+          color: isActive ? Colors.white : Colors.grey.shade50,
         ),
         child: Row(
           children: [
             Expanded(
               child: Text(
                 _getFormattedTime(),
-                style: const TextStyle(fontSize: 16),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isActive ? Colors.black : Colors.grey.shade600,
+                ),
               ),
             ),
-            Icon(Icons.access_time, color: Colors.grey.shade600),
+            Icon(
+              Icons.access_time, 
+              color: isActive ? Colors.grey.shade600 : Colors.grey.shade400,
+            ),
           ],
         ),
       ),
@@ -4221,6 +4286,11 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
   }
 
   String _getFormattedTime() {
+    // If status is not Active, show ---
+    if (_statusController.text != 'Active') {
+      return '---';
+    }
+    
     final hour12 = _selectedHour == 0
         ? 12
         : (_selectedHour > 12 ? _selectedHour - 12 : _selectedHour);
@@ -4521,7 +4591,9 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                                           Expanded(
                                             flex: 2,
                                             child: Text(
-                                              schedule['time_start'] ?? 'N/A',
+                                              schedule['status'] == 'Active' 
+                                                ? (schedule['time_start'] ?? 'N/A')
+                                                : '---',
                                             ),
                                           ),
                                           Expanded(
@@ -4646,7 +4718,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                                 onPressed: _loadVehicles,
                                 icon: const Icon(Icons.refresh, size: 16),
                                 label: const Text(
-                                  'Load Vehicles',
+                                  'Refresh Vehicles',
                                   style: TextStyle(fontSize: 12),
                                 ),
                               ),
@@ -4666,36 +4738,21 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                           ),
                           hint: Text(
                             _vehicles.isEmpty
-                                ? 'Loading vehicles...'
+                                ? 'No vehicles available'
                                 : 'Select Unit',
                           ),
-                          items:
-                              (_vehicles.isEmpty
-                                      ? List.generate(
-                                          15,
-                                          (i) => {
-                                            'vehicle_id': i + 1,
-                                            'plate_number': 'Unit ${i + 1}',
-                                          },
-                                        )
-                                      : _vehicles.take(15))
-                                  .map((vehicle) {
-                                    // Normalize and cap to 15 units
+                          items: _vehicles.map((vehicle) {
                                     final int vehicleId =
                                         vehicle['vehicle_id'] ??
                                         vehicle['id'] ??
                                         0;
-                                    final String unitName =
-                                        vehicle['plate_number'] ??
-                                        vehicle['plateNumber'] ??
-                                        'Unit $vehicleId';
+                                    final String unitName = 'Unit $vehicleId';
 
                                     return DropdownMenuItem<int>(
                                       value: vehicleId,
                                       child: Text(unitName),
                                     );
-                                  })
-                                  .toList(),
+                                  }).toList(),
                           onChanged: _vehicles.isEmpty
                               ? null
                               : (value) {
