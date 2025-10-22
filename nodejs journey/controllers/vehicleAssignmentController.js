@@ -1,4 +1,5 @@
 const VehicleAssignment = require('../models/vehicleAssignmentModel');
+const activityLogsModel = require('../models/activityLogsModel');
 
 class VehicleAssignmentController {
   // Get all vehicle assignments
@@ -96,6 +97,7 @@ class VehicleAssignmentController {
         message: 'Assignment created successfully',
         data: assignment
       });
+      await activityLogsModel.logActivity('CREATE_ASSIGNMENT', `Created assignment for vehicle ${vehicle_id}`);
     } catch (error) {
       console.error('Error creating assignment:', error);
       res.status(400).json({
@@ -170,6 +172,7 @@ class VehicleAssignmentController {
         message: 'Assignment updated successfully',
         data: assignment
       });
+      await activityLogsModel.logActivity('Update Vehicle Asssignment', `Assignment was updated for vehicle ${vehicle_id}`);
     } catch (error) {
       console.error('Error updating assignment:', error);
       res.status(400).json({
@@ -214,6 +217,7 @@ class VehicleAssignmentController {
         success: true,
         message: 'Assignment deleted successfully'
       });
+      await activityLogsModel.logActivity('Vehicle Assignment Deleted', `Deleted assignment with ID ${assignmentId}`);
     } catch (error) {
       console.error('=== DELETE ERROR ===');
       console.error('Error type:', error.constructor.name);

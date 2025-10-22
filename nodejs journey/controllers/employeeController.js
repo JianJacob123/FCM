@@ -1,4 +1,5 @@
 const Employee = require('../models/employeeModel');
+const activityLogsModel = require('../models/activityLogsModel');
 
 class EmployeeController {
   // Get all employees with pagination and filtering
@@ -89,6 +90,7 @@ class EmployeeController {
         message: 'Employee created successfully',
         data: employee
       });
+      await activityLogsModel.logActivity('Employee Created', `Created employee with Name ${full_name}`);
     } catch (error) {
       console.error('Error in createEmployee:', error);
       res.status(500).json({
@@ -136,6 +138,7 @@ class EmployeeController {
         message: 'Employee updated successfully',
         data: employee
       });
+      await activityLogsModel.logActivity('Employee Updated', `Updated employee with ID ${id}`);
     } catch (error) {
       console.error('Error in updateEmployee:', error);
       res.status(500).json({
@@ -167,6 +170,7 @@ class EmployeeController {
           success: true,
           message: 'Employee deleted successfully'
         });
+        await activityLogsModel.logActivity('Employee Deleted', `Deleted employee with ID ${id}`);
       } else {
         res.status(500).json({
           success: false,

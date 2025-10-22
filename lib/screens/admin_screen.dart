@@ -546,10 +546,21 @@ class _AdminScreenState extends State<AdminScreen> {
                                     OutlinedButton(
                                       onPressed: () => Navigator.pop(context),
                                       style: OutlinedButton.styleFrom(
-                                        foregroundColor: const Color(0xFF3E4795),
-                                        side: const BorderSide(color: Colors.grey),
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                        foregroundColor: const Color(
+                                          0xFF3E4795,
+                                        ),
+                                        side: const BorderSide(
+                                          color: Colors.grey,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 8,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
                                       ),
                                       child: const Text('Cancel'),
                                     ),
@@ -564,10 +575,19 @@ class _AdminScreenState extends State<AdminScreen> {
                                         );
                                       },
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF3E4795),
+                                        backgroundColor: const Color(
+                                          0xFF3E4795,
+                                        ),
                                         foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 8,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
                                         elevation: 0,
                                       ),
                                       child: const Text('Logout'),
@@ -1966,7 +1986,7 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
     if (timestamp == null || timestamp == '') {
       return '';
     }
-    
+
     try {
       // Parse the timestamp and format it as YYYY-MM-DD HH:MM:SS
       DateTime dateTime;
@@ -1975,13 +1995,13 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
       } else {
         return timestamp.toString();
       }
-      
+
       return '${dateTime.year.toString().padLeft(4, '0')}-'
-             '${dateTime.month.toString().padLeft(2, '0')}-'
-             '${dateTime.day.toString().padLeft(2, '0')} '
-             '${dateTime.hour.toString().padLeft(2, '0')}:'
-             '${dateTime.minute.toString().padLeft(2, '0')}:'
-             '${dateTime.second.toString().padLeft(2, '0')}';
+          '${dateTime.month.toString().padLeft(2, '0')}-'
+          '${dateTime.day.toString().padLeft(2, '0')} '
+          '${dateTime.hour.toString().padLeft(2, '0')}:'
+          '${dateTime.minute.toString().padLeft(2, '0')}:'
+          '${dateTime.second.toString().padLeft(2, '0')}';
     } catch (e) {
       return timestamp.toString();
     }
@@ -1992,21 +2012,37 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
     Iterable<dynamic> filtered = logs;
 
     if (selectedActivityTypes.isNotEmpty) {
-      filtered = filtered.where((log) =>
-          selectedActivityTypes.contains((log['activity_type'] ?? '').toString()));
+      filtered = filtered.where(
+        (log) => selectedActivityTypes.contains(
+          (log['activity_type'] ?? '').toString(),
+        ),
+      );
     }
 
     if (logsStartDate != null || logsEndDate != null) {
       final DateTime? start = logsStartDate != null
-          ? DateTime(logsStartDate!.year, logsStartDate!.month, logsStartDate!.day)
+          ? DateTime(
+              logsStartDate!.year,
+              logsStartDate!.month,
+              logsStartDate!.day,
+            )
           : null;
       final DateTime? end = logsEndDate != null
-          ? DateTime(logsEndDate!.year, logsEndDate!.month, logsEndDate!.day, 23, 59, 59)
+          ? DateTime(
+              logsEndDate!.year,
+              logsEndDate!.month,
+              logsEndDate!.day,
+              23,
+              59,
+              59,
+            )
           : null;
 
       filtered = filtered.where((log) {
         try {
-          final createdAt = DateTime.parse((log['created_at'] ?? '').toString());
+          final createdAt = DateTime.parse(
+            (log['created_at'] ?? '').toString(),
+          );
           if (start != null && createdAt.isBefore(start)) return false;
           if (end != null && createdAt.isAfter(end)) return false;
           return true;
@@ -2022,7 +2058,7 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
       try {
         final dateA = DateTime.parse((a['created_at'] ?? '').toString());
         final dateB = DateTime.parse((b['created_at'] ?? '').toString());
-        
+
         if (logsSortOrder == 'asc') {
           return dateA.compareTo(dateB);
         } else {
@@ -2043,7 +2079,8 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
         List<String> tempSelected = List<String>.from(selectedActivityTypes);
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final bool allSelected = types.isNotEmpty && tempSelected.length == types.length;
+            final bool allSelected =
+                types.isNotEmpty && tempSelected.length == types.length;
             return AlertDialog(
               backgroundColor: Colors.white,
               title: Row(
@@ -2111,8 +2148,13 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF3E4795),
                     side: BorderSide(color: Colors.grey[300]!),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   child: const Text('Cancel'),
                 ),
@@ -2127,8 +2169,13 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3E4795),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     elevation: 0,
                   ),
                   child: const Text('Apply'),
@@ -2176,22 +2223,30 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                         if (picked != null) {
                           setModalState(() {
                             logsStartDate = picked;
-                            if (logsEndDate != null && picked.isAfter(logsEndDate!)) {
+                            if (logsEndDate != null &&
+                                picked.isAfter(logsEndDate!)) {
                               logsEndDate = null;
                             }
                           });
                         }
                       },
-      child: Container(
+                      child: Container(
                         width: double.infinity,
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey[300]!),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.calendar_today, size: 20, color: Color(0xFF3E4795)),
+                            Icon(
+                              Icons.calendar_today,
+                              size: 20,
+                              color: Color(0xFF3E4795),
+                            ),
                             SizedBox(width: 12),
                             Expanded(
                               child: Text(
@@ -2199,14 +2254,16 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                                     ? '${logsStartDate!.month.toString().padLeft(2, '0')}/${logsStartDate!.day.toString().padLeft(2, '0')}/${logsStartDate!.year}'
                                     : 'Start Date',
                                 style: TextStyle(
-                                  color: logsStartDate != null ? Colors.black : Colors.grey[600],
+                                  color: logsStartDate != null
+                                      ? Colors.black
+                                      : Colors.grey[600],
                                   fontSize: 16,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
-            ),
-          ],
-        ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     SizedBox(height: 16),
@@ -2215,7 +2272,8 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                       onTap: () async {
                         final DateTime? picked = await showDatePicker(
                           context: context,
-                          initialDate: logsEndDate ?? logsStartDate ?? DateTime.now(),
+                          initialDate:
+                              logsEndDate ?? logsStartDate ?? DateTime.now(),
                           firstDate: logsStartDate ?? DateTime(2020),
                           lastDate: DateTime.now().add(Duration(days: 365)),
                         );
@@ -2227,14 +2285,21 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                       },
                       child: Container(
                         width: double.infinity,
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey[300]!),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.calendar_today, size: 20, color: Color(0xFF3E4795)),
+                            Icon(
+                              Icons.calendar_today,
+                              size: 20,
+                              color: Color(0xFF3E4795),
+                            ),
                             SizedBox(width: 12),
                             Expanded(
                               child: Text(
@@ -2242,7 +2307,9 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                                     ? '${logsEndDate!.month.toString().padLeft(2, '0')}/${logsEndDate!.day.toString().padLeft(2, '0')}/${logsEndDate!.year}'
                                     : 'End Date',
                                 style: TextStyle(
-                                  color: logsEndDate != null ? Colors.black : Colors.grey[600],
+                                  color: logsEndDate != null
+                                      ? Colors.black
+                                      : Colors.grey[600],
                                   fontSize: 16,
                                 ),
                                 overflow: TextOverflow.ellipsis,
@@ -2256,18 +2323,29 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                     // Sort Order Dropdown
                     Container(
                       width: double.infinity,
-                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey[300]!),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
-                          value: logsSortOrder.isNotEmpty ? logsSortOrder : 'asc',
+                          value: logsSortOrder.isNotEmpty
+                              ? logsSortOrder
+                              : 'asc',
                           isExpanded: true,
                           items: [
-                            DropdownMenuItem(value: 'asc', child: Text('Ascending')),
-                            DropdownMenuItem(value: 'desc', child: Text('Descending')),
+                            DropdownMenuItem(
+                              value: 'asc',
+                              child: Text('Ascending'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'desc',
+                              child: Text('Descending'),
+                            ),
                           ],
                           onChanged: (String? value) {
                             setModalState(() {
@@ -2292,7 +2370,10 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                           },
                           style: TextButton.styleFrom(
                             foregroundColor: Color(0xFF3E4795),
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                           ),
                           child: Text('Clear'),
                         ),
@@ -2308,7 +2389,9 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                     foregroundColor: Color(0xFF3E4795),
                     side: BorderSide(color: Colors.grey[300]!),
                     padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   child: Text('Cancel'),
                 ),
@@ -2323,7 +2406,9 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                     backgroundColor: Color(0xFF3E4795),
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     elevation: 0,
                   ),
                   child: Text('Apply'),
@@ -2378,22 +2463,22 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
             SizedBox(height: 16),
 
             // Table header (matching Trip History) with filter icons
-                    Container(
+            Container(
               padding: EdgeInsets.all(12),
-                      decoration: BoxDecoration(
+              decoration: BoxDecoration(
                 color: Color(0xFF3E4795),
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(8),
                   topRight: Radius.circular(8),
                 ),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
+              ),
+              child: Row(
+                children: [
+                  Expanded(
                     flex: 2,
                     child: Row(
                       children: [
-                          Text(
+                        Text(
                           'Activity Type',
                           style: TextStyle(
                             color: Colors.white,
@@ -2401,16 +2486,20 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                           ),
                         ),
                         SizedBox(width: 8),
-                            GestureDetector(
+                        GestureDetector(
                           onTap: () async {
                             // Build unique list of activity types from current data
                             final logs = await fetchActivityLogs();
-                            final types = logs
-                                .map((e) => (e['activity_type'] ?? '').toString())
-                                .where((e) => e.isNotEmpty)
-                                .toSet()
-                                .toList()
-                              ..sort();
+                            final types =
+                                logs
+                                    .map(
+                                      (e) =>
+                                          (e['activity_type'] ?? '').toString(),
+                                    )
+                                    .where((e) => e.isNotEmpty)
+                                    .toSet()
+                                    .toList()
+                                  ..sort();
                             _showActivityTypeFilterModal(types);
                           },
                           child: Icon(
@@ -2419,11 +2508,11 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                                 ? Colors.lightBlue
                                 : Colors.white,
                             size: 16,
-                            ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
+                  ),
                   Expanded(
                     flex: 3,
                     child: Text(
@@ -2436,9 +2525,9 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                   ),
                   Expanded(
                     flex: 2,
-                      child: Row(
-                        children: [
-                          Text(
+                    child: Row(
+                      children: [
+                        Text(
                           'Timestamp',
                           style: TextStyle(
                             color: Colors.white,
@@ -2446,21 +2535,22 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                           ),
                         ),
                         SizedBox(width: 8),
-                            GestureDetector(
+                        GestureDetector(
                           onTap: _showTimestampFilterModal,
                           child: Icon(
                             Icons.filter_list,
-                            color: (logsStartDate != null || logsEndDate != null)
+                            color:
+                                (logsStartDate != null || logsEndDate != null)
                                 ? Colors.lightBlue
                                 : Colors.white,
                             size: 16,
-                              ),
-                            ),
-                        ],
-                      ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
             ),
 
             // Table body (matching Trip History)
@@ -2486,7 +2576,11 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.history, size: 64, color: Colors.grey[400]),
+                          Icon(
+                            Icons.history,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
                           SizedBox(height: 16),
                           Text(
                             "No activity logs found.",
@@ -2519,18 +2613,24 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                         final log = filteredLogs[index];
                         final isLast = index == filteredLogs.length - 1;
                         return Container(
-              decoration: BoxDecoration(
-                            color: index % 2 == 0 ? Colors.white : Colors.grey[50],
-                            border: isLast ? null : Border(
-                              bottom: BorderSide(color: Colors.grey[200]!),
-                            ),
+                          decoration: BoxDecoration(
+                            color: index % 2 == 0
+                                ? Colors.white
+                                : Colors.grey[50],
+                            border: isLast
+                                ? null
+                                : Border(
+                                    bottom: BorderSide(
+                                      color: Colors.grey[200]!,
+                                    ),
+                                  ),
                           ),
                           padding: EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 12,
-              ),
-              child: Row(
-                          children: [
+                          ),
+                          child: Row(
+                            children: [
                               Expanded(
                                 flex: 2,
                                 child: Text(
@@ -2539,9 +2639,9 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                                     fontSize: 14,
                                     color: Color(0xFF232A4D),
                                   ),
-              ),
-            ),
-            Expanded(
+                                ),
+                              ),
+                              Expanded(
                                 flex: 3,
                                 child: Text(
                                   log['description'] ?? '',
@@ -2848,9 +2948,9 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
         if (_showCompose)
           _ComposeNotificationModal(
             onSave: (notif) async {
-              final today = DateTime.now();
-              final formattedDate =
-                  "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+              final formattedDate = DateFormat(
+                'yyyy-MM-dd HH:mm:ss',
+              ).format(DateTime.now());
               // Call your backend API here
               await createNotification(
                 notif['title'],
@@ -2862,6 +2962,7 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
                 ), // flatten Set to string
               );
 
+              _showSuccessDialog();
               // No scheduled storage
             },
             onCancel: _closeCompose,
@@ -3983,7 +4084,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
         setState(() {
           _schedules = List<Map<String, dynamic>>.from(data['data'] ?? []);
         });
-        
+
         // Reload vehicles to filter out already scheduled ones
         _loadVehicles();
       } else {
@@ -4000,17 +4101,22 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
     try {
       // Always try vehicle assignments first since they have more complete data
       print('Loading vehicles from vehicle assignments...');
-      final assignmentsResponse = await http.get(Uri.parse('$baseUrl/api/vehicle-assignments'));
-      
+      final assignmentsResponse = await http.get(
+        Uri.parse('$baseUrl/api/vehicle-assignments'),
+      );
+
       if (assignmentsResponse.statusCode == 200) {
         final assignmentsData = json.decode(assignmentsResponse.body);
         print('Assignments API Response: $assignmentsData'); // Debug log
-        
-        if (assignmentsData['success'] == true && assignmentsData['data'] != null) {
+
+        if (assignmentsData['success'] == true &&
+            assignmentsData['data'] != null) {
           // Extract unique vehicles from assignments
-          final assignments = List<Map<String, dynamic>>.from(assignmentsData['data']);
+          final assignments = List<Map<String, dynamic>>.from(
+            assignmentsData['data'],
+          );
           final uniqueVehicles = <int, Map<String, dynamic>>{};
-          
+
           for (final assignment in assignments) {
             final vehicleId = assignment['vehicle_id'];
             if (vehicleId != null && !uniqueVehicles.containsKey(vehicleId)) {
@@ -4020,11 +4126,13 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
               };
             }
           }
-          
+
           // Filter out vehicles that are already scheduled for the selected date
           final availableVehicles = <Map<String, dynamic>>[];
-          final scheduledVehicleIds = _schedules.map((schedule) => schedule['vehicle_id']).toSet();
-          
+          final scheduledVehicleIds = _schedules
+              .map((schedule) => schedule['vehicle_id'])
+              .toSet();
+
           for (final vehicle in uniqueVehicles.values) {
             final vehicleId = vehicle['vehicle_id'];
             if (!scheduledVehicleIds.contains(vehicleId)) {
@@ -4032,47 +4140,54 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
             }
           }
 
-        setState(() {
+          setState(() {
             _vehicles = availableVehicles;
           });
-          
-          print('Loaded ${_vehicles.length} available vehicles (${scheduledVehicleIds.length} already scheduled): ${availableVehicles.map((v) => v['vehicle_id']).toList()}');
+
+          print(
+            'Loaded ${_vehicles.length} available vehicles (${scheduledVehicleIds.length} already scheduled): ${availableVehicles.map((v) => v['vehicle_id']).toList()}',
+          );
           return;
         }
       }
-      
+
       // Fallback to vehicles table if assignments fail
       print('Assignments failed, trying vehicles table...');
-      final vehiclesResponse = await http.get(Uri.parse('$baseUrl/vehicles/getVehicles'));
-      
+      final vehiclesResponse = await http.get(
+        Uri.parse('$baseUrl/vehicles/getVehicles'),
+      );
+
       if (vehiclesResponse.statusCode == 200) {
         final vehiclesData = json.decode(vehiclesResponse.body);
         print('Vehicles API Response: $vehiclesData'); // Debug log
-        
+
         if (vehiclesData.isNotEmpty) {
           // Filter out vehicles that are already scheduled for the selected date
           final availableVehicles = <Map<String, dynamic>>[];
-          final scheduledVehicleIds = _schedules.map((schedule) => schedule['vehicle_id']).toSet();
-          
+          final scheduledVehicleIds = _schedules
+              .map((schedule) => schedule['vehicle_id'])
+              .toSet();
+
           for (final vehicle in vehiclesData) {
             final vehicleId = vehicle['vehicle_id'];
             if (!scheduledVehicleIds.contains(vehicleId)) {
               availableVehicles.add(vehicle);
             }
           }
-          
+
           setState(() {
             _vehicles = availableVehicles;
           });
-          print('Loaded ${_vehicles.length} available vehicles from vehicles table (${scheduledVehicleIds.length} already scheduled)');
+          print(
+            'Loaded ${_vehicles.length} available vehicles from vehicles table (${scheduledVehicleIds.length} already scheduled)',
+          );
           return;
         }
       }
-      
+
       // If both fail, use empty list
       print('Both APIs failed, using empty vehicle list');
       _useDummyVehicles();
-      
     } catch (e) {
       print('Error loading vehicles: $e'); // Debug log
       _useDummyVehicles();
@@ -4081,7 +4196,8 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
 
   void _useDummyVehicles() {
     setState(() {
-      _vehicles = []; // Don't use dummy data - only show actual vehicles from database
+      _vehicles =
+          []; // Don't use dummy data - only show actual vehicles from database
     });
     print('No vehicles available from database');
   }
@@ -4092,11 +4208,11 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
     // Format time from time picker - only if status is Active
     String? timeString;
     if (_statusController.text == 'Active') {
-    final hour12 = _selectedHour == 0
-        ? 12
-        : (_selectedHour > 12 ? _selectedHour - 12 : _selectedHour);
+      final hour12 = _selectedHour == 0
+          ? 12
+          : (_selectedHour > 12 ? _selectedHour - 12 : _selectedHour);
       timeString =
-        '${hour12.toString().padLeft(2, '0')}:${_selectedMinute.toString().padLeft(2, '0')} ${_isAM ? 'AM' : 'PM'}';
+          '${hour12.toString().padLeft(2, '0')}:${_selectedMinute.toString().padLeft(2, '0')} ${_isAM ? 'AM' : 'PM'}';
     } else {
       timeString = null; // Send null to backend for non-active statuses
     }
@@ -4254,13 +4370,15 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
 
   Widget _buildSimpleTimePicker() {
     final bool isActive = _statusController.text == 'Active';
-    
+
     return GestureDetector(
       onTap: isActive ? _selectTime : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          border: Border.all(color: isActive ? Colors.grey.shade300 : Colors.grey.shade200),
+          border: Border.all(
+            color: isActive ? Colors.grey.shade300 : Colors.grey.shade200,
+          ),
           borderRadius: BorderRadius.circular(8),
           color: isActive ? Colors.white : Colors.grey.shade50,
         ),
@@ -4276,7 +4394,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
               ),
             ),
             Icon(
-              Icons.access_time, 
+              Icons.access_time,
               color: isActive ? Colors.grey.shade600 : Colors.grey.shade400,
             ),
           ],
@@ -4290,7 +4408,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
     if (_statusController.text != 'Active') {
       return '---';
     }
-    
+
     final hour12 = _selectedHour == 0
         ? 12
         : (_selectedHour > 12 ? _selectedHour - 12 : _selectedHour);
@@ -4421,8 +4539,13 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                             style: OutlinedButton.styleFrom(
                               foregroundColor: const Color(0xFF3E4795),
                               side: const BorderSide(color: Colors.grey),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
                             ),
                             child: const Text('Cancel'),
                           ),
@@ -4434,42 +4557,47 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF3E4795),
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
                               elevation: 0,
                             ),
                             child: const Text('Save'),
                           ),
                         ] else ...[
-                        // Edit toggle
-                        ElevatedButton(
-                          onPressed: () =>
-                              setState(() => _showActions = !_showActions),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3E4795),
-                            minimumSize: const Size(44, 44),
-                            shape: const CircleBorder(),
-                            padding: EdgeInsets.zero,
-                            elevation: 0,
+                          // Edit toggle
+                          ElevatedButton(
+                            onPressed: () =>
+                                setState(() => _showActions = !_showActions),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3E4795),
+                              minimumSize: const Size(44, 44),
+                              shape: const CircleBorder(),
+                              padding: EdgeInsets.zero,
+                              elevation: 0,
+                            ),
+                            child: Icon(
+                              _showActions ? Icons.edit_off : Icons.edit,
+                              color: Colors.white,
+                            ),
                           ),
-                          child: Icon(
-                            _showActions ? Icons.edit_off : Icons.edit,
-                            color: Colors.white,
+                          const SizedBox(width: 8),
+                          // Add button (icon only)
+                          ElevatedButton(
+                            onPressed: _showAddFormDialog,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3E4795),
+                              minimumSize: const Size(44, 44),
+                              shape: const CircleBorder(),
+                              padding: EdgeInsets.zero,
+                              elevation: 0,
+                            ),
+                            child: const Icon(Icons.add, color: Colors.white),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        // Add button (icon only)
-                        ElevatedButton(
-                          onPressed: _showAddFormDialog,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3E4795),
-                            minimumSize: const Size(44, 44),
-                            shape: const CircleBorder(),
-                            padding: EdgeInsets.zero,
-                            elevation: 0,
-                          ),
-                          child: const Icon(Icons.add, color: Colors.white),
-                        ),
                         ],
                       ],
                     ),
@@ -4591,9 +4719,10 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                                           Expanded(
                                             flex: 2,
                                             child: Text(
-                                              schedule['status'] == 'Active' 
-                                                ? (schedule['time_start'] ?? 'N/A')
-                                                : '---',
+                                              schedule['status'] == 'Active'
+                                                  ? (schedule['time_start'] ??
+                                                        'N/A')
+                                                  : '---',
                                             ),
                                           ),
                                           Expanded(
@@ -4742,17 +4871,15 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                                 : 'Select Unit',
                           ),
                           items: _vehicles.map((vehicle) {
-                                    final int vehicleId =
-                                        vehicle['vehicle_id'] ??
-                                        vehicle['id'] ??
-                                        0;
-                                    final String unitName = 'Unit $vehicleId';
+                            final int vehicleId =
+                                vehicle['vehicle_id'] ?? vehicle['id'] ?? 0;
+                            final String unitName = 'Unit $vehicleId';
 
-                                    return DropdownMenuItem<int>(
-                                      value: vehicleId,
-                                      child: Text(unitName),
-                                    );
-                                  }).toList(),
+                            return DropdownMenuItem<int>(
+                              value: vehicleId,
+                              child: Text(unitName),
+                            );
+                          }).toList(),
                           onChanged: _vehicles.isEmpty
                               ? null
                               : (value) {
@@ -4919,17 +5046,17 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
   int totalPages = 1;
   int totalTrips = 0;
   final int limit = 20;
-  
+
   // Search and sort variables
   String searchQuery = '';
   String sortBy = 'start_time';
   String sortOrder = 'desc';
   final TextEditingController _searchController = TextEditingController();
-  
+
   // Date filter variables
   DateTime? startDate;
   DateTime? endDate;
-  
+
   // Vehicle filter variables
   List<String> selectedVehicles = [];
   List<String> availableVehicles = [];
@@ -4970,23 +5097,23 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
         filteredTrips = [];
         return;
       }
-      
+
       // Filter trips based on search query and date range
       filteredTrips = trips.where((trip) {
         if (trip == null) return false;
-        
+
         // Text search filter
         final vehicleNumber = (trip['vehicle_number'] ?? '')
             .toString()
             .toLowerCase();
         final query = searchQuery.toLowerCase();
         final matchesSearch = vehicleNumber.contains(query);
-        
+
         // Vehicle filter
         final matchesVehicle =
             selectedVehicles.isEmpty ||
-                              selectedVehicles.contains(trip['vehicle_number'] ?? '');
-        
+            selectedVehicles.contains(trip['vehicle_number'] ?? '');
+
         // Start time filter
         final startTime = _formatTime(trip['start_time']);
         final matchesStartTime =
@@ -5002,7 +5129,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
         final duration = _formatDuration(trip['start_time'], trip['end_time']);
         final matchesDuration =
             selectedDurations.isEmpty || selectedDurations.contains(duration);
-        
+
         // Date filter
         bool matchesDate = true;
         if (startDate != null || endDate != null) {
@@ -5013,7 +5140,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
               tripDate.month,
               tripDate.day,
             );
-            
+
             if (startDate != null && endDate != null) {
               final startDateOnly = DateTime(
                 startDate!.year,
@@ -5027,7 +5154,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
               );
               matchesDate =
                   tripDateOnly.isAtSameMomentAs(startDateOnly) ||
-                           tripDateOnly.isAtSameMomentAs(endDateOnly) ||
+                  tripDateOnly.isAtSameMomentAs(endDateOnly) ||
                   (tripDateOnly.isAfter(startDateOnly) &&
                       tripDateOnly.isBefore(endDateOnly));
             } else if (startDate != null) {
@@ -5053,7 +5180,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
             matchesDate = false;
           }
         }
-        
+
         return matchesSearch &&
             matchesDate &&
             matchesVehicle &&
@@ -5065,9 +5192,9 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
       // Sort trips
       filteredTrips.sort((a, b) {
         if (a == null || b == null) return 0;
-        
+
         dynamic aValue, bValue;
-        
+
         switch (sortBy) {
           case 'vehicle_id':
             aValue = a['vehicle_id'] ?? 0;
@@ -5093,7 +5220,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
             bValue = DateTime.tryParse(b['start_time'] ?? '') ?? DateTime(1970);
             break;
         }
-        
+
         if (sortOrder == 'asc') {
           return aValue.compareTo(bValue);
         } else {
@@ -5149,119 +5276,119 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                     : 450,
                 height: 280,
                 child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Start Date
-                  InkWell(
-                    onTap: () async {
-                      final DateTime? picked = await showDatePicker(
-                        context: context,
-                        initialDate: startDate ?? DateTime.now(),
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now().add(Duration(days: 365)),
-                      );
-                      if (picked != null) {
-                        setModalState(() {
-                          startDate = picked;
-                          if (endDate != null && picked.isAfter(endDate!)) {
-                            endDate = null;
-                          }
-                        });
-                      }
-                    },
-                    child: Container(
-                      width: double.infinity,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Start Date
+                    InkWell(
+                      onTap: () async {
+                        final DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: startDate ?? DateTime.now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now().add(Duration(days: 365)),
+                        );
+                        if (picked != null) {
+                          setModalState(() {
+                            startDate = picked;
+                            if (endDate != null && picked.isAfter(endDate!)) {
+                              endDate = null;
+                            }
+                          });
+                        }
+                      },
+                      child: Container(
+                        width: double.infinity,
                         padding: EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 12,
                         ),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
                             Icon(
                               Icons.calendar_today,
                               size: 20,
                               color: Color(0xFF3E4795),
                             ),
-                          SizedBox(width: 12),
+                            SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                            startDate != null 
-                              ? '${startDate!.month.toString().padLeft(2, '0')}/${startDate!.day.toString().padLeft(2, '0')}/${startDate!.year}'
+                                startDate != null
+                                    ? '${startDate!.month.toString().padLeft(2, '0')}/${startDate!.day.toString().padLeft(2, '0')}/${startDate!.year}'
                                     : 'Start Date',
-                            style: TextStyle(
+                                style: TextStyle(
                                   color: startDate != null
                                       ? Colors.black
                                       : Colors.grey[600],
-                              fontSize: 16,
+                                  fontSize: 16,
                                 ),
                                 overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(height: 16),
-                  // End Date
-                  InkWell(
-                    onTap: () async {
-                      final DateTime? picked = await showDatePicker(
-                        context: context,
-                        initialDate: endDate ?? startDate ?? DateTime.now(),
-                        firstDate: startDate ?? DateTime(2020),
-                        lastDate: DateTime.now().add(Duration(days: 365)),
-                      );
-                      if (picked != null) {
-                        setModalState(() {
-                          endDate = picked;
-                        });
-                      }
-                    },
-                    child: Container(
-                      width: double.infinity,
+                    SizedBox(height: 16),
+                    // End Date
+                    InkWell(
+                      onTap: () async {
+                        final DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: endDate ?? startDate ?? DateTime.now(),
+                          firstDate: startDate ?? DateTime(2020),
+                          lastDate: DateTime.now().add(Duration(days: 365)),
+                        );
+                        if (picked != null) {
+                          setModalState(() {
+                            endDate = picked;
+                          });
+                        }
+                      },
+                      child: Container(
+                        width: double.infinity,
                         padding: EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 12,
                         ),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
                             Icon(
                               Icons.calendar_today,
                               size: 20,
                               color: Color(0xFF3E4795),
                             ),
-                          SizedBox(width: 12),
+                            SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                            endDate != null 
-                              ? '${endDate!.month.toString().padLeft(2, '0')}/${endDate!.day.toString().padLeft(2, '0')}/${endDate!.year}'
+                                endDate != null
+                                    ? '${endDate!.month.toString().padLeft(2, '0')}/${endDate!.day.toString().padLeft(2, '0')}/${endDate!.year}'
                                     : 'End Date',
-                            style: TextStyle(
+                                style: TextStyle(
                                   color: endDate != null
                                       ? Colors.black
                                       : Colors.grey[600],
-                              fontSize: 16,
+                                  fontSize: 16,
                                 ),
                                 overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
                     SizedBox(height: 32),
                     // Clear button
-                  Row(
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
+                      children: [
                         OutlinedButton(
                           onPressed: () {
                             setModalState(() {
@@ -5300,18 +5427,18 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                     ),
                   ),
                   child: Text('Cancel'),
-                      ),
-                      SizedBox(width: 12),
+                ),
+                SizedBox(width: 12),
                 ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _filterAndSortTrips();
-                            });
-                            Navigator.of(context).pop();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF3E4795),
-                            foregroundColor: Colors.white,
+                  onPressed: () {
+                    setState(() {
+                      _filterAndSortTrips();
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF3E4795),
+                    foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -5413,9 +5540,9 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                           );
                         },
                       ),
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 OutlinedButton(
@@ -5493,9 +5620,9 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                     ? MediaQuery.of(context).size.width * 0.9
                     : 480,
                 height: 280,
-      child: Column(
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
-        children: [
+                  children: [
                     // Select All option
                     CheckboxListTile(
                       title: Text('Select All'),
@@ -5503,7 +5630,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                           times.isNotEmpty &&
                           selectedEndTimes.length == times.length,
                       onChanged: (bool? value) {
-                              setModalState(() {
+                        setModalState(() {
                           if (value == true) {
                             selectedEndTimes = List.from(times);
                           } else {
@@ -5566,10 +5693,10 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                       _filterAndSortTrips();
                     });
                     Navigator.of(context).pop();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF3E4795),
-                              foregroundColor: Colors.white,
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF3E4795),
+                    foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -5615,7 +5742,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
               title: Row(
                 children: [
                   Icon(Icons.filter_list, color: Color(0xFF3E4795)),
-                        SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Text('Filter by Trip Duration'),
                 ],
               ),
@@ -5634,7 +5761,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                           durations.isNotEmpty &&
                           selectedDurations.length == durations.length,
                       onChanged: (bool? value) {
-                              setModalState(() {
+                        setModalState(() {
                           if (value == true) {
                             selectedDurations = List.from(durations);
                           } else {
@@ -5699,8 +5826,8 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                       _filterAndSortTrips();
                     });
                     Navigator.of(context).pop();
-                            },
-                            style: ElevatedButton.styleFrom(
+                  },
+                  style: ElevatedButton.styleFrom(
                     backgroundColor: Color(0xFF3E4795),
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
@@ -5770,7 +5897,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                         itemBuilder: (context, index) {
                           final vehicle = availableVehicles[index];
                           final isSelected = selectedVehicles.contains(vehicle);
-                          
+
                           return CheckboxListTile(
                             title: Text(vehicle),
                             value: isSelected,
@@ -5807,24 +5934,24 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                 ),
                 SizedBox(width: 12),
                 ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                _filterAndSortTrips();
-                              });
-                              Navigator.of(context).pop();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF3E4795),
-                              foregroundColor: Colors.white,
+                  onPressed: () {
+                    setState(() {
+                      _filterAndSortTrips();
+                    });
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF3E4795),
+                    foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
-                            ),
+                    ),
                     elevation: 0,
-                          ),
+                  ),
                   child: Text('Apply'),
-                        ),
-                      ],
+                ),
+              ],
             );
           },
         );
@@ -5839,22 +5966,22 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
       });
 
       final response = await fetchAdminTrips(page: currentPage, limit: limit);
-      
+
       if (response['success']) {
         setState(() {
           trips = response['data'];
           totalPages = response['pagination']['totalPages'];
           totalTrips = response['pagination']['total'];
           isLoading = false;
-          
+
           // Extract unique vehicle numbers for filtering
           availableVehicles =
               trips
-              .map((trip) => trip['vehicle_number']?.toString() ?? '')
-              .where((vehicle) => vehicle.isNotEmpty)
-              .toSet()
-              .toList()
-              ..sort();
+                  .map((trip) => trip['vehicle_number']?.toString() ?? '')
+                  .where((vehicle) => vehicle.isNotEmpty)
+                  .toSet()
+                  .toList()
+                ..sort();
         });
         _filterAndSortTrips();
       }
@@ -5931,33 +6058,33 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-          Text(
-            'Trip History',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF3E4795),
-            ),
-          ),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () {
-                  _loadTrips();
-                },
-                child: Icon(
-                  Icons.refresh,
-                  size: 16,
+              Text(
+                'Trip History',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                   color: Color(0xFF3E4795),
                 ),
               ),
-              SizedBox(width: 4),
-          Text(
-                'Total: $totalTrips trips',
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      _loadTrips();
+                    },
+                    child: Icon(
+                      Icons.refresh,
+                      size: 16,
+                      color: Color(0xFF3E4795),
+                    ),
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    'Total: $totalTrips trips',
                     style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  ),
+                ],
               ),
-            ],
-          ),
             ],
           ),
           SizedBox(height: 16),
@@ -5977,7 +6104,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                     controller: _searchController,
                     onChanged: _onSearchChanged,
                     decoration: InputDecoration(
-                    hintText: 'Search by unit number...',
+                      hintText: 'Search by unit number...',
                       prefixIcon: Icon(Icons.search, color: Color(0xFF3E4795)),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -6092,7 +6219,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                     child: Row(
                       children: [
                         Expanded(
-                          flex: 2, 
+                          flex: 2,
                           child: Row(
                             children: [
                               Text(
@@ -6115,7 +6242,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                           ),
                         ),
                         Expanded(
-                          flex: 2, 
+                          flex: 2,
                           child: Row(
                             children: [
                               Text(
@@ -6256,7 +6383,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                     child: Row(
                       children: [
                         Expanded(
-                          flex: 2, 
+                          flex: 2,
                           child: Row(
                             children: [
                               Text(
@@ -6279,7 +6406,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                           ),
                         ),
                         Expanded(
-                          flex: 2, 
+                          flex: 2,
                           child: Row(
                             children: [
                               Text(
@@ -6393,7 +6520,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                         final trip = filteredTrips[index];
                         if (trip == null) return Container();
                         final isEven = index % 2 == 0;
-                        
+
                         return Container(
                           padding: EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -6448,10 +6575,10 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                           IconButton(
                             onPressed: currentPage > 1
                                 ? () {
-                              setState(() {
-                                currentPage--;
-                              });
-                              _loadTrips();
+                                    setState(() {
+                                      currentPage--;
+                                    });
+                                    _loadTrips();
                                   }
                                 : null,
                             icon: Icon(Icons.chevron_left),
@@ -6460,10 +6587,10 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                           IconButton(
                             onPressed: currentPage < totalPages
                                 ? () {
-                              setState(() {
-                                currentPage++;
-                              });
-                              _loadTrips();
+                                    setState(() {
+                                      currentPage++;
+                                    });
+                                    _loadTrips();
                                   }
                                 : null,
                             icon: Icon(Icons.chevron_right),
@@ -6473,7 +6600,7 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                     ),
                 ],
               ),
-          ),
+            ),
         ],
       ),
     );
