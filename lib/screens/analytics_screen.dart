@@ -33,6 +33,18 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   
   // Trip duration analytics
   Map<String, dynamic>? _tripDurationAnalytics;
+  
+  // Cache to prevent repeated requests (reduced for more dynamic updates)
+  DateTime? _lastLoadTime;
+  static const Duration _cacheTimeout = Duration(minutes: 1); // Reduced from 5 minutes to 1 minute
+  
+  String get _lastUpdateText {
+    if (_lastLoadTime == null) return 'Never updated';
+    final diff = DateTime.now().difference(_lastLoadTime!);
+    if (diff.inSeconds < 60) return 'Updated ${diff.inSeconds}s ago';
+    if (diff.inMinutes < 60) return 'Updated ${diff.inMinutes}m ago';
+    return 'Updated ${diff.inHours}h ago';
+  }
 
   String _formatHour12(int hour) {
     if (hour == 0) return '12 AM';
@@ -123,25 +135,31 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
 
   Future<void> _loadYearlyForecast() async {
     try {
-      setState(() {
-        _loading = true;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = true;
+        });
+      }
       
       final yearlyF = fapi.forecastYearlyDaily(_yearlyYear);
       final yearly = await yearlyF;
       
-      setState(() {
-        _yearlyYear = yearly.year;
-        _yearlyGrid = yearly.grid;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _yearlyYear = yearly.year;
+          _yearlyGrid = yearly.grid;
+          _loading = false;
+        });
+      }
       
       print('Yearly forecast loaded for ${_yearlyYear}: grid length=${yearly.grid.length}');
     } catch (e) {
-      setState(() {
-        _error = 'Failed to load forecast for $_yearlyYear: $e';
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load forecast for $_yearlyYear: $e';
+          _loading = false;
+        });
+      }
       print('Error loading yearly forecast for $_yearlyYear: $e');
     }
   }
@@ -471,12 +489,22 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    // Check cache first
+    if (_lastLoadTime != null && 
+        DateTime.now().difference(_lastLoadTime!) < _cacheTimeout &&
+        _hourlyPredictions.isNotEmpty) {
+      print('Using cached data (${DateTime.now().difference(_lastLoadTime!).inSeconds}s old)');
+      return;
+    }
+    
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
-      // Fetch in parallel
+      // Fetch in parallel (removed redundant network test)
       final hourlyF = fapi.forecastHourly();
       final dailyF = fapi.forecastDaily();
       final schedulesF = _fetchTodaySchedules();
@@ -502,26 +530,33 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       final fleet = await fleetActivityF;
       final tripDuration = await tripDurationF;
 
-      setState(() {
-        _peakHour = hourly.peakHour;
-        _peakValue = hourly.peakValue;
-        _hours = hourly.hours;
-        _hourlyPredictions = hourly.predictions;
-        _dates = daily.dates;
-        _dailyPredictions = daily.predictions;
-        _unitsInOperation = schedules.deployedUnits;
-        _tripsPerUnit = tripsPU;
-        _fleetHours = fleet['hours'] ?? const [];
-        _fleetCounts = fleet['counts'] ?? const [];
-        _yearlyYear = yearly.year;
-        _yearlyGrid = yearly.grid;
-        _tripDurationAnalytics = tripDuration;
-        print('Yearly grid set: ${_yearlyGrid.length} months, first month has ${_yearlyGrid.isNotEmpty ? _yearlyGrid[0].length : 0} days');
-      });
+      if (mounted) {
+        setState(() {
+          _peakHour = hourly.peakHour;
+          _peakValue = hourly.peakValue;
+          _hours = hourly.hours;
+          _hourlyPredictions = hourly.predictions;
+          _dates = daily.dates;
+          _dailyPredictions = daily.predictions;
+          _unitsInOperation = schedules.deployedUnits;
+          _tripsPerUnit = tripsPU;
+          _fleetHours = fleet['hours'] ?? const [];
+          _fleetCounts = fleet['counts'] ?? const [];
+          _yearlyYear = yearly.year;
+          _yearlyGrid = yearly.grid;
+          _tripDurationAnalytics = tripDuration;
+          _lastLoadTime = DateTime.now(); // Update cache time
+          print('Yearly grid set: ${_yearlyGrid.length} months, first month has ${_yearlyGrid.isNotEmpty ? _yearlyGrid[0].length : 0} days');
+        });
+      }
     } catch (e) {
-      setState(() => _error = e.toString());
+      if (mounted) {
+        setState(() => _error = e.toString());
+      }
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -608,13 +643,75 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
 
   Future<Map<String, dynamic>?> _fetchTripDurationAnalytics() async {
     try {
-      final uri = Uri.parse('$baseUrl/api/vehicles/analytics/trip-duration');
+      // Fetch trips for today with start_time and end_time
+      final uri = Uri.parse('$baseUrl/trips/api/admin/trips?limit=1000');
       final res = await http.get(uri);
-      if (res.statusCode == 200) {
-        return jsonDecode(res.body) as Map<String, dynamic>;
+      if (res.statusCode != 200) return null;
+      
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      final allTrips = List<Map<String, dynamic>>.from(body['data'] ?? []);
+      
+      // Filter trips for today only (use local date; API times are UTC)
+      final nowLocal = DateTime.now();
+      final todayLocalStr = _formatDateYMD(nowLocal);
+      final trips = allTrips.where((trip) {
+        final startTime = trip['start_time'] as String?;
+        if (startTime == null) return false;
+        try {
+          final startUtc = DateTime.parse(startTime);
+          final startLocal = startUtc.toLocal();
+          return _formatDateYMD(startLocal) == todayLocalStr;
+        } catch (_) {
+          return false;
+        }
+      }).toList();
+      
+      print('Found ${trips.length} trips for today (local) out of ${allTrips.length} total trips');
+      
+      // Group trips by vehicle_id and calculate average duration (use local times)
+      final Map<int, List<double>> vehicleDurations = {};
+      
+      for (final trip in trips) {
+        final vehicleId = trip['vehicle_id'] as int?;
+        final startTime = trip['start_time'] as String?;
+        final endTime = trip['end_time'] as String?;
+        
+        if (vehicleId != null && startTime != null && endTime != null) {
+          try {
+            final startLocal = DateTime.parse(startTime).toLocal();
+            final endLocal = DateTime.parse(endTime).toLocal();
+            final durationMinutes = endLocal.difference(startLocal).inMinutes;
+            
+            if (durationMinutes > 0) {
+              vehicleDurations.putIfAbsent(vehicleId, () => []).add(durationMinutes.toDouble());
+            }
+          } catch (e) {
+            print('Error parsing trip times: $e');
+          }
+        }
       }
-      return null;
-    } catch (_) {
+      
+      // Calculate average duration for each vehicle
+      final List<Map<String, dynamic>> vehicleAverages = [];
+      vehicleDurations.forEach((vehicleId, durations) {
+        final averageDuration = durations.reduce((a, b) => a + b) / durations.length;
+        vehicleAverages.add({
+          'vehicle_id': vehicleId,
+          'average_duration_minutes': averageDuration,
+          'trip_count': durations.length,
+        });
+      });
+      
+      // Sort by vehicle_id for consistent display
+      vehicleAverages.sort((a, b) => (a['vehicle_id'] as int).compareTo(b['vehicle_id'] as int));
+      
+      return {
+        'vehicles': vehicleAverages,
+        'total_vehicles': vehicleAverages.length,
+        'date': _formatDateYMD(DateTime.now()),
+      };
+    } catch (e) {
+      print('Error fetching trip duration analytics: $e');
       return null;
     }
   }
@@ -645,21 +742,37 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Analytics Dashboard',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1E3A8A),
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          'Analytics Dashboard',
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E3A8A),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () {
+                            _lastLoadTime = null; // Force refresh by clearing cache
+                            _load();
+                          },
+                          icon: const Icon(Icons.refresh, color: Color(0xFF1E3A8A)),
+                          tooltip: 'Refresh Analytics Data (Force Update)',
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: _load,
-                      icon: const Icon(Icons.refresh, color: Color(0xFF1E3A8A)),
-                      tooltip: 'Refresh Analytics Data',
+                    Text(
+                      _lastUpdateText,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                   ],
                 ),
@@ -1422,7 +1535,7 @@ class _OperationalMetricsSection extends StatelessWidget {
                 title: Text('Average Trip Duration'),
                 child: SizedBox(
                   height: 180,
-                  child: _InteractivePassengerChart(),
+                  child: _TripDurationChart(tripDurationAnalytics: tripDurationAnalytics),
                 ),
               ),
             ),
@@ -1827,6 +1940,182 @@ String _formatHourStatic(int hour) {
   return '${hour - 12} PM';
 }
 
+class _TripDurationChart extends StatefulWidget {
+  final Map<String, dynamic>? tripDurationAnalytics;
+  
+  const _TripDurationChart({this.tripDurationAnalytics});
+  
+  @override
+  _TripDurationChartState createState() => _TripDurationChartState();
+}
+
+class _TripDurationChartState extends State<_TripDurationChart> {
+  int? _hoveredIndex;
+  int? _selectedIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (details) => _onBarTap(details.localPosition),
+      onPanStart: (details) => _updateHoveredIndex(details.localPosition),
+      onPanUpdate: (details) => _updateHoveredIndex(details.localPosition),
+      onPanEnd: (details) => setState(() => _hoveredIndex = null),
+      child: CustomPaint(
+        painter: _TripDurationBarsPainter(
+          tripDurationAnalytics: widget.tripDurationAnalytics,
+          hoveredIndex: _hoveredIndex,
+          selectedIndex: _selectedIndex,
+        ),
+      ),
+    );
+  }
+
+  void _onBarTap(Offset position) {
+    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final size = renderBox.size;
+    const double bottomPad = 18;
+    const double leftPad = 8;
+    const double rightPad = 30;
+    final double chartHeight = size.height - bottomPad;
+    final double chartWidth = size.width - leftPad - rightPad;
+
+    final vehicles = widget.tripDurationAnalytics?['vehicles'] as List<dynamic>? ?? [];
+    final rows = vehicles.length;
+    if (rows == 0) return;
+
+    final barHeight = 20.0;
+    final spacing = rows > 1 ? (chartHeight - (rows * barHeight)) / (rows - 1) : 0.0;
+
+    for (int i = 0; i < rows; i++) {
+      final top = i * (barHeight + spacing);
+      final bottom = top + barHeight;
+
+      if (position.dy >= top &&
+          position.dy <= bottom &&
+          position.dx >= leftPad &&
+          position.dx <= leftPad + chartWidth) {
+        
+        final vehicle = vehicles[i] as Map<String, dynamic>;
+        final vehicleId = vehicle['vehicle_id'] as int;
+        final duration = (vehicle['average_duration_minutes'] as num).toDouble();
+        final tripCount = vehicle['trip_count'] as int;
+        
+        setState(() => _selectedIndex = i);
+        
+        // Show detailed information dialog
+        _showVehicleDetails(vehicleId, duration, tripCount);
+        return;
+      }
+    }
+    
+    // If clicked outside bars, clear selection
+    setState(() => _selectedIndex = null);
+  }
+
+  void _updateHoveredIndex(Offset position) {
+    final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final size = renderBox.size;
+    const double bottomPad = 18;
+    const double leftPad = 8;
+    const double rightPad = 30;
+    final double chartHeight = size.height - bottomPad;
+    final double chartWidth = size.width - leftPad - rightPad;
+
+    final vehicles = widget.tripDurationAnalytics?['vehicles'] as List<dynamic>? ?? [];
+    final rows = vehicles.length;
+    if (rows == 0) return;
+
+    final barHeight = 20.0;
+    final spacing = rows > 1 ? (chartHeight - (rows * barHeight)) / (rows - 1) : 0.0;
+
+    for (int i = 0; i < rows; i++) {
+      final top = i * (barHeight + spacing);
+      final bottom = top + barHeight;
+
+      if (position.dy >= top &&
+          position.dy <= bottom &&
+          position.dx >= leftPad &&
+          position.dx <= leftPad + chartWidth) {
+        if (_hoveredIndex != i) {
+          setState(() => _hoveredIndex = i);
+        }
+        return;
+      }
+    }
+
+    if (_hoveredIndex != null) {
+      setState(() => _hoveredIndex = null);
+    }
+  }
+
+  void _showVehicleDetails(int vehicleId, double duration, int tripCount) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.directions_bus, color: Colors.blue[700]),
+              const SizedBox(width: 8),
+              Text('Vehicle $vehicleId Details'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDetailRow('Vehicle ID', '$vehicleId'),
+              _buildDetailRow('Average Trip Duration', '${duration.toStringAsFixed(1)} minutes'),
+              _buildDetailRow('Total Trips Today', '$tripCount trips'),
+              _buildDetailRow('Date', '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2,'0')}-${DateTime.now().day.toString().padLeft(2,'0')}'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _InteractivePassengerChart extends StatefulWidget {
   @override
   _InteractivePassengerChartState createState() =>
@@ -1883,6 +2172,209 @@ class _InteractivePassengerChartState
       setState(() => _hoveredIndex = null);
     }
   }
+
+  // Removed dialog helpers from mock chart
+}
+
+class _TripDurationBarsPainter extends CustomPainter {
+  final Map<String, dynamic>? tripDurationAnalytics;
+  final int? hoveredIndex;
+  final int? selectedIndex;
+
+  _TripDurationBarsPainter({this.tripDurationAnalytics, this.hoveredIndex, this.selectedIndex});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const double bottomPad = 18;
+    const double leftPad = 8;
+    const double rightPad = 30;
+    final double chartHeight = size.height - bottomPad;
+    final double chartWidth = size.width - leftPad - rightPad;
+
+    final vehicles = tripDurationAnalytics?['vehicles'] as List<dynamic>? ?? [];
+    if (vehicles.isEmpty) {
+      // Show "No data" message
+      final textPainter = TextPainter(
+        text: const TextSpan(
+          text: 'No trip data available',
+          style: TextStyle(
+            color: Colors.grey,
+            fontSize: 14,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+      textPainter.paint(
+        canvas,
+        Offset(
+          (size.width - textPainter.width) / 2,
+          (size.height - textPainter.height) / 2,
+        ),
+      );
+      return;
+    }
+
+    final track = Paint()..color = Colors.grey[200]!;
+    final fills = <Paint>[];
+    
+    // Create color variations from light blue to dark blue
+    for (int i = 0; i < vehicles.length; i++) {
+      final intensity = (i + 1) / vehicles.length;
+      final blueValue = (255 * (0.3 + 0.7 * intensity)).round();
+      fills.add(Paint()..color = Color.fromRGBO(30, 58, 138, intensity));
+    }
+
+    final rows = vehicles.length;
+    final barHeight = 20.0;
+    final spacing = rows > 1 ? (chartHeight - (rows * barHeight)) / (rows - 1) : 0.0;
+
+    // Find max duration for scaling
+    double maxDuration = 0;
+    for (final vehicle in vehicles) {
+      final duration = (vehicle['average_duration_minutes'] as num).toDouble();
+      if (duration > maxDuration) maxDuration = duration;
+    }
+
+    // If all durations are 0, set a default max
+    if (maxDuration == 0) maxDuration = 100;
+
+    for (int i = 0; i < rows; i++) {
+      final vehicle = vehicles[i] as Map<String, dynamic>;
+      final vehicleId = vehicle['vehicle_id'] as int;
+      final duration = (vehicle['average_duration_minutes'] as num).toDouble();
+      final top = i * (barHeight + spacing);
+
+      // Background track
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(leftPad, top, chartWidth, barHeight),
+          const Radius.circular(10),
+        ),
+        track,
+      );
+
+      // Bar fill with selection highlight
+      final factor = maxDuration > 0 ? (duration / maxDuration).clamp(0.0, 1.0) : 0.0;
+      final barWidth = chartWidth * factor;
+      
+      // Use different color for selected bar
+      final barPaint = selectedIndex == i 
+          ? (Paint()..color = Colors.orange[600]!)  // Orange for selected
+          : fills[i];
+      
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(leftPad, top, barWidth, barHeight),
+          const Radius.circular(10),
+        ),
+        barPaint,
+      );
+
+      // Add border for selected bar
+      if (selectedIndex == i) {
+        final borderPaint = Paint()
+          ..color = Colors.orange[800]!
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.0;
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(leftPad, top, barWidth, barHeight),
+            const Radius.circular(10),
+          ),
+          borderPaint,
+        );
+      }
+
+      // Y-axis labels (vehicle_id) - positioned on the right
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: '$vehicleId',
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 9,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+      textPainter.paint(
+        canvas,
+        Offset(size.width - 15, top + (barHeight - textPainter.height) / 2),
+      );
+    }
+
+    // X-axis labels (0, 25%, 50%, 75%, 100% of max duration)
+    final xLabels = <String>[];
+    for (int i = 0; i <= 4; i++) {
+      final value = (maxDuration * i / 4).round();
+      xLabels.add('${value}m');
+    }
+    
+    for (int i = 0; i < xLabels.length; i++) {
+      final x = leftPad + (chartWidth / 4) * i;
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: xLabels[i],
+          style: TextStyle(color: Colors.grey[600], fontSize: 9),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+      textPainter.paint(
+        canvas,
+        Offset(x - textPainter.width / 2, size.height - 12),
+      );
+    }
+
+    // Tooltip for hovered bar
+    if (hoveredIndex != null && hoveredIndex! >= 0 && hoveredIndex! < rows) {
+      final vehicle = vehicles[hoveredIndex!] as Map<String, dynamic>;
+      final vehicleId = vehicle['vehicle_id'] as int;
+      final duration = (vehicle['average_duration_minutes'] as num).toDouble();
+      final tripCount = vehicle['trip_count'] as int;
+      
+      final tooltipWidth = 120.0;
+      final tooltipHeight = 50.0;
+      final tooltipX = size.width - tooltipWidth - 10;
+      final tooltipY = spacing + hoveredIndex! * (barHeight + spacing) - tooltipHeight - 5;
+
+      // Tooltip background
+      final tooltipPaint = Paint()..color = Colors.grey[800]!;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(tooltipX, tooltipY, tooltipWidth, tooltipHeight),
+          const Radius.circular(4),
+        ),
+        tooltipPaint,
+      );
+
+      // Tooltip text
+      final tooltipText = 'Vehicle $vehicleId\n${duration.toStringAsFixed(1)}m avg\n$tripCount trips';
+      final tooltipTextPainter = TextPainter(
+        text: TextSpan(
+          text: tooltipText,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      tooltipTextPainter.layout();
+      tooltipTextPainter.paint(
+        canvas,
+        Offset(
+          tooltipX + (tooltipWidth - tooltipTextPainter.width) / 2,
+          tooltipY + (tooltipHeight - tooltipTextPainter.height) / 2,
+        ),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
 class _MockHorizontalBarsPainter extends CustomPainter {
