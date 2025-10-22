@@ -48,6 +48,15 @@ const updateCoordinatesLogic = async (io, iotResponse) => {
                 vehicle.passenger_count,
                 addedPassengers
             );
+
+            if (addedPassengers > 0) {
+                const hasActiveTrip = await vehicleModel.checkActiveTrip(vehicle.bus_id);
+                if (hasActiveTrip) {
+                    await vehicleModel.totalPassengersOnTrip(vehicle.bus_id, addedPassengers);
+                } else {
+                    console.warn(`No active trip for vehicle ID: ${vehicle.bus_id}, skipping total passengers update.`);
+                }
+            }
         }
         console.log('Coordinates updated successfully');
 

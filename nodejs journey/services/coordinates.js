@@ -4,7 +4,7 @@ const vehicleController = require("../controllers/vehicleController");
 let socket;
 
 function connectIoTData(io) {
-  socket = new WebSocket("wss://transiteye-api.net/socket/client");
+  socket = new WebSocket("wss://transiteye-api.net/socket/client"); //local test: ws://localhost:4000
 
   socket.on("open", () => {
     console.log("Connected to IoT WebSocket");

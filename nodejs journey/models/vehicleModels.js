@@ -67,9 +67,9 @@ const getVehicleById = async (vehicleId) => {
 }
 
 
-const updateVehicleCoordinates = async (vehicleId, latitude, longitude, currentPassengerCount, addedPassengers) => {
-    const sql = `UPDATE vehicles SET lat = $1, lng = $2,  current_location = ST_SetSRID(ST_MakePoint($2, $1), 4326), current_passenger_count = $3, total_passengers = total_passengers + $4  WHERE vehicle_id = $5;`
-    await client.query(sql, [latitude, longitude, currentPassengerCount, addedPassengers, vehicleId]);
+const updateVehicleCoordinates = async (vehicleId, latitude, longitude, currentPassengerCount) => {
+    const sql = `UPDATE vehicles SET lat = $1, lng = $2,  current_location = ST_SetSRID(ST_MakePoint($2, $1), 4326), current_passenger_count = $3  WHERE vehicle_id = $4;`
+    await client.query(sql, [latitude, longitude, currentPassengerCount, vehicleId]);
 }
 
 // For extracting the added passengers to the current_passenger_count
@@ -77,6 +77,19 @@ const getCurrentPassengerCount = async (vehicleId) => {
     const sql = 'SELECT current_passenger_count FROM vehicles WHERE vehicle_id = $1;';
     const res = await client.query(sql, [vehicleId]);
     return res.rows.length ? res.rows[0].current_passenger_count : 0;
+}
+
+//For adding new passengers on active trip in vehicle
+const totalPassengersOnTrip = async (vehicleId, addedPassengers) => {
+    const sql = `UPDATE trips SET total_passenger_accumulated = total_passenger_accumulated + $1 WHERE vehicle_id = $2 AND status = 'active';`;
+    await client.query(sql, [addedPassengers, vehicleId]);
+}
+
+//For checking active trips so that added passenger query wont run when there is no active trip
+const checkActiveTrip = async (vehicleId) => {
+    const sql = `SELECT * FROM trips WHERE vehicle_id = $1 AND status = 'active';`;
+    const res = await client.query(sql, [vehicleId]);
+    return res.rows.length > 0;
 }
 
 const updateRouteId = async (vehicleId, routeId) => {
@@ -307,6 +320,8 @@ module.exports = {
     getVehicleById,
     updateVehicleCoordinates,
     getCurrentPassengerCount,
+    totalPassengersOnTrip,
+    checkActiveTrip,
     updateRouteId,
     getVehicleByConductor,
     getConductorIdByVehicle,
