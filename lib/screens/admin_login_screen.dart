@@ -36,9 +36,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     try {
       // 1. Call your backend
       final response = await http.post(
-        Uri.parse(
-          'http://localhost:8080/users/login',
-        ), // change to your endpoint
+        Uri.parse('$baseUrl/users/login'), // change to your endpoint
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({"username": username, "password": password}),
       );
@@ -72,9 +70,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         context.read<UserProvider>().loginUser(user);
 
         // 5. Navigate to appropriate screen based on role
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => AdminScreen()),
-        );
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => AdminScreen()));
       } else {
         final errorData = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
