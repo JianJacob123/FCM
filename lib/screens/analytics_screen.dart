@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../widgets/donut_chart_painter.dart';
+import '../widgets/interactive_donut_chart.dart';
 import 'package:provider/provider.dart';
 import '../services/forecasting_api.dart' as fapi;
 import '../services/api.dart' show baseUrl;
@@ -33,6 +35,12 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   
   // Trip duration analytics
   Map<String, dynamic>? _tripDurationAnalytics;
+  
+  // Daily passenger count with time breakdown
+  int _dailyPassengerCount = 0;
+  Map<String, dynamic>? _dailyPassengerBreakdown;
+  String? _selectedPeriod;
+  String? _tooltipText;
   
   // Cache to prevent repeated requests (reduced for more dynamic updates)
   DateTime? _lastLoadTime;
@@ -426,13 +434,53 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
           const SizedBox(height: 20),
           Row(
             children: [
-              // Donut chart
+              // Interactive Donut chart
               SizedBox(
                 width: 120,
                 height: 120,
-                child: CustomPaint(
-                  painter: _DonutChartPainter(),
-                  size: const Size(120, 120),
+                child: Stack(
+                  children: [
+                    InteractiveDonutChart(
+                      breakdown: _dailyPassengerBreakdown,
+                      onSegmentTap: (period, percentage, count) {
+                        print('Analytics screen received tap: period=$period, percentage=$percentage, count=$count');
+                        setState(() {
+                          if (period.isEmpty) {
+                            // Clear tooltip when clicking outside
+                            _selectedPeriod = null;
+                            _tooltipText = null;
+                          } else {
+                            // Show tooltip for segment
+                            _selectedPeriod = period;
+                            _tooltipText = '$period: $count passengers (${percentage.toStringAsFixed(1)}%)';
+                          }
+                        });
+                      },
+                    ),
+                    // Tooltip overlay
+                    if (_tooltipText != null)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black87,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            _tooltipText!,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(width: 16),
@@ -441,20 +489,20 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '172', // Static value for now
-                      style: TextStyle(
-                        fontSize: 28,
+                    Text(
+                      '${_dailyPassengerCount ?? 0}', // Dynamic value from database
+                      style: const TextStyle(
+                        fontSize: 36,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF1E3A8A),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildLegendItem('Morning', const Color(0xFF1E3A8A), 62.5),
+                    _buildLegendItem('Morning', const Color(0xFF1E3A8A), _getMorningPercentage()),
                     const SizedBox(height: 4),
-                    _buildLegendItem('Midday', const Color(0xFF3B82F6), 25.0),
+                    _buildLegendItem('Midday', const Color(0xFF3B82F6), _getMiddayPercentage()),
                     const SizedBox(height: 4),
-                    _buildLegendItem('Evening', const Color(0xFF93C5FD), 12.5),
+                    _buildLegendItem('Evening', const Color(0xFF93C5FD), _getEveningPercentage()),
                   ],
                 ),
               ),
@@ -463,6 +511,25 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
         ],
       ),
     );
+  }
+
+  // Helper methods to get percentages from breakdown data
+  double _getMorningPercentage() {
+    if (_dailyPassengerBreakdown == null) return 0.0;
+    final morning = _dailyPassengerBreakdown!['morning'] as Map<String, dynamic>?;
+    return (morning?['percentage'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  double _getMiddayPercentage() {
+    if (_dailyPassengerBreakdown == null) return 0.0;
+    final midday = _dailyPassengerBreakdown!['midday'] as Map<String, dynamic>?;
+    return (midday?['percentage'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  double _getEveningPercentage() {
+    if (_dailyPassengerBreakdown == null) return 0.0;
+    final evening = _dailyPassengerBreakdown!['evening'] as Map<String, dynamic>?;
+    return (evening?['percentage'] as num?)?.toDouble() ?? 0.0;
   }
 
   Widget _buildLegendItem(String label, Color color, double percentage) {
@@ -511,6 +578,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       final tripsPerUnitF = _fetchTripsPerUnit();
       final fleetActivityF = _fetchFleetActivity();
       final tripDurationF = _fetchTripDurationAnalytics();
+      final dailyPassengerCountF = _fetchDailyPassengerCount();
       final hourly = await hourlyF;
       final daily = await dailyF;
       late final yearly;
@@ -529,6 +597,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       final tripsPU = await tripsPerUnitF;
       final fleet = await fleetActivityF;
       final tripDuration = await tripDurationF;
+      final dailyPassengerData = await dailyPassengerCountF;
 
       if (mounted) {
         setState(() {
@@ -545,6 +614,8 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
           _yearlyYear = yearly.year;
           _yearlyGrid = yearly.grid;
           _tripDurationAnalytics = tripDuration;
+          _dailyPassengerCount = dailyPassengerData.total;
+          _dailyPassengerBreakdown = dailyPassengerData.breakdown;
           _lastLoadTime = DateTime.now(); // Update cache time
           print('Yearly grid set: ${_yearlyGrid.length} months, first month has ${_yearlyGrid.isNotEmpty ? _yearlyGrid[0].length : 0} days');
         });
@@ -713,6 +784,32 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
     } catch (e) {
       print('Error fetching trip duration analytics: $e');
       return null;
+    }
+  }
+
+  // Fetch daily passenger count with time breakdown from dedicated API endpoint
+  Future<({int total, Map<String, dynamic> breakdown})> _fetchDailyPassengerCount() async {
+    try {
+      // Use the new dedicated endpoint for today's passenger count
+      final uri = Uri.parse('$baseUrl/trips/api/today-passengers');
+      final res = await http.get(uri);
+      if (res.statusCode != 200) {
+        print('API error: ${res.statusCode} - ${res.body}');
+        return (total: 0, breakdown: <String, dynamic>{});
+      }
+      
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      final totalPassengers = body['total_passengers'] as int? ?? 0;
+      final timeBreakdown = body['time_breakdown'] as Map<String, dynamic>? ?? <String, dynamic>{};
+      final date = body['date'] as String? ?? 'unknown';
+      
+      print('Today\'s passenger count: $totalPassengers (date: $date)');
+      print('Time breakdown: $timeBreakdown');
+      
+      return (total: totalPassengers, breakdown: timeBreakdown);
+    } catch (e) {
+      print('Error fetching daily passenger count: $e');
+      return (total: 0, breakdown: <String, dynamic>{});
     }
   }
 
@@ -1163,18 +1260,7 @@ class _DailyAreaChartState extends State<_DailyAreaChart> {
                     ),
                   ],
                 ),
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: GestureDetector(
-                    onTap: _showDailyYearSelector,
-                    child: Icon(
-                      Icons.calendar_today_outlined,
-                      color: Color(0xFF3E4795),
-                      size: 18,
-                    ),
-                  ),
-                ),
+                // Removed calendar icon button per request
               ],
             ),
           ),
@@ -2832,66 +2918,6 @@ class _PeakTimeChartPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
-class _DonutChartPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 10;
-
-    // Morning segment (62.5%)
-    final morningPaint = Paint()
-      ..color = const Color(0xFF1E3A8A)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 12;
-
-    // Midday segment (25%)
-    final middayPaint = Paint()
-      ..color = const Color(0xFF3B82F6)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 12;
-
-    // Evening segment (12.5%)
-    final eveningPaint = Paint()
-      ..color = const Color(0xFF93C5FD)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 12;
-
-    // Draw segments
-    double startAngle = -90 * (3.14159 / 180); // Start from top
-
-    // Morning (62.5% = 225 degrees)
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      startAngle,
-      2.25 * 3.14159, // 225 degrees in radians
-      false,
-      morningPaint,
-    );
-    startAngle += 2.25 * 3.14159;
-
-    // Midday (25% = 90 degrees)
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      startAngle,
-      0.9 * 3.14159, // 90 degrees in radians
-      false,
-      middayPaint,
-    );
-    startAngle += 0.9 * 3.14159;
-
-    // Evening (12.5% = 45 degrees)
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      startAngle,
-      0.45 * 3.14159, // 45 degrees in radians
-      false,
-      eveningPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
 
 class _YearlyHeatmap extends StatefulWidget {
   final List<List<double?>> grid; // 12 x 31 with nulls for invalid days

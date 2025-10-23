@@ -13,7 +13,6 @@ const getAllVehicles = async () => {
   ST_X(v.current_location) AS lng,
   ST_Y(v.current_location) AS lat,
   v.current_passenger_count,
-  v.total_passengers,
   r.route_name,
   r.route_id,
 
@@ -105,7 +104,6 @@ const getVehicleByConductor = async (userId) => {
               ST_X(v.current_location) AS lng,
               ST_Y(v.current_location) AS lat,
               v.current_passenger_count,
-              v.total_passengers,
               r.route_name,
               r.route_id,
 
@@ -177,8 +175,10 @@ const getDailyPassengerAnalytics = async () => {
                 -- Total current passengers across all vehicles
                 COALESCE(SUM(v.current_passenger_count), 0) as total_current_passengers,
                 
-                -- Total passengers served today
-                COALESCE(SUM(v.total_passengers), 0) as total_passengers_served,
+                -- Total passengers served today (from trips table)
+                (SELECT COALESCE(SUM(total_passenger_accumulated), 0) 
+                 FROM trips 
+                 WHERE DATE(start_time) = CURRENT_DATE) as total_passengers_served,
                 
                 -- Morning passengers (4 AM - 10 AM)
                 COALESCE(SUM(CASE 
@@ -289,8 +289,8 @@ const getAverageTripDurationPerVehicle = async () => {
 const createVehicle = async (vehicleId, plateNumber) => {
     try {
         const res = await client.query(`
-            INSERT INTO vehicles (vehicle_id, plate_number, current_location, current_passenger_count, total_passengers, route_id)
-            VALUES ($1, $2, ST_GeomFromText('POINT(0 0)', 4326), 0, 0, NULL)
+            INSERT INTO vehicles (vehicle_id, plate_number, current_location, current_passenger_count, route_id)
+            VALUES ($1, $2, ST_GeomFromText('POINT(0 0)', 4326), 0, NULL)
             RETURNING *
         `, [vehicleId, plateNumber]);
         return res.rows[0];

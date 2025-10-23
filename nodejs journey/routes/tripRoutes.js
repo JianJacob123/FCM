@@ -14,4 +14,7 @@ router.get('/api/fleet-activity', metricsCtrl.fleetActivityByHour);
 // Admin trips route
 router.get('/api/admin/trips', metricsCtrl.getAllTripsForAdmin);
 
+// Today's passenger count route
+router.get('/api/today-passengers', metricsCtrl.getTodayPassengerCount);
+
 module.exports = router;

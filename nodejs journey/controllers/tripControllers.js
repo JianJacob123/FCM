@@ -60,4 +60,46 @@ async function getAllTripsForAdmin(req, res) {
 
 module.exports.getAllTripsForAdmin = getAllTripsForAdmin;
 
+// Get today's passenger count with time breakdown
+async function getTodayPassengerCount(req, res) {
+  try {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    
+    const result = await model.getTodayPassengerCount(startOfDay, endOfDay);
+    
+    // Calculate percentages
+    const total = result.total_passengers;
+    const morningPct = total > 0 ? ((result.morning_passengers / total) * 100).toFixed(1) : 0;
+    const middayPct = total > 0 ? ((result.midday_passengers / total) * 100).toFixed(1) : 0;
+    const eveningPct = total > 0 ? ((result.evening_passengers / total) * 100).toFixed(1) : 0;
+    
+    return send(res, 200, { 
+      success: true, 
+      total_passengers: result.total_passengers,
+      time_breakdown: {
+        morning: {
+          count: result.morning_passengers,
+          percentage: parseFloat(morningPct)
+        },
+        midday: {
+          count: result.midday_passengers,
+          percentage: parseFloat(middayPct)
+        },
+        evening: {
+          count: result.evening_passengers,
+          percentage: parseFloat(eveningPct)
+        }
+      },
+      date: today.toISOString().split('T')[0]
+    });
+  } catch (e) {
+    console.error('getTodayPassengerCount error', e);
+    return err(res, 500, `Failed to fetch today's passenger count: ${e.message}`);
+  }
+}
+
+module.exports.getTodayPassengerCount = getTodayPassengerCount;
+
 

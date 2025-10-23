@@ -88,7 +88,8 @@ const getAllTrips = async (limit = 50, offset = 0) => {
             t.start_lng,
             t.end_lat,
             t.end_lng,
-            t.status
+            t.status,
+            t.total_passenger_accumulated
         FROM trips t
         ORDER BY t.start_time DESC
         LIMIT $1 OFFSET $2
@@ -104,6 +105,57 @@ const getTotalTripsCount = async () => {
     return res.rows[0].total;
 }
 
+// Get today's passenger count with time-based breakdown
+const getTodayPassengerCount = async (startOfDay, endOfDay) => {
+    const sql = `
+        SELECT 
+            COALESCE(SUM(total_passenger_accumulated), 0) as total_passengers,
+            COALESCE(SUM(CASE 
+                WHEN EXTRACT(HOUR FROM end_time) >= 4 AND EXTRACT(HOUR FROM end_time) < 12 
+                THEN total_passenger_accumulated 
+                ELSE 0 
+            END), 0) as morning_passengers,
+            COALESCE(SUM(CASE 
+                WHEN EXTRACT(HOUR FROM end_time) >= 12 AND EXTRACT(HOUR FROM end_time) < 16 
+                THEN total_passenger_accumulated 
+                ELSE 0 
+            END), 0) as midday_passengers,
+            COALESCE(SUM(CASE 
+                WHEN EXTRACT(HOUR FROM end_time) >= 16 AND EXTRACT(HOUR FROM end_time) <= 20 
+                OR EXTRACT(HOUR FROM end_time) >= 21
+                THEN total_passenger_accumulated 
+                ELSE 0 
+            END), 0) as evening_passengers,
+            -- Debug: Show sample end_times for debugging
+            ARRAY_AGG(DISTINCT EXTRACT(HOUR FROM end_time) ORDER BY EXTRACT(HOUR FROM end_time)) as sample_hours,
+            COUNT(*) as total_trips
+        FROM trips 
+        WHERE start_time >= $1 AND start_time < $2
+    `;
+    const res = await client.query(sql, [startOfDay, endOfDay]);
+    const row = res.rows[0];
+    
+    // Debug logging
+    console.log('Today\'s trips debug:', {
+        total_trips: row.total_trips,
+        sample_hours: row.sample_hours,
+        morning: row.morning_passengers,
+        midday: row.midday_passengers,
+        evening: row.evening_passengers
+    });
+    
+    return {
+        total_passengers: parseInt(row.total_passengers),
+        morning_passengers: parseInt(row.morning_passengers),
+        midday_passengers: parseInt(row.midday_passengers),
+        evening_passengers: parseInt(row.evening_passengers),
+        debug_info: {
+            total_trips: row.total_trips,
+            sample_hours: row.sample_hours
+        }
+    };
+}
+
 module.exports = {
     getActiveTripsByVehicle,
     insertTrip,
@@ -116,5 +168,6 @@ module.exports = {
     countTripsPerVehicleForDate,
     countActiveVehiclesByHour,
     getAllTrips,
-    getTotalTripsCount
+    getTotalTripsCount,
+    getTodayPassengerCount
 };
