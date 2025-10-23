@@ -6,6 +6,13 @@ final baseUrl = dotenv.env['API_BASE_URL'];
 
 class SocketService {
   late IO.Socket socket;
+
+  // ✅ Singleton
+  static final SocketService _instance = SocketService._internal();
+  factory SocketService() => _instance;
+  SocketService._internal();
+
+  // ✅ Add this
   final NotifService _notifService = NotifService();
 
   void initSocket(String userId, {bool isAdmin = false}) {

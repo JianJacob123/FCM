@@ -337,6 +337,8 @@ class _MapScreenState extends State<MapScreen> {
       // Ensure data is always treated as a list
       final vehicles = data is List ? data : [data];
 
+      int totalPassengers = 0;
+
       setState(() {
         for (var v in vehicles) {
           final id = int.parse(v["vehicle_id"].toString());
@@ -375,6 +377,8 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
           );
+
+          totalPassengers += int.parse(v["current_passenger_count"].toString());
         }
       });
     });
@@ -407,7 +411,7 @@ class _MapScreenState extends State<MapScreen> {
 
   final MapController _mapController = MapController();
 
-  // ✅ Keep: vehicle info modal logic
+  //Keep: vehicle info modal logic
   bool _showVehicleInfo = false;
 
   @override

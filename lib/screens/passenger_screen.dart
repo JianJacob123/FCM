@@ -340,6 +340,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     notifications = fetchNotifications('All Commuters');
   }
 
+  /// Format time ago
   String timeAgo(String isoDate) {
     final date = DateTime.parse(isoDate);
     final diff = DateTime.now().difference(date);
@@ -349,6 +350,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (diff.inHours < 24) return '${diff.inHours} hours ago';
     if (diff.inDays < 7) return '${diff.inDays} days ago';
     return DateFormat('MMM dd').format(date);
+  }
+
+  /// Refresh notifications
+  Future<void> _refreshNotifications() async {
+    final updatedNotifications = await fetchNotifications('All Commuters');
+    setState(() {
+      notifications = Future.value(updatedNotifications);
+    });
   }
 
   @override
@@ -367,12 +376,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 Text(
                   'Notifications',
                   style: TextStyle(
-                    color: Color(0xFF3E4795),
+                    color: const Color(0xFF3E4795),
                     fontWeight: FontWeight.bold,
                     fontSize: 24,
                   ),
                 ),
-                // 👇 Floating test button
+                const SizedBox(width: 12),
+                // Floating test button for local notifications
                 FloatingActionButton(
                   onPressed: () {
                     NotifService().showNotification(
@@ -386,57 +396,62 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: FutureBuilder<List<dynamic>>(
-                future: notifications,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text("Error: ${snapshot.error}"));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text("No notifications"));
-                  } else {
-                    return ListView.builder(
-                      itemCount: snapshot.data!.length,
-                      itemBuilder: (context, index) {
-                        final notif = snapshot.data![index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16.0),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF3F3F3),
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: ListTile(
-                              title: Text(
-                                notif["notif_title"],
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+              child: RefreshIndicator(
+                onRefresh: _refreshNotifications,
+                child: FutureBuilder<List<dynamic>>(
+                  future: notifications,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text("Error: ${snapshot.error}"));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(child: Text("No notifications"));
+                    } else {
+                      final notifList = snapshot.data!;
+                      return ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: notifList.length,
+                        itemBuilder: (context, index) {
+                          final notif = notifList[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16.0),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF3F3F3),
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: ListTile(
+                                title: Text(
+                                  notif["notif_title"],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  notif["content"],
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                                trailing: Text(
+                                  timeAgo(notif["notif_date"]),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
                                 ),
                               ),
-                              subtitle: Text(
-                                notif["content"],
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                              trailing: Text(
-                                timeAgo(notif["notif_date"]),
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
                             ),
-                          ),
-                        );
-                      },
-                    );
-                  }
-                },
+                          );
+                        },
+                      );
+                    }
+                  },
+                ),
               ),
             ),
           ],
