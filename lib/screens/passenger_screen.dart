@@ -740,7 +740,7 @@ class _MapScreenState extends State<MapScreen> {
 
           if (_currentTripStatus != null)
             Positioned(
-              top: 120, // push it just below searchbar (adjust as needed)
+              top: 20,
               left: 20,
               right: 20,
               child: Material(
@@ -760,7 +760,7 @@ class _MapScreenState extends State<MapScreen> {
           //Keep: vehicle info bottom sheet
           if (_showVehicleInfo && _selectedVehicle != null)
             Positioned(
-              bottom: 0,
+              bottom: 90,
               left: 20,
               right: 20,
               child: Container(
@@ -892,11 +892,11 @@ class _MapScreenState extends State<MapScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '${_selectedVehicle?["current_passenger_count"] ?? "--"}/20',
+                          'Current Capacity',
                           style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                         Text(
-                          '12/20',
+                          '${_selectedVehicle?["current_passenger_count"] ?? "--"}/20',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
