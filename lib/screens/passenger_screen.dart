@@ -364,37 +364,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text(
+          'Notifications',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+            color: Color(0xFF3E4795), //Change the color here
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Notifications',
-                  style: TextStyle(
-                    color: const Color(0xFF3E4795),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Floating test button for local notifications
-                FloatingActionButton(
-                  onPressed: () {
-                    NotifService().showNotification(
-                      title: "Test Notification",
-                      body: "pag nakita mo to yeheyyy.",
-                    );
-                  },
-                  child: const Icon(Icons.notifications_active),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _refreshNotifications,
@@ -648,12 +634,12 @@ class _MapScreenState extends State<MapScreen> {
 
   final MapController _mapController = MapController();
 
-  // ✅ Keep: picked location for user search
+  //Keep: picked location for user search
   LatLng? _pickedLocation;
   bool _showPinnedLocation = false;
   String _pickedLocationName = "Selected Location"; //for now.
 
-  // ✅ Keep: vehicle info modal logic
+  //Keep: vehicle info modal logic
   bool _showVehicleInfo = false;
 
   @override
@@ -693,6 +679,7 @@ class _MapScreenState extends State<MapScreen> {
               ),
 
               MarkerLayer(
+                rotate: false,
                 markers: [
                   if (_routePolyline.isNotEmpty)
                     Marker(
@@ -1232,20 +1219,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text(
+          'Settings',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+            color: Color(0xFF3E4795), //Change the color here
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(24, 40, 24, 120),
         children: [
-          const Text(
-            'Settings',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF3E4795),
-              fontWeight: FontWeight.bold,
-              fontSize: 24,
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Preferences
           Text('Preferences', style: sectionStyle),
           SwitchListTile(
             title: const Text('Notifications'),

@@ -66,7 +66,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
 
-        if (responseData['data']['user_role'] != 'conductor') {
+        if (responseData['data']['user_role'].toString().toLowerCase() !=
+            'conductor') {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Access denied. Not a conductor.'),
@@ -80,7 +81,9 @@ class _LoginScreenState extends State<LoginScreen> {
         final user = UserModel(
           id: responseData['data']['user_id'].toString(),
           name: responseData['data']['full_name'],
-          role: responseData['data']['user_role'] == 'conductor'
+          role:
+              responseData['data']['user_role'].toString().toLowerCase() ==
+                  'conductor'
               ? UserRole.conductor
               : UserRole.passenger,
         );

@@ -10,6 +10,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:intl/intl.dart';
+import '../providers/capacity_notifier.dart';
 
 final baseUrl = dotenv.env['API_BASE_URL'];
 
@@ -121,13 +122,18 @@ class _ConductorScreenState extends State<ConductorScreen> {
                             color: Color(0xFF3E4795),
                           ),
                           const SizedBox(width: 8),
-                          const Text(
-                            '2 passengers onboard',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
+                          ValueListenableBuilder<int>(
+                            valueListenable: vehicleCapacityNotifier,
+                            builder: (context, currentCapacity, _) {
+                              return Text(
+                                '$currentCapacity passengers onboard',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -186,13 +192,19 @@ class _ConductorScreenState extends State<ConductorScreen> {
                         ),
                       ),
                       const SizedBox(width: 6),
-                      const Text(
-                        '2/20',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF3E4795),
-                        ),
+                      ValueListenableBuilder<int>(
+                        valueListenable: vehicleCapacityNotifier,
+                        builder: (context, currentCapacity, _) {
+                          const totalSeats = 20; // or dynamically fetched later
+                          return Text(
+                            '$currentCapacity/$totalSeats',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF3E4795),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -308,6 +320,7 @@ class _MapScreenState extends State<MapScreen> {
   List<dynamic> _pendingPickups = [];
   LatLng? _highlightedPickup;
   bool _showPickupList = false; // show pending pickups by default
+  ValueNotifier<int> passengerCount = ValueNotifier<int>(0);
 
   @override
   void initState() {
@@ -337,14 +350,15 @@ class _MapScreenState extends State<MapScreen> {
       // Ensure data is always treated as a list
       final vehicles = data is List ? data : [data];
 
-      int totalPassengers = 0;
-
       setState(() {
         for (var v in vehicles) {
           final id = int.parse(v["vehicle_id"].toString());
           final lat = double.parse(v["lat"].toString());
           final lng = double.parse(v["lng"].toString());
           final routeId = int.parse(v["route_id"].toString());
+          final count = int.parse(v["current_passenger_count"].toString());
+
+          vehicleCapacityNotifier.updateCapacity(count);
 
           _vehicleMarkers[id] = Marker(
             point: LatLng(lat, lng),
@@ -377,8 +391,6 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
           );
-
-          totalPassengers += int.parse(v["current_passenger_count"].toString());
         }
       });
     });
@@ -448,6 +460,7 @@ class _MapScreenState extends State<MapScreen> {
               ),
 
               MarkerLayer(
+                rotate: false,
                 markers: [
                   if (_routePolyline.isNotEmpty)
                     Marker(
@@ -900,26 +913,23 @@ class _NotificationsTabState extends State<NotificationsTab> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text(
+          'Notifications',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+            color: Color(0xFF3E4795), //Change the color here
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Text(
-                  'Notifications',
-                  style: TextStyle(
-                    color: Color(0xFF3E4795),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 24,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
             Expanded(
               child: FutureBuilder<List<dynamic>>(
                 future: notifications,
@@ -1020,6 +1030,18 @@ class _PassengerPickupTabState extends State<PassengerPickupTab> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text(
+          'Passenger Pick-ups',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+            color: Color(0xFF3E4795), //Change the color here
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: RefreshIndicator(
         onRefresh: _refreshData,
         child: FutureBuilder<List<dynamic>>(
@@ -1038,17 +1060,6 @@ class _PassengerPickupTabState extends State<PassengerPickupTab> {
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Passenger Pick-ups',
-                    style: TextStyle(
-                      color: Color(0xFF3E4795),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
                   // 🔹 Capacity Status card
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -1057,7 +1068,7 @@ class _PassengerPickupTabState extends State<PassengerPickupTab> {
                       borderRadius: BorderRadius.circular(18),
                     ),
                     child: Column(
-                      children: const [
+                      children: [
                         Text(
                           'Passenger Capacity Status',
                           style: TextStyle(
@@ -1068,13 +1079,20 @@ class _PassengerPickupTabState extends State<PassengerPickupTab> {
                           textAlign: TextAlign.center,
                         ),
                         SizedBox(height: 6),
-                        Text(
-                          '2/20', // TODO: Replace with dynamic value
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
+                        ValueListenableBuilder<int>(
+                          valueListenable: vehicleCapacityNotifier,
+                          builder: (context, currentCapacity, _) {
+                            const totalSeats =
+                                20; // or dynamically fetched later
+                            return Text(
+                              '$currentCapacity/$totalSeats',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            );
+                          },
                         ),
                         SizedBox(height: 4),
                         Text(
@@ -1366,19 +1384,21 @@ class _ProfileTabState extends State<ProfileTab> {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+            color: Color(0xFF3E4795), //Change the color here
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(24, 40, 24, 120),
         children: [
-          Text(
-            'Profile',
-            style: TextStyle(
-              color: Color(0xFF3E4795),
-              fontWeight: FontWeight.bold,
-              fontSize: 24,
-            ),
-          ),
-          const SizedBox(height: 16),
-
           // Account Information
           Text('Account Information', style: sectionStyle),
           ListTile(
