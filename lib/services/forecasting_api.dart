@@ -14,6 +14,9 @@ String _getForecastingBaseUrl() {
     return _forecastingBaseUrl!;
   }
 
+  // Production URL for Render deployment
+  const String productionUrl = 'https://forecasting-lsio.onrender.com';
+
   // Try to get from environment variable (for Render deployment)
   final envUrl = dotenv.env['FORECASTING_API_URL'];
   if (envUrl != null && envUrl.isNotEmpty) {
@@ -24,11 +27,24 @@ String _getForecastingBaseUrl() {
     return _forecastingBaseUrl!;
   }
 
-  // Fallback to localhost for development
-  String host;
+  // For web builds, use production URL if not in localhost
   if (kIsWeb) {
-    host = '127.0.0.1';
-  } else if (defaultTargetPlatform == TargetPlatform.android) {
+    // Check if we're running on localhost (development)
+    final hostname = Uri.base.host;
+    if (hostname == 'localhost' || hostname == '127.0.0.1' || hostname.isEmpty) {
+      _forecastingBaseUrl = 'http://127.0.0.1:5001';
+      print('Using localhost Forecasting API (web dev): $_forecastingBaseUrl');
+    } else {
+      // Production web deployment - use Render URL
+      _forecastingBaseUrl = productionUrl;
+      print('Using production Forecasting API (web): $_forecastingBaseUrl');
+    }
+    return _forecastingBaseUrl!;
+  }
+
+  // Fallback to localhost for development (mobile/desktop)
+  String host;
+  if (defaultTargetPlatform == TargetPlatform.android) {
     host = '10.0.2.2'; // Android emulator
   } else {
     host = 'localhost';
