@@ -577,11 +577,56 @@ class _HomePageState extends State<HomePage> {
                                         ),
                                       ),
                                       const SizedBox(height: 12),
-                                      _FooterLink(text: 'Home', onTap: () {}),
-                                      _FooterLink(text: 'Routes & Map', onTap: () {}),
-                                      _FooterLink(text: 'About Us', onTap: () {}),
-                                      _FooterLink(text: 'Contact', onTap: () {}),
-                                      _FooterLink(text: 'Download App', onTap: () {}),
+                                      _FooterLink(
+                                        text: 'Home',
+                                        onTap: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (context) => const AdminLoginScreen(),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      _FooterLink(
+                                        text: 'Routes & Map',
+                                        onTap: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (context) => const AdminLoginScreen(),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      _FooterLink(
+                                        text: 'About Us',
+                                        onTap: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (context) => const AdminLoginScreen(),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      _FooterLink(
+                                        text: 'Contact',
+                                        onTap: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (context) => const AdminLoginScreen(),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      _FooterLink(
+                                        text: 'Download App',
+                                        onTap: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (context) => const AdminLoginScreen(),
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -605,33 +650,10 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                       const SizedBox(height: 8),
                                       _ContactDetail(
-                                        text: '(043) 123-4567',
-                                      ),
-                                      const SizedBox(height: 8),
-                                      _ContactDetail(
                                         text: 'info@fcmtransport.com',
                                       ),
-                                      const SizedBox(height: 8),
-                                      _ContactDetail(
-                                        text: 'Monday – Saturday | 8:00 AM – 6:00 PM',
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 50),
-                            const Divider(color: Colors.grey, thickness: 1),
-                            const SizedBox(height: 30),
-                            // Bottom Section: Social Media and App Download
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Social Media Links
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
+                                      const SizedBox(height: 30),
+                                      // Follow Us Section
                                       const Text(
                                         'Follow Us',
                                         style: TextStyle(
@@ -653,46 +675,6 @@ class _HomePageState extends State<HomePage> {
                                     ],
                                   ),
                                 ),
-                                // App Download Section
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        '📱 Download Our App',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Stay updated on routes and schedules anywhere.',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[400],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Row(
-                                        children: [
-                                          _AppDownloadButton(
-                                            icon: Icons.phone_android,
-                                            text: 'Google Play',
-                                            onTap: () {},
-                                          ),
-                                          const SizedBox(width: 12),
-                                          _AppDownloadButton(
-                                            icon: Icons.phone_iphone,
-                                            text: 'App Store',
-                                            onTap: () {},
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
                               ],
                             ),
                           ],
@@ -707,11 +689,20 @@ class _HomePageState extends State<HomePage> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              '© 2025 FCM Transport Corporation. All rights reserved.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[500],
+                            InkWell(
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => const AdminLoginScreen(),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                '© 2025 FCM Transport Corporation. All rights reserved.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
+                                ),
                               ),
                             ),
                             Row(
