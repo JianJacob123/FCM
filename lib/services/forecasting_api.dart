@@ -3,29 +3,48 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-// Resolve localhost across platforms (Android emulator uses 10.0.2.2, web uses 127.0.0.1)
-String _host() {
-  print('Platform detection: kIsWeb=$kIsWeb, defaultTargetPlatform=$defaultTargetPlatform');
-  final bool isAndroid =
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
-  print('isAndroid: $isAndroid');
-  
-  if (isAndroid) {
-    // Try multiple Android emulator hosts
-    print('Using Android emulator hosts: 10.0.2.2, 192.168.1.6');
-    return '10.0.2.2'; // Will fallback to 192.168.1.6 in the retry logic
+// Get forecasting API base URL from environment or fallback to localhost
+String? _forecastingBaseUrl;
+
+String _getForecastingBaseUrl() {
+  // Return cached value if already set
+  if (_forecastingBaseUrl != null) {
+    return _forecastingBaseUrl!;
   }
+
+  // Try to get from environment variable (for Render deployment)
+  final envUrl = dotenv.env['FORECASTING_API_URL'];
+  if (envUrl != null && envUrl.isNotEmpty) {
+    _forecastingBaseUrl = envUrl.endsWith('/') 
+        ? envUrl.substring(0, envUrl.length - 1) 
+        : envUrl;
+    print('Using Forecasting API URL from environment: $_forecastingBaseUrl');
+    return _forecastingBaseUrl!;
+  }
+
+  // Fallback to localhost for development
+  String host;
   if (kIsWeb) {
-    print('Using web host: 127.0.0.1');
-    return '127.0.0.1';
+    host = '127.0.0.1';
+  } else if (defaultTargetPlatform == TargetPlatform.android) {
+    host = '10.0.2.2'; // Android emulator
+  } else {
+    host = 'localhost';
   }
-  print('Using default host: localhost');
-  return 'localhost';
+  
+  _forecastingBaseUrl = 'http://$host:5001';
+  print('Using localhost Forecasting API: $_forecastingBaseUrl');
+  return _forecastingBaseUrl!;
 }
 
-// NOTE: Flask is configured to run on 5001 to avoid conflicts
-Uri _baseUri(String path) => Uri.parse('http://${_host()}:5001$path');
+// Build URI for forecasting API
+Uri _baseUri(String path) {
+  final baseUrl = _getForecastingBaseUrl();
+  final cleanPath = path.startsWith('/') ? path : '/$path';
+  return Uri.parse('$baseUrl$cleanPath');
+}
 
 // Health check (simplified - no logging for performance)
 Future<bool> forecastingHealth() async {
@@ -38,23 +57,20 @@ Future<bool> forecastingHealth() async {
   }
 }
 
-// Test network connectivity with all possible hosts
+// Test network connectivity to forecasting API
 Future<void> testNetworkConnectivity() async {
-  print('=== Testing Network Connectivity ===');
-  final hosts = ['127.0.0.1', 'localhost', '10.0.2.2', '192.168.1.6'];
-  
-  for (final host in hosts) {
-    try {
-      print('Testing $host:5001...');
-      final uri = Uri.parse('http://$host:5001/health');
-      final res = await http.get(uri);
-      print('✅ $host:5001 - Status: ${res.statusCode}');
-      if (res.statusCode == 200) {
-        print('✅ $host:5001 is accessible!');
-      }
-    } catch (e) {
-      print('❌ $host:5001 - Error: $e');
+  print('=== Testing Forecasting API Connectivity ===');
+  final baseUrl = _getForecastingBaseUrl();
+  try {
+    print('Testing $baseUrl/health...');
+    final uri = Uri.parse('$baseUrl/health');
+    final res = await http.get(uri).timeout(Duration(seconds: 5));
+    print('✅ $baseUrl - Status: ${res.statusCode}');
+    if (res.statusCode == 200) {
+      print('✅ Forecasting API is accessible!');
     }
+  } catch (e) {
+    print('❌ $baseUrl - Error: $e');
   }
   print('=== End Network Test ===');
 }
@@ -97,33 +113,25 @@ Future<({List<DateTime> dates, List<double> predictions})> forecastDaily() async
 
 // Get 24-hour hourly forecast with peak detection (optimized)
 Future<({List<int> hours, List<double> predictions, int peakHour, double peakValue})> forecastHourly() async {
-  // Try multiple hosts as fallback (optimized - less logging)
-  final hosts = ['127.0.0.1', 'localhost', '10.0.2.2', '192.168.1.6'];
-  Exception? lastException;
-  
-  for (final host in hosts) {
-    try {
-      final testUri = Uri.parse('http://$host:5001/hourly_forecast');
-      final res = await http.get(testUri).timeout(Duration(seconds: 8));
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body) as Map<String, dynamic>;
-        final hours = (data['hours'] as List).map((e) => e as int).toList();
-        final preds = (data['predictions'] as List)
-            .map((e) => (e as num).toDouble())
-            .toList();
-        final peakHour = data['peak_hour'] as int;
-        final peakValue = (data['peak_value'] as num).toDouble();
-        return (hours: hours, predictions: preds, peakHour: peakHour, peakValue: peakValue);
-      } else {
-        lastException = Exception('Hourly forecast failed: ${res.statusCode}');
-      }
-    } catch (e) {
-      lastException = Exception('Network error with $host: $e');
+  try {
+    final uri = _baseUri('/hourly_forecast');
+    final res = await http.get(uri).timeout(Duration(seconds: 8));
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final hours = (data['hours'] as List).map((e) => e as int).toList();
+      final preds = (data['predictions'] as List)
+          .map((e) => (e as num).toDouble())
+          .toList();
+      final peakHour = data['peak_hour'] as int;
+      final peakValue = (data['peak_value'] as num).toDouble();
+      return (hours: hours, predictions: preds, peakHour: peakHour, peakValue: peakValue);
+    } else {
+      throw Exception('Hourly forecast failed: ${res.statusCode}');
     }
+  } catch (e) {
+    print('Error in forecastHourly: $e');
+    rethrow;
   }
-  
-  // If all hosts failed, throw the last exception
-  throw lastException ?? Exception('All hosts failed');
 }
 
 // Get yearly daily forecast grid (12 x 31)
