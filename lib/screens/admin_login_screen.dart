@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'admin_screen.dart';
+import 'landing_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import 'package:http/http.dart' as http;
@@ -164,15 +165,33 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header with purple line
+        // Back button in upper left
         Align(
-          alignment: Alignment.centerLeft,
-          child: Container(
-            width: 60,
-            height: 2,
-            color: const Color(0xFF3E4795),
-            margin: const EdgeInsets.only(bottom: 8),
+          alignment: Alignment.topLeft,
+          child: IconButton(
+            icon: const Icon(
+              Icons.arrow_back,
+              color: Color(0xFF3E4795),
+              size: 24,
+            ),
+            onPressed: () {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const LandingScreen(),
+                ),
+              );
+            },
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
+        ),
+        const SizedBox(height: 8),
+        // Header with purple line
+        Container(
+          width: 60,
+          height: 2,
+          color: const Color(0xFF3E4795),
+          margin: const EdgeInsets.only(bottom: 8),
         ),
         const Text(
           'Login as Admin User',

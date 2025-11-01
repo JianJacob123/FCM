@@ -70,6 +70,7 @@ flutter:
   assets:
     - assets/logo.png
     - assets/logo2.png
+    - assets/bg.jpeg
     - assets/icons/
     - assets/.env
   uses-material-design: true

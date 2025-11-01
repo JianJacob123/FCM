@@ -31,20 +31,13 @@ String _getForecastingBaseUrl() {
   if (kIsWeb) {
     // Check if we're running on localhost (development)
     final hostname = Uri.base.host;
-    final isLocalhost = hostname == 'localhost' || 
-                        hostname == '127.0.0.1' || 
-                        hostname.isEmpty ||
-                        hostname.startsWith('localhost:') ||
-                        hostname.startsWith('127.0.0.1:');
-    
-    if (isLocalhost) {
+    if (hostname == 'localhost' || hostname == '127.0.0.1' || hostname.isEmpty) {
       _forecastingBaseUrl = 'http://127.0.0.1:5001';
       print('Using localhost Forecasting API (web dev): $_forecastingBaseUrl');
     } else {
       // Production web deployment - use Render URL
-      // This includes Render domains like fcm-server-1-z87w.onrender.com
       _forecastingBaseUrl = productionUrl;
-      print('Using production Forecasting API (web): $_forecastingBaseUrl (detected hostname: $hostname)');
+      print('Using production Forecasting API (web): $_forecastingBaseUrl');
     }
     return _forecastingBaseUrl!;
   }
