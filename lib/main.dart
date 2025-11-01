@@ -7,6 +7,7 @@ import 'screens/passenger_screen.dart';
 import 'screens/conductor_screen.dart';
 import 'models/user_role.dart';
 import 'screens/admin_login_screen.dart';
+import 'screens/landing_screen.dart';
 import 'services/notif_socket.dart';
 import 'services/notif_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -45,7 +46,7 @@ class MyApp extends StatelessWidget {
               primaryColor: const Color.fromRGBO(62, 71, 149, 1),
               brightness: Brightness.light,
             ),
-            home: const AdminLoginScreen(), // Show admin login on all platforms
+            home: const LandingScreen(), // Show landing page first
           );
         },
       ),
