@@ -2929,24 +2929,12 @@ class _YearlyHeatmap extends StatefulWidget {
 }
 
 class _YearlyHeatmapState extends State<_YearlyHeatmap> {
-  Offset? _hoverPos;
-
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onHover: (e) => setState(() => _hoverPos = e.localPosition),
-      onExit: (_) => setState(() => _hoverPos = null),
-      child: GestureDetector(
-        onPanStart: (e) => setState(() => _hoverPos = e.localPosition),
-        onPanUpdate: (e) => setState(() => _hoverPos = e.localPosition),
-        onPanEnd: (_) => setState(() => _hoverPos = null),
-        child: CustomPaint(
-          painter: _YearlyHeatmapPainter(
-            grid: widget.grid,
-            year: widget.year,
-            hoverPos: _hoverPos,
-          ),
-        ),
+    return CustomPaint(
+      painter: _YearlyHeatmapPainter(
+        grid: widget.grid,
+        year: widget.year,
       ),
     );
   }
@@ -2955,11 +2943,9 @@ class _YearlyHeatmapState extends State<_YearlyHeatmap> {
 class _YearlyHeatmapPainter extends CustomPainter {
   final List<List<double?>> grid; // months x days
   final int year;
-  final Offset? hoverPos;
   _YearlyHeatmapPainter({
     required this.grid,
     required this.year,
-    required this.hoverPos,
   });
 
   static const List<String> _monthLabels = [
@@ -3173,61 +3159,6 @@ class _YearlyHeatmapPainter extends CustomPainter {
       );
     }
 
-    // Hover tooltip
-    if (hoverPos != null) {
-      final dx = hoverPos!.dx;
-      final dy = hoverPos!.dy;
-      final withinX = dx >= originX && dx <= originX + cols * cellW;
-      final withinY = dy >= originY && dy <= originY + rows * cellH;
-      if (withinX && withinY) {
-        final col = ((dx - originX) / cellW).floor().clamp(0, cols - 1);
-        final row = ((dy - originY) / cellH).floor().clamp(0, rows - 1);
-        final m = (col / weeksPerMonth).floor();
-        final w = col % weeksPerMonth;
-        final value = avg[m][w][row];
-        if (value != null) {
-          // Highlight cell
-          final hx = originX + col * cellW;
-          final hy = originY + row * cellH;
-          final highlight = Paint()
-            ..color = Colors.black.withOpacity(0.08)
-            ..style = PaintingStyle.fill;
-          canvas.drawRect(Rect.fromLTWH(hx, hy, cellW, cellH), highlight);
-
-          // Tooltip text
-          final label =
-              '${_monthLabels[m]} W${w + 1}, ${_dowLabels[row]}\n${value.round()} pax';
-          final tp2 = TextPainter(
-            text: TextSpan(
-              text: label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            textDirection: TextDirection.ltr,
-          );
-          tp2.layout();
-
-          final boxW = tp2.width + 14;
-          final boxH = tp2.height + 12;
-          double boxX = hx + cellW + 8;
-          double boxY = hy - boxH / 2 + cellH / 2;
-          if (boxX + boxW > size.width) boxX = hx - boxW - 8;
-          if (boxY < 0) boxY = 2;
-          if (boxY + boxH > size.height) boxY = size.height - boxH - 2;
-
-          final rrect = RRect.fromRectAndRadius(
-            Rect.fromLTWH(boxX, boxY, boxW, boxH),
-            const Radius.circular(6),
-          );
-          final bg = Paint()..color = Colors.black.withOpacity(0.8);
-          canvas.drawRRect(rrect, bg);
-          tp2.paint(canvas, Offset(boxX + 7, boxY + 6));
-        }
-      }
-    }
   }
 
   Color _heatColor(double t) {
