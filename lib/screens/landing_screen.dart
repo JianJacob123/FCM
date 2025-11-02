@@ -2,6 +2,13 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'admin_login_screen.dart';
 import 'login_screen.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import '../services/api.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:intl/intl.dart';
+import 'dart:convert';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -24,6 +31,7 @@ class _LandingScreenState extends State<LandingScreen> {
     ),
     const AboutPage(),
     const ContactPage(),
+    const MapPage(),
   ];
 
   void _navigateToMap() {
@@ -55,6 +63,8 @@ class _LandingScreenState extends State<LandingScreen> {
         return const Color(0xFF5C5C8A);
       case 2: // ContactPage - light background, solid
         return const Color(0xFF5C5C8A);
+      case 3: // MapPage - light background, solid
+        return const Color(0xFF5C5C8A);
       default:
         return const Color(0xFF5C5C8A);
     }
@@ -75,6 +85,7 @@ class _LandingScreenState extends State<LandingScreen> {
         return 10.0 * (1.0 - scrollProgress);
       case 1: // AboutPage - light background, no blur needed
       case 2: // ContactPage - light background, no blur needed
+      case 3: // MapPage - light background, no blur needed
         return 0.0;
       default:
         return 10.0;
@@ -120,14 +131,14 @@ class _LandingScreenState extends State<LandingScreen> {
       curve: Curves.easeInOut,
       height: 75,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(
+              decoration: BoxDecoration(
         color: _getNavBarColor(),
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(12),
           bottomRight: Radius.circular(12),
         ),
-        boxShadow: [
-          BoxShadow(
+                boxShadow: [
+                  BoxShadow(
             color: Colors.black.withOpacity(0.25),
             blurRadius: 12,
             offset: const Offset(0, 4),
@@ -136,67 +147,70 @@ class _LandingScreenState extends State<LandingScreen> {
           BoxShadow(
             color: Colors.black.withOpacity(0.15),
             blurRadius: 6,
-            offset: const Offset(0, 2),
+                    offset: const Offset(0, 2),
             spreadRadius: 0,
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Logo
-            Image.asset(
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Logo
+                        Image.asset(
               'assets/logo2.png',
               height: 70,
               width: 70,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(
-                  Icons.directions_bus,
-                  color: Colors.white,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.directions_bus,
+                              color: Colors.white,
                   size: 55,
-                );
-              },
-            ),
+                            );
+                          },
+                        ),
             // Navigation Links - spread evenly
             Expanded(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _NavLink(
-                    text: 'Home',
-                    isActive: _currentIndex == 0,
+                      children: [
+                        _NavLink(
+                          text: 'Home',
+                          isActive: _currentIndex == 0,
                     onTap: () => setState(() {
                       _currentIndex = 0;
                       _homePageScrollOffset = 0.0;
                     }),
+                        ),
+                        _NavLink(
+                          text: 'Map',
+                    isActive: _currentIndex == 3,
+                    onTap: () => setState(() {
+                      _currentIndex = 3;
+                      _homePageScrollOffset = 0.0;
+                    }),
                   ),
-                  _NavLink(
-                    text: 'Map',
-                    isActive: false,
-                    onTap: () {}, // Static - no navigation
-                  ),
-                  _NavLink(
-                    text: 'About Us',
-                    isActive: _currentIndex == 1,
+                        _NavLink(
+                          text: 'About Us',
+                          isActive: _currentIndex == 1,
                     onTap: () => setState(() {
                       _currentIndex = 1;
                       _homePageScrollOffset = 0.0;
                     }),
-                  ),
-                  _NavLink(
-                    text: 'Contact',
-                    isActive: _currentIndex == 2,
+                        ),
+                        _NavLink(
+                          text: 'Contact',
+                          isActive: _currentIndex == 2,
                     onTap: () => setState(() {
                       _currentIndex = 2;
                       _homePageScrollOffset = 0.0;
                     }),
-                  ),
-                ],
-              ),
+                        ),
+                      ],
             ),
-          ],
+          ),
+        ],
         ),
       ),
     );
@@ -271,6 +285,260 @@ class _HomePageState extends State<HomePage> {
     return 1.0 - opacity; // Fade out from 1.0 to 0.0
   }
 
+  // Responsive helper methods
+  bool _isMobile(BuildContext context) => MediaQuery.of(context).size.width < 600;
+  bool _isTablet(BuildContext context) => 
+      MediaQuery.of(context).size.width >= 600 && MediaQuery.of(context).size.width < 1024;
+  
+  double _getResponsiveFontSize(BuildContext context, double desktop, double tablet, double mobile) {
+    if (_isMobile(context)) return mobile;
+    if (_isTablet(context)) return tablet;
+    return desktop;
+  }
+
+  EdgeInsets _getResponsivePadding(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width < 600) return const EdgeInsets.symmetric(horizontal: 20.0, vertical: 60.0);
+    if (width < 1024) return const EdgeInsets.symmetric(horizontal: 30.0, vertical: 60.0);
+    return const EdgeInsets.symmetric(horizontal: 40.0, vertical: 60.0);
+  }
+
+  Widget _buildTrackButton(BuildContext context) {
+    return InkWell(
+      onTap: () {}, // Static - no action
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 16,
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xFF5C5C8A).withOpacity(0.3),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+          color: Colors.white,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Track FCM Units',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+          fontSize: 16,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Icon(
+              Icons.play_arrow,
+              size: 20,
+              color: Colors.white,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDownloadButton(BuildContext context) {
+    return InkWell(
+      onTap: () => _showDownloadAppModal(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 16,
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xFF5C5C8A),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Download App',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 16,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Icon(
+              Icons.download,
+              size: 20,
+              color: Colors.white,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDownloadAppModal(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Download App',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color.fromRGBO(62, 71, 149, 1),
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This app is currently available for Android users only.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[700],
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'For iOS users, you can access the map on the Map page.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[700],
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            // Stack buttons vertically on mobile, horizontally on desktop
+            if (isMobile)
+              Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Close modal
+                        // Static - no navigation
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black87,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        elevation: 0,
+                      ),
+                      icon: const Icon(Icons.phone_iphone, size: 20),
+                      label: const Text(
+                        'Go to Map Page',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Close modal
+                        // TODO: Add Android app download link here
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF5C5C8A),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: const Icon(Icons.phone_android, size: 20, color: Colors.white),
+                      label: const Text(
+                        'Download App',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  // Go to Map Page button with Apple icon
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close modal
+                      // Static - no navigation
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      elevation: 0,
+                    ),
+                    icon: const Icon(Icons.phone_iphone, size: 20),
+                    label: const Text(
+                      'Go to Map Page',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Download App button with Android icon
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close modal
+                      // TODO: Add Android app download link here
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF5C5C8A),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    icon: const Icon(Icons.phone_android, size: 20, color: Colors.white),
+                    label: const Text(
+                      'Download App',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final double bgOpacity = _getBackgroundOpacity();
@@ -287,26 +555,26 @@ class _HomePageState extends State<HomePage> {
         Positioned.fill(
           child: Opacity(
             opacity: bgOpacity,
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color.fromRGBO(62, 71, 149, 0.9),
-              ),
-              child: Stack(
-                children: [
-                  // Background image with error handling
-                  Positioned.fill(
-                    child: Image.asset(
-                      'assets/bg.jpeg',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: const Color.fromRGBO(62, 71, 149, 1),
-                        );
-                      },
-                    ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color.fromRGBO(62, 71, 149, 0.9),
+            ),
+            child: Stack(
+              children: [
+                // Background image with error handling
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/bg.jpeg',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: const Color.fromRGBO(62, 71, 149, 1),
+                      );
+                    },
                   ),
-                  // Gradient overlay
-                  Container(
+                ),
+                // Gradient overlay
+                Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.bottomCenter,
@@ -323,56 +591,62 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                     ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
+        ),
         ),
         // Scrollable Content
         SafeArea(
           child: SingleChildScrollView(
             controller: _scrollController,
-            child: Column(
+                child: Column(
               children: [
                 // Hero Content
                 SizedBox(
                   height: MediaQuery.of(context).size.height,
                   child: Center(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 60.0),
+                      width: MediaQuery.of(context).size.width * 0.72,
+                      padding: _getResponsivePadding(context),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                  children: [
                           Text(
-                            'FCM Transport Services Corporation',
+                      'FCM Transport Services Corporation',
                             textAlign: TextAlign.left,
-                            style: TextStyle(
-                              fontSize: 56,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              height: 1.2,
+                      style: TextStyle(
+                              fontSize: _getResponsiveFontSize(context, 56, 42, 32),
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        height: 1.2,
                               shadows: [
                                 Shadow(
-                                  color: Colors.grey.withOpacity(0.5),
-                                  blurRadius: 8,
+                                  color: Colors.black.withOpacity(0.5),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                                Shadow(
+                                  color: Colors.black.withOpacity(0.3),
+                                  blurRadius: 6,
                                   offset: const Offset(0, 2),
                                 ),
                               ],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                           Text(
                             "You're reliable Transport Service",
                             textAlign: TextAlign.left,
                             style: TextStyle(
-                              fontSize: 28,
+                              fontSize: _getResponsiveFontSize(context, 28, 22, 18),
                               color: Colors.white,
                               fontWeight: FontWeight.w300,
                               shadows: [
@@ -384,38 +658,22 @@ class _HomePageState extends State<HomePage> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 40),
-                          ElevatedButton(
-                            onPressed: null, // Static button - no action for now
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color.fromRGBO(62, 71, 149, 1),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 16,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              elevation: 4,
-                              disabledBackgroundColor: const Color.fromRGBO(62, 71, 149, 1),
-                              disabledForegroundColor: Colors.white,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Text(
-                                  'Track FCM Units',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
+                    const SizedBox(height: 40),
+                          _isMobile(context)
+                              ? Column(
+                                  children: [
+                                    _buildTrackButton(context),
+                                    const SizedBox(height: 12),
+                                    _buildDownloadButton(context),
+                                  ],
+                                )
+                              : Row(
+                                  children: [
+                                    _buildTrackButton(context),
+                                    const SizedBox(width: 16),
+                                    _buildDownloadButton(context),
+                                  ],
                                 ),
-                                const SizedBox(width: 12),
-                                const Icon(Icons.play_arrow, size: 24),
-                              ],
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -428,12 +686,12 @@ class _HomePageState extends State<HomePage> {
                   color: Colors.white,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
+                        children: [
+                          const Text(
                         'Why Choose FCM Transport',
-                        style: TextStyle(
+                            style: TextStyle(
                           fontSize: 36,
-                          fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.bold,
                           color: Color.fromRGBO(62, 71, 149, 1),
                         ),
                       ),
@@ -471,25 +729,18 @@ class _HomePageState extends State<HomePage> {
                 // Download App Section
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 60.0),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        const Color.fromRGBO(62, 71, 149, 1),
-                        const Color.fromRGBO(41, 51, 133, 1),
-                      ],
-                    ),
+                  padding: _getResponsivePadding(context),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
                   ),
                   child: Column(
                     children: [
-                      const Text(
+                      Text(
                         'Download Our App',
                         style: TextStyle(
-                          fontSize: 36,
+                          fontSize: _getResponsiveFontSize(context, 36, 28, 24),
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: const Color.fromRGBO(62, 71, 149, 1),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -497,35 +748,51 @@ class _HomePageState extends State<HomePage> {
                         'Track buses in real-time, view schedules, and plan your journey all in one place.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.white70,
+                          fontSize: _getResponsiveFontSize(context, 18, 16, 14),
+                          color: Colors.grey[700],
                           height: 1.6,
                         ),
                       ),
                       const SizedBox(height: 40),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _AppDownloadButton(
-                            icon: Icons.phone_android,
-                            text: 'Google Play',
-                            onTap: () {},
-                          ),
-                          const SizedBox(width: 20),
-                          _AppDownloadButton(
-                            icon: Icons.phone_iphone,
-                            text: 'App Store',
-                            onTap: () {},
-                          ),
-                        ],
-                      ),
+                      _isMobile(context)
+                          ? Column(
+                              children: [
+                                _AppDownloadButton(
+                                  icon: Icons.phone_android,
+                                  text: 'Google Play',
+                                  onTap: () => _showDownloadAppModal(context),
+                                ),
+                                const SizedBox(height: 12),
+                                _AppDownloadButton(
+                                  icon: Icons.phone_iphone,
+                                  text: 'App Store',
+                                  onTap: () => _showDownloadAppModal(context),
+                                ),
+                              ],
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _AppDownloadButton(
+                                  icon: Icons.phone_android,
+                                  text: 'Google Play',
+                                  onTap: () => _showDownloadAppModal(context),
+                                ),
+                                const SizedBox(width: 20),
+                                _AppDownloadButton(
+                                  icon: Icons.phone_iphone,
+                                  text: 'App Store',
+                                  onTap: () => _showDownloadAppModal(context),
+                                ),
+                              ],
+                            ),
                     ],
                   ),
                 ),
                 // Footer
                 Container(
                   width: double.infinity,
-                  color: const Color(0xFF2A2A2A),
+                  color: const Color(0xFF5C5C8A),
                   child: Column(
                     children: [
                       // Main Footer Content
@@ -571,7 +838,7 @@ class _HomePageState extends State<HomePage> {
                                       const Text(
                                         'Quick Links',
                                         style: TextStyle(
-                                          fontSize: 18,
+                              fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                           color: Colors.white,
                                         ),
@@ -666,17 +933,17 @@ class _HomePageState extends State<HomePage> {
                                       Row(
                                         children: [
                                           _SocialMediaButton(icon: Icons.facebook, onTap: () {}),
-                                          const SizedBox(width: 12),
+                          const SizedBox(width: 12),
                                           _SocialMediaButton(icon: Icons.photo_camera, onTap: () {}), // Instagram
                                           const SizedBox(width: 12),
                                           _SocialMediaButton(icon: Icons.close, onTap: () {}), // Twitter/X
                                         ],
                                       ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
                           ],
                         ),
                       ),
@@ -1461,3 +1728,371 @@ class _OfficeHourRow extends StatelessWidget {
   }
 }
 
+
+// MapPage - Same map implementation as admin live tracking
+class MapPage extends StatefulWidget {
+  const MapPage({super.key});
+
+  @override
+  _MapPageState createState() => _MapPageState();
+}
+
+class _MapPageState extends State<MapPage> {
+  late IO.Socket vehicleSocket;
+  final Map<int, Marker> _vehicleMarkers = {};
+  Map<String, dynamic>? _selectedVehicle;
+  List<LatLng> _routePolyline = [];
+  final MapController _mapController = MapController();
+  bool _showVehicleInfo = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final baseUrl = dotenv.env['API_BASE_URL'];
+    vehicleSocket = IO.io(
+      "$baseUrl/vehicles",
+      IO.OptionBuilder().setTransports(['websocket']).build(),
+    );
+    vehicleSocket.connect();
+    vehicleSocket.onConnect((_) {
+      print('Connected to vehicle backend');
+      vehicleSocket.emit("subscribeVehicles");
+    });
+    vehicleSocket.on('vehicleUpdate', (data) {
+      if (!mounted) return;
+      setState(() {
+        for (var v in data) {
+          final id = v["vehicle_id"];
+          final lat = double.parse(v["lat"].toString());
+          final lng = double.parse(v["lng"].toString());
+          _vehicleMarkers[id] = Marker(
+            point: LatLng(lat, lng),
+            width: 50,
+            height: 50,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedVehicle = v;
+                  _showVehicleInfo = true;
+                  _routePolyline = [];
+                });
+              },
+              child: Column(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF3E4795),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.directions_bus,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      });
+    });
+    vehicleSocket.onDisconnect((_) {
+      print('Vehicle disconnected');
+    });
+  }
+
+  @override
+  void dispose() {
+    vehicleSocket.off('vehicleUpdate');
+    vehicleSocket.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              center: const LatLng(13.945, 121.163),
+              zoom: 14,
+              onTap: (tapPosition, point) {
+                setState(() {
+                  _showVehicleInfo = false;
+                });
+              },
+            ),
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                subdomains: const ['a', 'b', 'c', 'd'],
+              ),
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: _routePolyline,
+                    strokeWidth: 4.0,
+                    color: const Color(0xFF3E4795),
+                  ),
+                ],
+              ),
+              MarkerLayer(
+                markers: [
+                  if (_routePolyline.isNotEmpty)
+                    Marker(
+                      point: _routePolyline.last,
+                      width: 30,
+                      height: 60,
+                      child: const Icon(
+                        Icons.location_pin,
+                        color: Color(0xFF3E4795),
+                        size: 32,
+                      ),
+                    ),
+                  ..._vehicleMarkers.values.toList(),
+                ],
+              ),
+            ],
+          ),
+          if (_showVehicleInfo && _selectedVehicle != null)
+            Positioned(
+              bottom: 20,
+              left: 20,
+              right: 20,
+              child: Container(
+                constraints: const BoxConstraints(
+                  minHeight: 100,
+                  maxHeight: 400,
+                ),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.all(Radius.circular(24)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 12,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'FCM No. ${_selectedVehicle?["vehicle_id"] ?? "Unknown"}',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF3E4795),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: () {
+                            setState(() {
+                              _showVehicleInfo = false;
+                              _selectedVehicle = null;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${_selectedVehicle?["route_name"] ?? "Unknown"}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Progress',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        Text(
+                          _selectedVehicle?["is_off_route"] == true
+                              ? 'Off Route'
+                              : 'On Route',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: _selectedVehicle?["is_off_route"] == true
+                                ? Colors.red
+                                : Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Animated progress bar
+                    if (_selectedVehicle != null && _selectedVehicle!["route_progress_percent"] != null)
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(
+                          begin: 0.2,
+                          end: (double.tryParse(
+                                    _selectedVehicle!["route_progress_percent"]
+                                        .toString(),
+                                  ) ??
+                                  0) /
+                              100.clamp(0.0, 1.0),
+                        ),
+                        duration: const Duration(milliseconds: 800),
+                        curve: Curves.easeOut,
+                        builder: (context, value, _) => ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: value,
+                            minHeight: 8,
+                            backgroundColor: Colors.grey[300],
+                            color: const Color(0xFF3E4795),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Estimated Time of Arrival',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        Text(
+                          _selectedVehicle != null &&
+                                  _selectedVehicle!['eta'] != null
+                              ? DateFormat.jm().format(
+                                  DateTime.parse(
+                                    _selectedVehicle!['eta'],
+                                  ).toLocal(),
+                                )
+                              : '--:--',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Current Capacity',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        Text(
+                          '${_selectedVehicle?["current_passenger_count"] ?? "--"}/20',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Plate Number",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'DAL 1234',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            final remainingRoute =
+                                _selectedVehicle?["remaining_route_polyline"];
+
+                            if (remainingRoute == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("No route data available."),
+                                ),
+                              );
+                              return;
+                            }
+
+                            // Decode JSON string into a Map
+                            final routeJson = remainingRoute is String
+                                ? jsonDecode(remainingRoute)
+                                : remainingRoute;
+
+                            final coords =
+                                (routeJson["coordinates"] as List?)
+                                    ?.map(
+                                      (c) => LatLng(
+                                        (c[1] as num).toDouble(),
+                                        (c[0] as num).toDouble(),
+                                      ),
+                                    )
+                                    .toList() ??
+                                [];
+
+                            if (coords.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("No route data available."),
+                                ),
+                              );
+                              return;
+                            }
+
+                            setState(() {
+                              _routePolyline = coords;
+                            });
+                          },
+                          icon: const Icon(Icons.navigation, size: 16),
+                          label: const Text(
+                            'Track Trip',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3E4795),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
