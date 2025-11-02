@@ -20,6 +20,10 @@ class LandingScreen extends StatefulWidget {
 class _LandingScreenState extends State<LandingScreen> {
   int _currentIndex = 0;
   double _homePageScrollOffset = 0.0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  
+  // Helper method to check screen size
+  bool _isMobileScreen(BuildContext context) => MediaQuery.of(context).size.width < 600;
 
   List<Widget> get _pages => [
     HomePage(
@@ -94,7 +98,11 @@ class _LandingScreenState extends State<LandingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = _isMobileScreen(context);
+    
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: isMobile ? _buildDrawer(context) : null,
       body: Stack(
         children: [
           // Main content
@@ -126,29 +134,36 @@ class _LandingScreenState extends State<LandingScreen> {
   }
 
   Widget _buildNavBarContainer() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      height: 75,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    final isMobile = _isMobileScreen(context);
+    
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          height: isMobile ? 60 : 75,
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 12 : 20,
+            vertical: isMobile ? 8 : 12,
+          ),
               decoration: BoxDecoration(
-        color: _getNavBarColor(),
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(12),
-          bottomRight: Radius.circular(12),
-        ),
+            color: _getNavBarColor(),
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(12),
+              bottomRight: Radius.circular(12),
+            ),
                 boxShadow: [
                   BoxShadow(
-            color: Colors.black.withOpacity(0.25),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-            spreadRadius: 0,
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 6,
+                color: Colors.black.withOpacity(0.25),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+                spreadRadius: 0,
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 6,
                     offset: const Offset(0, 2),
-            spreadRadius: 0,
+                spreadRadius: 0,
                   ),
                 ],
               ),
@@ -158,60 +173,156 @@ class _LandingScreenState extends State<LandingScreen> {
                   children: [
                     // Logo
                         Image.asset(
-              'assets/logo2.png',
-              height: 70,
-              width: 70,
+                  'assets/logo2.png',
+                  height: isMobile ? 45 : 70,
+                  width: isMobile ? 45 : 70,
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
+                    return Icon(
                               Icons.directions_bus,
                               color: Colors.white,
-                  size: 55,
+                      size: isMobile ? 35 : 55,
                             );
                           },
                         ),
-            // Navigation Links - spread evenly
-            Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                // Navigation Links - show hamburger on mobile, full nav on desktop
+                if (isMobile)
+                  IconButton(
+                    icon: const Icon(
+                      Icons.menu,
+                            color: Colors.white,
+                      size: 28,
+                    ),
+                    onPressed: () {
+                      _scaffoldKey.currentState?.openDrawer();
+                    },
+                  )
+                else
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         _NavLink(
                           text: 'Home',
                           isActive: _currentIndex == 0,
-                    onTap: () => setState(() {
-                      _currentIndex = 0;
-                      _homePageScrollOffset = 0.0;
-                    }),
+                          onTap: () => setState(() {
+                            _currentIndex = 0;
+                            _homePageScrollOffset = 0.0;
+                          }),
+                        ),
+                        _NavLink(
+                          text: 'About',
+                          isActive: _currentIndex == 1,
+                          onTap: () => setState(() {
+                            _currentIndex = 1;
+                            _homePageScrollOffset = 0.0;
+                          }),
                         ),
                         _NavLink(
                           text: 'Map',
-                    isActive: _currentIndex == 3,
-                    onTap: () => setState(() {
-                      _currentIndex = 3;
-                      _homePageScrollOffset = 0.0;
-                    }),
-                  ),
-                        _NavLink(
-                          text: 'About Us',
-                          isActive: _currentIndex == 1,
-                    onTap: () => setState(() {
-                      _currentIndex = 1;
-                      _homePageScrollOffset = 0.0;
-                    }),
-                        ),
-                        _NavLink(
-                          text: 'Contact',
-                          isActive: _currentIndex == 2,
-                    onTap: () => setState(() {
-                      _currentIndex = 2;
-                      _homePageScrollOffset = 0.0;
-                    }),
+                          isActive: _currentIndex == 3,
+                          onTap: () => setState(() {
+                            _currentIndex = 3;
+                            _homePageScrollOffset = 0.0;
+                          }),
                         ),
                       ],
+                    ),
+                    ),
+                  ],
+                ),
+              ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context) {
+    return Drawer(
+      backgroundColor: const Color(0xFF5C5C8A),
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          // Drawer Header
+          Container(
+            height: 120,
+            decoration: const BoxDecoration(
+              color: Color(0xFF5C5C8A),
+            ),
+            child: SafeArea(
+              child: Row(
+                children: [
+                  const SizedBox(width: 16),
+                  Image.asset(
+                    'assets/logo2.png',
+                    height: 60,
+                    width: 60,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(
+                        Icons.directions_bus,
+                        color: Colors.white,
+                        size: 50,
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Text(
+                      'FCM Transport',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
             ),
           ),
+          // Menu Items
+          _DrawerItem(
+            icon: Icons.home,
+            title: 'Home',
+            isActive: _currentIndex == 0,
+            onTap: () {
+              Navigator.of(context).pop();
+              setState(() {
+                _currentIndex = 0;
+                _homePageScrollOffset = 0.0;
+              });
+            },
+          ),
+          _DrawerItem(
+            icon: Icons.info,
+            title: 'About',
+            isActive: _currentIndex == 1,
+            onTap: () {
+              Navigator.of(context).pop();
+              setState(() {
+                _currentIndex = 1;
+                _homePageScrollOffset = 0.0;
+              });
+            },
+          ),
+          _DrawerItem(
+            icon: Icons.map,
+            title: 'Map',
+            isActive: _currentIndex == 3,
+            onTap: () {
+              Navigator.of(context).pop();
+              setState(() {
+                _currentIndex = 3;
+                _homePageScrollOffset = 0.0;
+              });
+            },
+          ),
         ],
-        ),
       ),
     );
   }
@@ -240,6 +351,42 @@ class _NavLink extends StatelessWidget {
           fontWeight: FontWeight.w500,
         ),
       ),
+    );
+  }
+}
+
+class _DrawerItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _DrawerItem({
+    required this.icon,
+    required this.title,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: isActive ? const Color(0xFFA0A0E0) : Colors.white,
+        size: 24,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: isActive ? const Color(0xFFA0A0E0) : Colors.white,
+          fontSize: 18,
+          fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+        ),
+      ),
+      selected: isActive,
+      selectedTileColor: Colors.white.withOpacity(0.1),
+      onTap: onTap,
     );
   }
 }
@@ -643,12 +790,12 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 24),
                           Text(
-                            "You're reliable Transport Service",
+                      "You're reliable Transport Service",
                             textAlign: TextAlign.left,
-                            style: TextStyle(
+                      style: TextStyle(
                               fontSize: _getResponsiveFontSize(context, 28, 22, 18),
-                              color: Colors.white,
-                              fontWeight: FontWeight.w300,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w300,
                               shadows: [
                                 Shadow(
                                   color: Colors.grey.withOpacity(0.5),
@@ -656,8 +803,8 @@ class _HomePageState extends State<HomePage> {
                                   offset: const Offset(0, 2),
                                 ),
                               ],
-                            ),
-                          ),
+                      ),
+                    ),
                     const SizedBox(height: 40),
                           _isMobile(context)
                               ? Column(
@@ -679,20 +826,85 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
+                // Stats Cards Section
+                Container(
+                  width: double.infinity,
+                  padding: _getResponsivePadding(context),
+                  color: Colors.white,
+                  child: Column(
+                    children: [
+                      _isMobile(context)
+                          ? Column(
+                              children: [
+                                _StatCard(
+                                  number: '300+',
+                                  label: 'Buses in operation',
+                                ),
+                                const SizedBox(height: 16),
+                                _StatCard(
+                                  number: '120+',
+                                  label: 'Routes served',
+                                ),
+                                const SizedBox(height: 16),
+                                _StatCard(
+                                  number: '92%',
+                                  label: 'On-time performance',
+                                ),
+                                const SizedBox(height: 16),
+                                _StatCard(
+                                  number: '250k',
+                                  label: 'Monthly rides',
+                                ),
+                              ],
+                            )
+                          : Row(
+                              children: [
+                                Expanded(
+                                  child: _StatCard(
+                                    number: '300+',
+                                    label: 'Buses in operation',
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _StatCard(
+                                    number: '120+',
+                                    label: 'Routes served',
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _StatCard(
+                                    number: '92%',
+                                    label: 'On-time performance',
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _StatCard(
+                                    number: '250k',
+                                    label: 'Monthly rides',
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ],
+                  ),
+                ),
                 // Why Choose Us Section
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 60.0),
+                  padding: _getResponsivePadding(context),
                   color: Colors.white,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
+                    children: [
+                      Text(
                         'Why Choose FCM Transport',
-                            style: TextStyle(
-                          fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                          color: Color.fromRGBO(62, 71, 149, 1),
+                        style: TextStyle(
+                          fontSize: _getResponsiveFontSize(context, 36, 28, 24),
+                          fontWeight: FontWeight.bold,
+                          color: const Color.fromRGBO(62, 71, 149, 1),
                         ),
                       ),
                       const SizedBox(height: 40),
@@ -723,6 +935,79 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ],
                       ),
+                      // Schedule Table
+                      const SizedBox(height: 40),
+                      _isMobile(context)
+                          ? Column(
+                              children: [
+                                _ScheduleCard(
+                                  route: 'Bauan – Lipa',
+                                  firstTrip: '4:30 AM',
+                                  lastTrip: '7:00 PM',
+                                ),
+                                const SizedBox(height: 12),
+                                _ScheduleCard(
+                                  route: 'Lipa – Bauan',
+                                  firstTrip: '6:00 AM',
+                                  lastTrip: '8:00 PM',
+                                ),
+                              ],
+                            )
+                          : Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: Colors.grey[300]!,
+                                  width: 1,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Table(
+                                columnWidths: const {
+                                  0: FlexColumnWidth(2),
+                                  1: FlexColumnWidth(1.5),
+                                  2: FlexColumnWidth(1.5),
+                                },
+                                border: TableBorder(
+                                  horizontalInside: BorderSide(
+                                    color: Colors.grey[300]!,
+                                    width: 1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                children: [
+                                  // Header row
+                                  TableRow(
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF5C5C8A),
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(12),
+                                        topRight: Radius.circular(12),
+                                      ),
+                                    ),
+                                    children: [
+                                      _TableHeaderCell(text: 'Route'),
+                                      _TableHeaderCell(text: 'First Trip'),
+                                      _TableHeaderCell(text: 'Last Trip'),
+                                    ],
+                                  ),
+                                  // Data rows
+                                  TableRow(
+                                    children: [
+                                      _TableCell(text: 'Bauan – Lipa'),
+                                      _TableCell(text: '4:30 AM'),
+                                      _TableCell(text: '7:00 PM'),
+                                    ],
+                                  ),
+                                  TableRow(
+                                    children: [
+                                      _TableCell(text: 'Lipa – Bauan'),
+                                      _TableCell(text: '6:00 AM'),
+                                      _TableCell(text: '8:00 PM'),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                     ],
                   ),
                 ),
@@ -808,12 +1093,12 @@ class _HomePageState extends State<HomePage> {
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
+                        children: [
+                          const Text(
                                         'FCM Transport Corporation',
-                                        style: TextStyle(
+                            style: TextStyle(
                                           fontSize: 20,
-                                          fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.bold,
                                           color: Colors.white,
                                         ),
                                       ),
@@ -1026,44 +1311,173 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8.0),
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8F8F8),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            number,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF333333),
+              height: 1.2,
             ),
-          ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.normal,
+              color: Color(0xFF666666),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScheduleCard extends StatelessWidget {
+  final String route;
+  final String firstTrip;
+  final String lastTrip;
+
+  const _ScheduleCard({
+    required this.route,
+    required this.firstTrip,
+    required this.lastTrip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            route,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF333333),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'First Trip',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      firstTrip,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Last Trip',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      lastTrip,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TableHeaderCell extends StatelessWidget {
+  final String text;
+
+  const _TableHeaderCell({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              number,
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF333333),
-                height: 1.2,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.normal,
-                color: Color(0xFF666666),
-              ),
-            ),
-          ],
+      ),
+    );
+  }
+}
+
+class _TableCell extends StatelessWidget {
+  final String text;
+
+  const _TableCell({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 14,
+          color: Color(0xFF333333),
         ),
       ),
     );

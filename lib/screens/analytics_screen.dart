@@ -163,8 +163,16 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       print('Yearly forecast loaded for ${_yearlyYear}: grid length=${yearly.grid.length}');
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Failed to load forecast for $_yearlyYear';
+        if (e.toString().contains('TimeoutException')) {
+          errorMessage = 'Request timed out while loading yearly forecast. The service may be slow. Please try again.';
+        } else if (e.toString().contains('SocketException') || e.toString().contains('Connection')) {
+          errorMessage = 'Cannot connect to forecasting service. Please check your connection.';
+        } else {
+          errorMessage = 'Failed to load forecast for $_yearlyYear: ${e.toString()}';
+        }
         setState(() {
-          _error = 'Failed to load forecast for $_yearlyYear: $e';
+          _error = errorMessage;
           _loading = false;
         });
       }
@@ -622,8 +630,17 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _error = e.toString());
+        String errorMessage = 'Failed to load analytics data';
+        if (e.toString().contains('TimeoutException')) {
+          errorMessage = 'Request timed out. The forecasting service may be slow or unavailable. Please try again.';
+        } else if (e.toString().contains('SocketException') || e.toString().contains('Connection')) {
+          errorMessage = 'Cannot connect to forecasting service. Please check your internet connection and try again.';
+        } else {
+          errorMessage = 'Error: ${e.toString()}';
+        }
+        setState(() => _error = errorMessage);
       }
+      print('Error in _load: $e');
     } finally {
       if (mounted) {
         setState(() => _loading = false);

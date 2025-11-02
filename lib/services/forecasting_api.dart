@@ -93,23 +93,28 @@ Future<void> testNetworkConnectivity() async {
 
 // Peak demand prediction for a single feature set
 Future<double> forecastPeak(Map<String, dynamic> features) async {
-  final res = await http.post(
-    _baseUri('/forecast/peak'),
-    headers: const {'Content-Type': 'application/json'},
-    body: jsonEncode({'features': features}),
-  );
-  if (res.statusCode != 200) {
-    throw Exception('Peak forecast failed: ${res.statusCode} ${res.body}');
+  try {
+    final res = await http.post(
+      _baseUri('/forecast/peak'),
+      headers: const {'Content-Type': 'application/json'},
+      body: jsonEncode({'features': features}),
+    ).timeout(Duration(seconds: 15));
+    if (res.statusCode != 200) {
+      throw Exception('Peak forecast failed: ${res.statusCode} ${res.body}');
+    }
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    return (data['prediction'] as num).toDouble();
+  } catch (e) {
+    print('Error in forecastPeak: $e');
+    rethrow;
   }
-  final data = jsonDecode(res.body) as Map<String, dynamic>;
-  return (data['prediction'] as num).toDouble();
 }
 
 // Get 7-day daily passenger forecast (optimized)
 Future<({List<DateTime> dates, List<double> predictions})> forecastDaily() async {
   try {
     final uri = _baseUri('/daily_forecast');
-    final res = await http.get(uri).timeout(Duration(seconds: 8));
+    final res = await http.get(uri).timeout(Duration(seconds: 15));
     if (res.statusCode != 200) {
       throw Exception('Daily forecast failed: ${res.statusCode}');
     }
@@ -131,7 +136,7 @@ Future<({List<DateTime> dates, List<double> predictions})> forecastDaily() async
 Future<({List<int> hours, List<double> predictions, int peakHour, double peakValue})> forecastHourly() async {
   try {
     final uri = _baseUri('/hourly_forecast');
-    final res = await http.get(uri).timeout(Duration(seconds: 8));
+    final res = await http.get(uri).timeout(Duration(seconds: 15));
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final hours = (data['hours'] as List).map((e) => e as int).toList();
@@ -152,20 +157,26 @@ Future<({List<int> hours, List<double> predictions, int peakHour, double peakVal
 
 // Get yearly daily forecast grid (12 x 31)
 Future<({int year, List<List<double?>> grid})> forecastYearlyDaily(int year) async {
-  final res = await http.get(_baseUri('/yearly_daily?year=$year'));
-  if (res.statusCode != 200) {
-    throw Exception('Yearly forecast failed: ${res.statusCode} ${res.body}');
+  try {
+    final uri = _baseUri('/yearly_daily?year=$year');
+    final res = await http.get(uri).timeout(Duration(seconds: 15));
+    if (res.statusCode != 200) {
+      throw Exception('Yearly forecast failed: ${res.statusCode} ${res.body}');
+    }
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    final int yr = data['year'] as int;
+    final List<dynamic> rawGrid = data['grid'] as List<dynamic>;
+    // Convert dynamic -> List<List<double?>> with nulls preserved
+    final List<List<double?>> grid = rawGrid
+        .map<List<double?>>((row) => (row as List<dynamic>)
+            .map<double?>((e) => e == null ? null : (e as num).toDouble())
+            .toList())
+        .toList();
+    return (year: yr, grid: grid);
+  } catch (e) {
+    print('Error in forecastYearlyDaily: $e');
+    rethrow;
   }
-  final data = jsonDecode(res.body) as Map<String, dynamic>;
-  final int yr = data['year'] as int;
-  final List<dynamic> rawGrid = data['grid'] as List<dynamic>;
-  // Convert dynamic -> List<List<double?>> with nulls preserved
-  final List<List<double?>> grid = rawGrid
-      .map<List<double?>>((row) => (row as List<dynamic>)
-          .map<double?>((e) => e == null ? null : (e as num).toDouble())
-          .toList())
-      .toList();
-  return (year: yr, grid: grid);
 }
 
 // Convenience: compute per-hour predictions (0..23) and return the peak hour
