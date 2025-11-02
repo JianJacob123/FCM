@@ -20,8 +20,8 @@ String _getForecastingBaseUrl() {
   // Try to get from environment variable (for Render deployment)
   final envUrl = dotenv.env['FORECASTING_API_URL'];
   if (envUrl != null && envUrl.isNotEmpty) {
-    _forecastingBaseUrl = envUrl.endsWith('/') 
-        ? envUrl.substring(0, envUrl.length - 1) 
+    _forecastingBaseUrl = envUrl.endsWith('/')
+        ? envUrl.substring(0, envUrl.length - 1)
         : envUrl;
     print('Using Forecasting API URL from environment: $_forecastingBaseUrl');
     return _forecastingBaseUrl!;
@@ -49,7 +49,7 @@ String _getForecastingBaseUrl() {
   } else {
     host = 'localhost';
   }
-  
+
   _forecastingBaseUrl = 'http://$host:5001';
   print('Using localhost Forecasting API: $_forecastingBaseUrl');
   return _forecastingBaseUrl!;
@@ -111,7 +111,8 @@ Future<double> forecastPeak(Map<String, dynamic> features) async {
 }
 
 // Get 7-day daily passenger forecast (optimized)
-Future<({List<DateTime> dates, List<double> predictions})> forecastDaily() async {
+Future<({List<DateTime> dates, List<double> predictions})>
+forecastDaily() async {
   try {
     final uri = _baseUri('/daily_forecast');
     final res = await http.get(uri).timeout(Duration(seconds: 15));
@@ -133,7 +134,10 @@ Future<({List<DateTime> dates, List<double> predictions})> forecastDaily() async
 }
 
 // Get 24-hour hourly forecast with peak detection (optimized)
-Future<({List<int> hours, List<double> predictions, int peakHour, double peakValue})> forecastHourly() async {
+Future<
+  ({List<int> hours, List<double> predictions, int peakHour, double peakValue})
+>
+forecastHourly() async {
   try {
     final uri = _baseUri('/hourly_forecast');
     final res = await http.get(uri).timeout(Duration(seconds: 15));
@@ -145,7 +149,12 @@ Future<({List<int> hours, List<double> predictions, int peakHour, double peakVal
           .toList();
       final peakHour = data['peak_hour'] as int;
       final peakValue = (data['peak_value'] as num).toDouble();
-      return (hours: hours, predictions: preds, peakHour: peakHour, peakValue: peakValue);
+      return (
+        hours: hours,
+        predictions: preds,
+        peakHour: peakHour,
+        peakValue: peakValue,
+      );
     } else {
       throw Exception('Hourly forecast failed: ${res.statusCode}');
     }
@@ -180,11 +189,12 @@ Future<({int year, List<List<double?>> grid})> forecastYearlyDaily(int year) asy
 }
 
 // Convenience: compute per-hour predictions (0..23) and return the peak hour
-  Future<({int hour, double value, List<double> byHour})> forecastPeakHour(
-    {required int dayOfWeek,
-    required int month,
-    required bool isWeekend,
-    double weatherTemp = 30}) async {
+Future<({int hour, double value, List<double> byHour})> forecastPeakHour({
+  required int dayOfWeek,
+  required int month,
+  required bool isWeekend,
+  double weatherTemp = 30,
+}) async {
   final List<double> byHour = [];
   for (int h = 0; h < 24; h++) {
     final features = {
@@ -205,4 +215,3 @@ Future<({int year, List<List<double?>> grid})> forecastYearlyDaily(int year) asy
   }
   return (hour: peakHour, value: peakVal, byHour: byHour);
 }
-
