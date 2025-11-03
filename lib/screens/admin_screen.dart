@@ -1,5 +1,10 @@
 import 'account_management_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'admin_login_screen.dart';
@@ -326,6 +331,8 @@ class _AdminScreenState extends State<AdminScreen> {
     }
     super.dispose();
   }
+
+  
 
   @override
   Widget build(BuildContext context) {
@@ -4030,6 +4037,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
   bool _showActions = false;
 
   final _formKey = GlobalKey<FormState>();
+  final GlobalKey _scheduleShotKey = GlobalKey();
   final _timeController = TextEditingController();
   final _unitController = TextEditingController();
   final _statusController = TextEditingController();
@@ -4058,6 +4066,53 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
     _statusController.dispose();
     _reasonController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveScheduleAsImage() async {
+    try {
+      // Ensure the boundary is laid out
+      await WidgetsBinding.instance.endOfFrame;
+      final ctx = _scheduleShotKey.currentContext;
+      if (ctx == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Schedule view is not ready yet. Try again.')),
+          );
+        }
+        return;
+      }
+      final boundary = ctx.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return;
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final bytes = byteData!.buffer.asUint8List();
+
+      final filename = 'schedule_${DateFormat('yyyy-MM-dd').format(_selectedDate)}.png';
+
+      if (kIsWeb) {
+        final blob = html.Blob([bytes]);
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)
+          ..download = filename
+          ..style.display = 'none';
+        html.document.body!.children.add(anchor);
+        anchor.click();
+        anchor.remove();
+        html.Url.revokeObjectUrl(url);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Saving images is supported on web in this build.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save image: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _loadSchedules() async {
@@ -4586,6 +4641,18 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                             ),
                             child: const Icon(Icons.add, color: Colors.white),
                           ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            onPressed: _saveScheduleAsImage,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3E4795),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              elevation: 0,
+                            ),
+                            icon: const Icon(Icons.download, size: 18),
+                            label: const Text('Save as Image'),
+                          ),
                         ],
                       ],
                     ),
@@ -4595,7 +4662,9 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
 
                 // Table
                 Expanded(
-                  child: Container(
+                  child: RepaintBoundary(
+                    key: _scheduleShotKey,
+                    child: Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -4766,6 +4835,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                         ),
                       ],
                     ),
+                  ),
                   ),
                 ),
               ],
