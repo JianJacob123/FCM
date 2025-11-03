@@ -45,8 +45,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       // 2. Check if successful
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
+        final data = responseData['data'];
 
-        if (responseData['data']['user_role'] != 'admin') {
+        if (data['user_role'] != 'admin') {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Access denied. Not an admin user.'),
@@ -56,24 +57,25 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           return;
         }
 
+        final userId = data['userid'].toString();
+        final fullName = data['full_name'];
+
+        //Show OTP dialog
+        _showOtpDialog(userId, fullName);
+
         // 3. Build user from backend response
         final user = UserModel(
-          id: responseData['data']['user_id'].toString(),
-          name: responseData['data']['full_name'],
-          role: responseData['data']['user_role'] == 'admin'
+          id: userId,
+          name: fullName,
+          role: data['user_role'] == 'admin'
               ? UserRole.admin
-              : responseData['data']['user_role'] == 'conductor'
+              : data['user_role'] == 'conductor'
               ? UserRole.conductor
               : UserRole.passenger,
         );
 
         // 4. Store in provider
         context.read<UserProvider>().loginUser(user);
-
-        // 5. Navigate to appropriate screen based on role
-        Navigator.of(
-          context,
-        ).pushReplacement(MaterialPageRoute(builder: (_) => AdminScreen()));
       } else {
         final errorData = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -92,6 +94,123 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         ),
       );
     }
+  }
+
+  void _showOtpDialog(String userId, String username) {
+    final otpController = TextEditingController();
+    bool isVerifying = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Two-Factor Authentication',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Enter the 6-digit OTP sent to your email.',
+                    style: TextStyle(fontSize: 14, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: otpController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    decoration: InputDecoration(
+                      hintText: 'Enter OTP',
+                      counterText: '',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isVerifying
+                      ? null
+                      : () async {
+                          setModalState(() => isVerifying = true);
+
+                          final otpCode = otpController.text.trim();
+
+                          final verifyRes = await http.post(
+                            Uri.parse('$baseUrl/users/verify-otp'),
+                            headers: {'Content-Type': 'application/json'},
+                            body: jsonEncode({
+                              "userId": userId,
+                              "otpCode": otpCode,
+                            }),
+                          );
+
+                          setModalState(() => isVerifying = false);
+
+                          if (verifyRes.statusCode == 200) {
+                            final verifyData = jsonDecode(verifyRes.body);
+                            if (verifyData['status'] == 'success') {
+                              Navigator.of(context).pop(); // close OTP modal
+
+                              // Proceed to Admin Screen
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (_) => const AdminScreen(),
+                                ),
+                              );
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Login successful!'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    verifyData['message'] ?? 'Invalid OTP',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('OTP verification failed.'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                  child: isVerifying
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Verify'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -176,9 +295,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
             ),
             onPressed: () {
               Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (context) => const LandingScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const LandingScreen()),
               );
             },
             padding: EdgeInsets.zero,

@@ -1813,8 +1813,10 @@ class _ExpandableSidebarItem extends StatelessWidget {
 class NotificationList extends StatelessWidget {
   const NotificationList({super.key});
 
+  // The corrected timeAgo function
+
   String timeAgo(String isoDate) {
-    final date = DateTime.parse(isoDate);
+    final date = DateTime.parse(isoDate).toLocal();
     final diff = DateTime.now().difference(date);
 
     if (diff.inMinutes < 1) return 'just now';
@@ -1982,29 +1984,15 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
     }
   }
 
-  String _formatTimestamp(dynamic timestamp) {
-    if (timestamp == null || timestamp == '') {
-      return '';
-    }
+  String timeAgo(String isoDate) {
+    final date = DateTime.parse(isoDate).toLocal();
+    final diff = DateTime.now().difference(date);
 
-    try {
-      // Parse the timestamp and format it as YYYY-MM-DD HH:MM:SS
-      DateTime dateTime;
-      if (timestamp is String) {
-        dateTime = DateTime.parse(timestamp);
-      } else {
-        return timestamp.toString();
-      }
-
-      return '${dateTime.year.toString().padLeft(4, '0')}-'
-          '${dateTime.month.toString().padLeft(2, '0')}-'
-          '${dateTime.day.toString().padLeft(2, '0')} '
-          '${dateTime.hour.toString().padLeft(2, '0')}:'
-          '${dateTime.minute.toString().padLeft(2, '0')}:'
-          '${dateTime.second.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return timestamp.toString();
-    }
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
+    if (diff.inHours < 24) return '${diff.inHours} hours ago';
+    if (diff.inDays < 7) return '${diff.inDays} days ago';
+    return DateFormat('MMM dd').format(date);
   }
 
   // Apply filters to activity logs list
@@ -2654,7 +2642,7 @@ class _ActivityLogsPageState extends State<_ActivityLogsPage> {
                               Expanded(
                                 flex: 2,
                                 child: Text(
-                                  _formatTimestamp(log['created_at']),
+                                  timeAgo(log['created_at']),
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Color(0xFF232A4D),
@@ -2950,7 +2938,7 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
             onSave: (notif) async {
               final formattedDate = DateFormat(
                 'yyyy-MM-dd HH:mm:ss',
-              ).format(DateTime.now());
+              ).format(DateTime.now().toUtc());
               // Call your backend API here
               await createNotification(
                 notif['title'],
