@@ -21,6 +21,7 @@ class _LandingScreenState extends State<LandingScreen> {
   int _currentIndex = 0;
   double _homePageScrollOffset = 0.0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  VoidCallback? _scrollToAbout;
   
   // Helper method to check screen size
   bool _isMobileScreen(BuildContext context) => MediaQuery.of(context).size.width < 600;
@@ -31,6 +32,9 @@ class _LandingScreenState extends State<LandingScreen> {
         setState(() {
           _homePageScrollOffset = offset;
         });
+      },
+      onAboutScrollReady: (scrollCallback) {
+        _scrollToAbout = scrollCallback;
       },
     ),
     const AboutPage(),
@@ -213,10 +217,23 @@ class _LandingScreenState extends State<LandingScreen> {
                         _NavLink(
                           text: 'About',
                           isActive: _currentIndex == 1,
-                          onTap: () => setState(() {
-                            _currentIndex = 1;
-                            _homePageScrollOffset = 0.0;
-                          }),
+                          onTap: () {
+                            // If on home page, scroll to About section
+                            if (_currentIndex == 0 && _scrollToAbout != null) {
+                              _scrollToAbout!();
+                            } else {
+                              // Otherwise, switch to home page and scroll
+                              setState(() {
+                                _currentIndex = 0;
+                              });
+                              // Wait for page to switch, then scroll
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (_scrollToAbout != null) {
+                                  _scrollToAbout!();
+                                }
+                              });
+                            }
+                          },
                         ),
                         _NavLink(
                           text: 'Map',
@@ -304,10 +321,21 @@ class _LandingScreenState extends State<LandingScreen> {
             isActive: _currentIndex == 1,
             onTap: () {
               Navigator.of(context).pop();
-              setState(() {
-                _currentIndex = 1;
-                _homePageScrollOffset = 0.0;
-              });
+              // If on home page, scroll to About section
+              if (_currentIndex == 0 && _scrollToAbout != null) {
+                _scrollToAbout!();
+              } else {
+                // Otherwise, switch to home page and scroll
+                setState(() {
+                  _currentIndex = 0;
+                });
+                // Wait for page to switch, then scroll
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (_scrollToAbout != null) {
+                    _scrollToAbout!();
+                  }
+                });
+              }
             },
           ),
           _DrawerItem(
@@ -393,8 +421,9 @@ class _DrawerItem extends StatelessWidget {
 
 class HomePage extends StatefulWidget {
   final Function(double)? onScrollUpdate;
+  final Function(VoidCallback)? onAboutScrollReady;
   
-  const HomePage({super.key, this.onScrollUpdate});
+  const HomePage({super.key, this.onScrollUpdate, this.onAboutScrollReady});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -402,6 +431,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey _aboutSectionKey = GlobalKey();
   double _scrollOffset = 0.0;
 
   @override
@@ -416,6 +446,22 @@ class _HomePageState extends State<HomePage> {
         widget.onScrollUpdate!(_scrollController.offset);
       }
     });
+    
+    // Register scroll to about method with parent
+    if (widget.onAboutScrollReady != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onAboutScrollReady!(() {
+          final context = _aboutSectionKey.currentContext;
+          if (context != null) {
+            Scrollable.ensureVisible(
+              context,
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+            );
+          }
+        });
+      });
+    }
   }
 
   @override
@@ -1010,6 +1056,135 @@ class _HomePageState extends State<HomePage> {
                             ),
                     ],
                   ),
+                ),
+                // About FCM Transport Section
+                Container(
+                  key: _aboutSectionKey,
+                  width: double.infinity,
+                  padding: _getResponsivePadding(context),
+                  color: Colors.white,
+                  child: _isMobile(context)
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'About FCM Transport',
+                              style: TextStyle(
+                                fontSize: _getResponsiveFontSize(context, 36, 28, 24),
+                                fontWeight: FontWeight.bold,
+                                color: const Color.fromRGBO(62, 71, 149, 1),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              'FCM Transport Batangas-Bauan-Grand Terminal Corporation is dedicated to providing modern and reliable public transportation services in Batangas. In partnership with Hino Batangas, we launched 15 Hino Modern Public Utility Vehicles (PUVs) featuring ergonomic seating, efficient air-conditioning, and robust safety systems.',
+                              style: TextStyle(
+                                fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                color: Colors.grey[700],
+                                height: 1.6,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Our vision is to offer better transport services to Bauan and neighboring areas, supported by the Land Transportation Franchising and Regulatory Board (LTFRB) Region IV and the local government of Batangas. We aim to improve commuting between Bauan and Lipa, creating opportunities for work, business, and leisure.',
+                              style: TextStyle(
+                                fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                color: Colors.grey[700],
+                                height: 1.6,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'This partnership with Hino reflects FCM Transport\'s commitment to innovation and our goal of providing safe, sustainable, and world-class mobility solutions.',
+                              style: TextStyle(
+                                fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                color: Colors.grey[700],
+                                height: 1.6,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            // Image placeholder - you can replace with actual images
+                            Container(
+                              height: 300,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.bus_alert,
+                                size: 80,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Text content on the left
+                            Expanded(
+                              flex: 1,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'About FCM Transport',
+                                    style: TextStyle(
+                                      fontSize: _getResponsiveFontSize(context, 36, 28, 24),
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color.fromRGBO(62, 71, 149, 1),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  Text(
+                                    'FCM Transport Batangas-Bauan-Grand Terminal Corporation is dedicated to providing modern and reliable public transportation services in Batangas. In partnership with Hino Batangas, we launched 15 Hino Modern Public Utility Vehicles (PUVs) featuring ergonomic seating, efficient air-conditioning, and robust safety systems.',
+                                    style: TextStyle(
+                                      fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                      color: Colors.grey[700],
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Text(
+                                    'Our vision is to offer better transport services to Bauan and neighboring areas, supported by the Land Transportation Franchising and Regulatory Board (LTFRB) Region IV and the local government of Batangas. We aim to improve commuting between Bauan and Lipa, creating opportunities for work, business, and leisure.',
+                                    style: TextStyle(
+                                      fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                      color: Colors.grey[700],
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Text(
+                                    'This partnership with Hino reflects FCM Transport\'s commitment to innovation and our goal of providing safe, sustainable, and world-class mobility solutions.',
+                                    style: TextStyle(
+                                      fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                      color: Colors.grey[700],
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 40),
+                            // Image carousel on the right
+                            Expanded(
+                              flex: 1,
+                              child: Container(
+                                height: 400,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[200],
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.bus_alert,
+                                  size: 80,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
                 // Download App Section
                 Container(
