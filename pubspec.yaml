@@ -71,6 +71,10 @@ flutter:
     - assets/logo.png
     - assets/logo2.png
     - assets/bg.jpeg
+    - assets/3d.png
+    - assets/android.png
+    - assets/app.png
+    - assets/apple.png
     - assets/icons/
     - assets/.env
   uses-material-design: true

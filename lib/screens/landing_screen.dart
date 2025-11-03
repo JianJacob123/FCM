@@ -22,6 +22,7 @@ class _LandingScreenState extends State<LandingScreen> {
   double _homePageScrollOffset = 0.0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   VoidCallback? _scrollToAbout;
+  VoidCallback? _scrollToTop;
   
   // Helper method to check screen size
   bool _isMobileScreen(BuildContext context) => MediaQuery.of(context).size.width < 600;
@@ -35,6 +36,14 @@ class _LandingScreenState extends State<LandingScreen> {
       },
       onAboutScrollReady: (scrollCallback) {
         _scrollToAbout = scrollCallback;
+      },
+      onTopScrollReady: (scrollCallback) {
+        _scrollToTop = scrollCallback;
+      },
+      onNavigateToMap: () {
+        setState(() {
+          _currentIndex = 3; // MapPage is at index 3
+        });
       },
     ),
     const AboutPage(),
@@ -212,6 +221,10 @@ class _LandingScreenState extends State<LandingScreen> {
                           onTap: () => setState(() {
                             _currentIndex = 0;
                             _homePageScrollOffset = 0.0;
+                            // Scroll to top when already on home
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              _scrollToTop?.call();
+                            });
                           }),
                         ),
                         _NavLink(
@@ -312,6 +325,9 @@ class _LandingScreenState extends State<LandingScreen> {
               setState(() {
                 _currentIndex = 0;
                 _homePageScrollOffset = 0.0;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _scrollToTop?.call();
+              });
               });
             },
           ),
@@ -422,8 +438,10 @@ class _DrawerItem extends StatelessWidget {
 class HomePage extends StatefulWidget {
   final Function(double)? onScrollUpdate;
   final Function(VoidCallback)? onAboutScrollReady;
+  final Function(VoidCallback)? onTopScrollReady;
+  final VoidCallback? onNavigateToMap;
   
-  const HomePage({super.key, this.onScrollUpdate, this.onAboutScrollReady});
+  const HomePage({super.key, this.onScrollUpdate, this.onAboutScrollReady, this.onTopScrollReady, this.onNavigateToMap});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -455,6 +473,21 @@ class _HomePageState extends State<HomePage> {
           if (context != null) {
             Scrollable.ensureVisible(
               context,
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+            );
+          }
+        });
+      });
+    }
+
+    // Register scroll to top method with parent
+    if (widget.onTopScrollReady != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onTopScrollReady!(() {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              0,
               duration: const Duration(milliseconds: 500),
               curve: Curves.easeInOut,
             );
@@ -498,8 +531,9 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildTrackButton(BuildContext context) {
     return InkWell(
-      onTap: () {}, // Static - no action
+      onTap: widget.onNavigateToMap ?? () {}, // Navigate to map page
       child: Container(
+        height: 56,
         padding: const EdgeInsets.symmetric(
           horizontal: 24,
           vertical: 16,
@@ -514,6 +548,7 @@ class _HomePageState extends State<HomePage> {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
               'Track FCM Units',
@@ -539,6 +574,7 @@ class _HomePageState extends State<HomePage> {
     return InkWell(
       onTap: () => _showDownloadAppModal(context),
       child: Container(
+        height: 56,
         padding: const EdgeInsets.symmetric(
           horizontal: 24,
           vertical: 16,
@@ -549,6 +585,7 @@ class _HomePageState extends State<HomePage> {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
               'Download App',
@@ -560,7 +597,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(width: 12),
             const Icon(
-              Icons.download,
+              Icons.smartphone,
               size: 20,
               color: Colors.white,
             ),
@@ -576,40 +613,37 @@ class _HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final screenWidth = MediaQuery.of(context).size.width;
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text(
-            'Download App',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color.fromRGBO(62, 71, 149, 1),
+          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          content: SizedBox(
+            width: screenWidth < 600 ? screenWidth * 0.9 : 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Get the FCM Transport App',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color.fromRGBO(62, 71, 149, 1),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'The FCM Transport mobile app is currently supported on Android devices only. For iOS users, the map and tracking features are available via the Map section of this website.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[700],
+                    height: 1.5,
+                  ),
+                ),
+              ],
             ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'This app is currently available for Android users only.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[700],
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'For iOS users, you can access the map on the Map page.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[700],
-                  height: 1.5,
-                ),
-              ),
-            ],
           ),
           actions: [
             // Stack buttons vertically on mobile, horizontally on desktop
@@ -621,7 +655,7 @@ class _HomePageState extends State<HomePage> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.of(context).pop(); // Close modal
-                        // Static - no navigation
+                        widget.onNavigateToMap?.call(); // Navigate to MapPage
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -633,9 +667,16 @@ class _HomePageState extends State<HomePage> {
                         ),
                         elevation: 0,
                       ),
-                      icon: const Icon(Icons.phone_iphone, size: 20),
+                      icon: Image.asset(
+                        'assets/apple.png',
+                        width: 20,
+                        height: 20,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(Icons.phone_iphone, size: 20);
+                        },
+                      ),
                       label: const Text(
-                        'Go to Map Page',
+                        'Go to Map',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -658,9 +699,13 @@ class _HomePageState extends State<HomePage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      icon: const Icon(Icons.phone_android, size: 20, color: Colors.white),
+                      icon: const Icon(
+                        Icons.phone,
+                        size: 20,
+                        color: Colors.white,
+                      ),
                       label: const Text(
-                        'Download App',
+                        'Download for Android',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -679,7 +724,7 @@ class _HomePageState extends State<HomePage> {
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.of(context).pop(); // Close modal
-                      // Static - no navigation
+                      widget.onNavigateToMap?.call(); // Navigate to MapPage
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
@@ -691,7 +736,14 @@ class _HomePageState extends State<HomePage> {
                       ),
                       elevation: 0,
                     ),
-                    icon: const Icon(Icons.phone_iphone, size: 20),
+                    icon: Image.asset(
+                      'assets/apple.png',
+                      width: 20,
+                      height: 20,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.phone_iphone, size: 20);
+                      },
+                    ),
                     label: const Text(
                       'Go to Map Page',
                       style: TextStyle(
@@ -714,9 +766,16 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    icon: const Icon(Icons.phone_android, size: 20, color: Colors.white),
+                    icon: Image.asset(
+                      'assets/android.png',
+                      width: 20,
+                      height: 20,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.phone_android, size: 20, color: Colors.white);
+                      },
+                    ),
                     label: const Text(
-                      'Download App',
+                      'Download for Android',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -810,11 +869,11 @@ class _HomePageState extends State<HomePage> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                           Text(
                       'FCM Transport Services Corporation',
-                            textAlign: TextAlign.left,
+                            textAlign: TextAlign.center,
                       style: TextStyle(
                               fontSize: _getResponsiveFontSize(context, 56, 42, 32),
                         fontWeight: FontWeight.bold,
@@ -836,8 +895,8 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 24),
                           Text(
-                      "You're reliable Transport Service",
-                            textAlign: TextAlign.left,
+                      "Your reliable transport service from Bauan to Lipa",
+                            textAlign: TextAlign.center,
                       style: TextStyle(
                               fontSize: _getResponsiveFontSize(context, 28, 22, 18),
                         color: Colors.white,
@@ -861,10 +920,15 @@ class _HomePageState extends State<HomePage> {
                                   ],
                                 )
                               : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    _buildTrackButton(context),
+                                    Flexible(
+                                      child: _buildTrackButton(context),
+                                    ),
                                     const SizedBox(width: 16),
-                                    _buildDownloadButton(context),
+                                    Flexible(
+                                      child: _buildDownloadButton(context),
+                                    ),
                                   ],
                                 ),
                         ],
@@ -878,18 +942,20 @@ class _HomePageState extends State<HomePage> {
                   padding: _getResponsivePadding(context),
                   color: Colors.white,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _isMobile(context)
                           ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 _StatCard(
-                                  number: '300+',
+                                  number: '15',
                                   label: 'Buses in operation',
                                 ),
                                 const SizedBox(height: 16),
                                 _StatCard(
-                                  number: '120+',
-                                  label: 'Routes served',
+                                  number: '1',
+                                  label: 'Operational Route',
                                 ),
                                 const SizedBox(height: 16),
                                 _StatCard(
@@ -907,15 +973,15 @@ class _HomePageState extends State<HomePage> {
                               children: [
                                 Expanded(
                                   child: _StatCard(
-                                    number: '300+',
+                                    number: '15',
                                     label: 'Buses in operation',
                                   ),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: _StatCard(
-                                    number: '120+',
-                                    label: 'Routes served',
+                                    number: '1',
+                                    label: 'Operational Route',
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -928,8 +994,8 @@ class _HomePageState extends State<HomePage> {
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: _StatCard(
-                                    number: '250k',
-                                    label: 'Monthly rides',
+                                    number: '3k',
+                                    label: 'Daily rides',
                                   ),
                                 ),
                               ],
@@ -981,79 +1047,6 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ],
                       ),
-                      // Schedule Table
-                      const SizedBox(height: 40),
-                      _isMobile(context)
-                          ? Column(
-                              children: [
-                                _ScheduleCard(
-                                  route: 'Bauan – Lipa',
-                                  firstTrip: '4:30 AM',
-                                  lastTrip: '7:00 PM',
-                                ),
-                                const SizedBox(height: 12),
-                                _ScheduleCard(
-                                  route: 'Lipa – Bauan',
-                                  firstTrip: '6:00 AM',
-                                  lastTrip: '8:00 PM',
-                                ),
-                              ],
-                            )
-                          : Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: Colors.grey[300]!,
-                                  width: 1,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Table(
-                                columnWidths: const {
-                                  0: FlexColumnWidth(2),
-                                  1: FlexColumnWidth(1.5),
-                                  2: FlexColumnWidth(1.5),
-                                },
-                                border: TableBorder(
-                                  horizontalInside: BorderSide(
-                                    color: Colors.grey[300]!,
-                                    width: 1,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                children: [
-                                  // Header row
-                                  TableRow(
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF5C5C8A),
-                                      borderRadius: const BorderRadius.only(
-                                        topLeft: Radius.circular(12),
-                                        topRight: Radius.circular(12),
-                                      ),
-                                    ),
-                                    children: [
-                                      _TableHeaderCell(text: 'Route'),
-                                      _TableHeaderCell(text: 'First Trip'),
-                                      _TableHeaderCell(text: 'Last Trip'),
-                                    ],
-                                  ),
-                                  // Data rows
-                                  TableRow(
-                                    children: [
-                                      _TableCell(text: 'Bauan – Lipa'),
-                                      _TableCell(text: '4:30 AM'),
-                                      _TableCell(text: '7:00 PM'),
-                                    ],
-                                  ),
-                                  TableRow(
-                                    children: [
-                                      _TableCell(text: 'Lipa – Bauan'),
-                                      _TableCell(text: '6:00 AM'),
-                                      _TableCell(text: '8:00 PM'),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
                     ],
                   ),
                 ),
@@ -1103,18 +1096,29 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
                             const SizedBox(height: 24),
-                            // Image placeholder - you can replace with actual images
+                            // Image
                             Container(
                               height: 300,
                               width: double.infinity,
                               decoration: BoxDecoration(
-                                color: Colors.grey[200],
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Icon(
-                                Icons.bus_alert,
-                                size: 80,
-                                color: Colors.grey,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.asset(
+                                  'assets/3d.png',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey[200],
+                                      child: const Icon(
+                                        Icons.bus_alert,
+                                        size: 80,
+                                        color: Colors.grey,
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
                             ),
                           ],
@@ -1167,24 +1171,348 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
                             const SizedBox(width: 40),
-                            // Image carousel on the right
+                            // Image on the right
                             Expanded(
                               flex: 1,
                               child: Container(
                                 height: 400,
                                 decoration: BoxDecoration(
-                                  color: Colors.grey[200],
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(
-                                  Icons.bus_alert,
-                                  size: 80,
-                                  color: Colors.grey,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.asset(
+                                    'assets/3d.png',
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        color: Colors.grey[200],
+                                        child: const Icon(
+                                          Icons.bus_alert,
+                                          size: 80,
+                                          color: Colors.grey,
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
                               ),
                             ),
                           ],
                         ),
+                ),
+                // Mission and Vision Section
+                Container(
+                  width: double.infinity,
+                  padding: _getResponsivePadding(context),
+                  color: Colors.white,
+                  child: _isMobile(context)
+                      ? Column(
+                          children: [
+                            // Vision Card
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.08),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Our Vision',
+                                    style: TextStyle(
+                                      fontSize: _getResponsiveFontSize(context, 28, 24, 22),
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color.fromRGBO(62, 71, 149, 1),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'To be the most trusted and modern transport service in Batangas—connecting communities with reliable, comfortable, and inclusive mobility.',
+                                    style: TextStyle(
+                                      fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                      color: Colors.grey[700],
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            // Mission Card
+                            Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.08),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Our Mission',
+                                    style: TextStyle(
+                                      fontSize: _getResponsiveFontSize(context, 28, 24, 22),
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color.fromRGBO(62, 71, 149, 1),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Provide safe, efficient, and customer-focused public transport through well-maintained vehicles, trained personnel, and continuous innovation—delivering value to riders and supporting sustainable growth across Bauan, Lipa, and neighboring areas.',
+                                    style: TextStyle(
+                                      fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                      color: Colors.grey[700],
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      : IntrinsicHeight(
+                      child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Vision Card
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(32),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.08),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Our Vision',
+                                        style: TextStyle(
+                                          fontSize: _getResponsiveFontSize(context, 28, 24, 22),
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color.fromRGBO(62, 71, 149, 1),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'To be the most trusted and modern transport service in Batangas—connecting communities with reliable, comfortable, and inclusive mobility.',
+                                        style: TextStyle(
+                                          fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                          color: Colors.grey[700],
+                                          height: 1.6,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 24),
+                              // Mission Card
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(32),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.08),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Our Mission',
+                                        style: TextStyle(
+                                          fontSize: _getResponsiveFontSize(context, 28, 24, 22),
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color.fromRGBO(62, 71, 149, 1),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Provide safe, efficient, and customer-focused public transport through well-maintained vehicles, trained personnel, and continuous innovation—delivering value to riders and supporting sustainable growth across Bauan, Lipa, and neighboring areas.',
+                                        style: TextStyle(
+                                          fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                          color: Colors.grey[700],
+                                          height: 1.6,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                ),
+                // About Our Services Section
+                Container(
+                  width: double.infinity,
+                  padding: _getResponsivePadding(context),
+                  color: Colors.white,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'About Our Services',
+                        style: TextStyle(
+                          fontSize: _getResponsiveFontSize(context, 36, 28, 24),
+                          fontWeight: FontWeight.bold,
+                          color: const Color.fromRGBO(62, 71, 149, 1),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Quick facts about the services we provide every day.',
+                        style: TextStyle(
+                          fontSize: _getResponsiveFontSize(context, 18, 16, 14),
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      _isMobile(context)
+                          ? Column(
+                              children: [
+                                _ServiceCard(
+                                  icon: Icons.directions_bus,
+                                  iconColor: const Color(0xFF5C5C8A),
+                                  title: 'Fleet Size',
+                                  description: 'A total of 15 modern air-conditioned buses operate daily between Bauan and Lipa.',
+                                ),
+                                const SizedBox(height: 20),
+                                _ServiceCard(
+                                  icon: Icons.access_time,
+                                  iconColor: const Color(0xFF9C27B0),
+                                  title: 'Service Hours',
+                                  description: 'Bauan → Lipa: 4:30 AM – 7:00 PM\nLipa → Bauan: 6:00 AM – 8:00 PM',
+                                ),
+                                const SizedBox(height: 20),
+                                _ServiceCard(
+                                  icon: Icons.verified_user,
+                                  iconColor: const Color(0xFF2196F3),
+                                  title: 'Safety First',
+                                  description: 'Operated by certified professional drivers trained in safety and passenger care.',
+                                ),
+                                const SizedBox(height: 20),
+                                _ServiceCard(
+                                  icon: Icons.accessible,
+                                  iconColor: const Color(0xFF2196F3),
+                                  title: 'Accessibility',
+                                  description: 'Spacious seating and well-maintained interiors ensure a comfortable ride throughout your journey.',
+                                ),
+                                const SizedBox(height: 20),
+                                _ServiceCard(
+                                  icon: Icons.local_offer,
+                                  iconColor: const Color(0xFF5C5C8A),
+                                  title: 'Affordable Fares',
+                                  description: 'Budget-friendly rates with discounts for students, seniors, and PWD.',
+                                ),
+                                const SizedBox(height: 20),
+                                _ServiceCard(
+                                  icon: Icons.air,
+                                  iconColor: const Color(0xFF2196F3),
+                                  title: 'On-board Amenities',
+                                  description: 'Air-conditioned buses on all trips for a cool and convenient travel experience.',
+                                ),
+                              ],
+                            )
+                          : Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _ServiceCard(
+                                        icon: Icons.directions_bus,
+                                        iconColor: const Color(0xFF5C5C8A),
+                                        title: 'Fleet Size',
+                                        description: 'A total of 15 modern air-conditioned buses operate daily between Bauan and Lipa.',
+                                      ),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    Expanded(
+                                      child: _ServiceCard(
+                                        icon: Icons.access_time,
+                                        iconColor: const Color(0xFF9C27B0),
+                                        title: 'Service Hours',
+                                        description: 'Bauan → Lipa: 4:30 AM – 7:00 PM\nLipa → Bauan: 6:00 AM – 8:00 PM',
+                                      ),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    Expanded(
+                                      child: _ServiceCard(
+                                        icon: Icons.verified_user,
+                                        iconColor: const Color(0xFF2196F3),
+                                        title: 'Safety First',
+                                        description: 'Operated by certified professional drivers trained in safety and passenger care.',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 20),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _ServiceCard(
+                                        icon: Icons.accessible,
+                                        iconColor: const Color(0xFF2196F3),
+                                        title: 'Accessibility',
+                                        description: 'Spacious seating and well-maintained interiors ensure a comfortable ride throughout your journey.',
+                                      ),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    Expanded(
+                                      child: _ServiceCard(
+                                        icon: Icons.local_offer,
+                                        iconColor: const Color(0xFF5C5C8A),
+                                        title: 'Affordable Fares',
+                                        description: 'Budget-friendly rates with discounts for students, seniors, and PWD.',
+                                      ),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    Expanded(
+                                      child: _ServiceCard(
+                                        icon: Icons.air,
+                                        iconColor: const Color(0xFF2196F3),
+                                        title: 'On-board Amenities',
+                                        description: 'Air-conditioned buses on all trips for a cool and convenient travel experience.',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                    ],
+                  ),
                 ),
                 // Download App Section
                 Container(
@@ -1194,6 +1522,7 @@ class _HomePageState extends State<HomePage> {
                     color: Colors.white,
                   ),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Download Our App',
@@ -1204,45 +1533,182 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        'Track buses in real-time, view schedules, and plan your journey all in one place.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: _getResponsiveFontSize(context, 18, 16, 14),
-                          color: Colors.grey[700],
-                          height: 1.6,
-                        ),
-                      ),
-                      const SizedBox(height: 40),
                       _isMobile(context)
                           ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _AppDownloadButton(
-                                  icon: Icons.phone_android,
-                                  text: 'Google Play',
-                                  onTap: () => _showDownloadAppModal(context),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.asset(
+                                    'assets/app.png',
+                                    height: 260,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const SizedBox.shrink();
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                Text(
+                                  'Stay connected and informed with real-time tracking of FCM Transport units through our mobile app.',
+                                  textAlign: TextAlign.left,
+                                  style: TextStyle(
+                                    fontSize: _getResponsiveFontSize(context, 18, 16, 14),
+                                    color: Colors.grey[700],
+                                    height: 1.6,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(maxWidth: 800),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: const [
+                                        _BulletPoint(text: 'Track active FCM buses along the Bauan–Lipa route in real time'),
+                                        _BulletPoint(text: 'View estimated arrival times to plan your trip better'),
+                                        _BulletPoint(text: 'Save your favorite locations for quick access'),
+                                        _BulletPoint(text: 'Receive instant updates directly from our operators'),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                                 const SizedBox(height: 12),
-                                _AppDownloadButton(
-                                  icon: Icons.phone_iphone,
-                                  text: 'App Store',
-                                  onTap: () => _showDownloadAppModal(context),
+                                Text(
+                                  'Experience smart, convenient, and reliable commuting—anytime, anywhere.',
+                                  textAlign: TextAlign.left,
+                                  style: TextStyle(
+                                    fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                    color: Colors.grey[700],
+                                    height: 1.6,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Currently available for Android users only.',
+                                  textAlign: TextAlign.left,
+                                  style: TextStyle(
+                                    fontSize: _getResponsiveFontSize(context, 14, 14, 13),
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: () => _showDownloadAppModal(context),
+                      style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF3E4795),
+                        foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    elevation: 4,
+                                  ),
+                                  icon: const Icon(Icons.android, size: 22, color: Colors.white),
+                                  label: const Text('Download App', style: TextStyle(fontWeight: FontWeight.w600)),
+                                ),
+                                const SizedBox(height: 20),
+                                // QR container (mobile)
+                                Container(
+                                  width: 200,
+                                  height: 200,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Center(
+                                    child: Icon(Icons.qr_code_2, size: 140, color: Color(0xFF3E4795)),
+                                  ),
                                 ),
                               ],
                             )
                           : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _AppDownloadButton(
-                                  icon: Icons.phone_android,
-                                  text: 'Google Play',
-                                  onTap: () => _showDownloadAppModal(context),
+                                Expanded(
+                                  flex: 1,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 24.0),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Image.asset(
+                                        'assets/app.png',
+                                        height: 360,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return const SizedBox.shrink();
+                                        },
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                                const SizedBox(width: 20),
-                                _AppDownloadButton(
-                                  icon: Icons.phone_iphone,
-                                  text: 'App Store',
-                                  onTap: () => _showDownloadAppModal(context),
+                                Expanded(
+                                  flex: 2,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Stay connected and informed with real-time tracking of FCM Transport units through our mobile app.',
+                                        textAlign: TextAlign.left,
+                                        style: TextStyle(
+                                          fontSize: _getResponsiveFontSize(context, 18, 16, 14),
+                                          color: Colors.grey[700],
+                                          height: 1.6,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 20),
+                                      ConstrainedBox(
+                                        constraints: const BoxConstraints(maxWidth: 800),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: const [
+                                            _BulletPoint(text: 'Track active FCM buses along the Bauan–Lipa route in real time'),
+                                            _BulletPoint(text: 'View estimated arrival times to plan your trip better'),
+                                            _BulletPoint(text: 'Save your favorite locations for quick access'),
+                                            _BulletPoint(text: 'Receive instant updates directly from our operators'),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'Experience smart, convenient, and reliable commuting—anytime, anywhere.',
+                                        textAlign: TextAlign.left,
+                                        style: TextStyle(
+                                          fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                          color: Colors.grey[700],
+                                          height: 1.6,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Currently available for Android users only.',
+                                        textAlign: TextAlign.left,
+                                        style: TextStyle(
+                                          fontSize: _getResponsiveFontSize(context, 14, 14, 13),
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ElevatedButton.icon(
+                                        onPressed: () => _showDownloadAppModal(context),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF3E4795),
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 4,
+                                        ),
+                                        icon: const Icon(Icons.android, size: 22, color: Colors.white),
+                                        label: const Text('Download App', style: TextStyle(fontWeight: FontWeight.w600)),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
@@ -1315,7 +1781,7 @@ class _HomePageState extends State<HomePage> {
                                         },
                                       ),
                                       _FooterLink(
-                                        text: 'Routes & Map',
+                                        text: 'Map',
                                         onTap: () {
                                           Navigator.of(context).push(
                                             MaterialPageRoute(
@@ -1325,17 +1791,7 @@ class _HomePageState extends State<HomePage> {
                                         },
                                       ),
                                       _FooterLink(
-                                        text: 'About Us',
-                                        onTap: () {
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(
-                                              builder: (context) => const AdminLoginScreen(),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                      _FooterLink(
-                                        text: 'Contact',
+                                        text: 'About',
                                         onTap: () {
                                           Navigator.of(context).push(
                                             MaterialPageRoute(
@@ -1402,7 +1858,32 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                     ),
+                                // QR container (desktop)
+                                Expanded(
+                                  flex: 1,
+                                  child: Align(
+                                    alignment: Alignment.topLeft,
+                                    child: Container(
+                                      width: 260,
+                                      height: 260,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.1),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                    ),
                   ],
+                ),
+                                      child: const Center(
+                                        child: Icon(Icons.qr_code_2, size: 180, color: Color(0xFF3E4795)),
+              ),
+            ),
+          ),
+        ),
+      ],
                 ),
                           ],
                         ),
@@ -1707,6 +2188,79 @@ class _FeatureItem extends StatelessWidget {
           Text(
             description,
             textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[700],
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ServiceCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String description;
+
+  const _ServiceCard({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.description,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: iconColor,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color.fromRGBO(62, 71, 149, 1),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            description,
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[700],
