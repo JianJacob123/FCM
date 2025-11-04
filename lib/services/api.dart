@@ -1,4 +1,5 @@
 // lib/services/api.dart
+import 'dart:collection';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -40,6 +41,18 @@ Future<List<dynamic>> fetchTripHistory(String userId) async {
     return jsonDecode(response.body);
   } else {
     throw Exception("Failed to load trip history");
+  }
+}
+
+Future<Map<String, dynamic>?> fetchActiveTrips(String userId) async {
+  final response = await http.get(
+    Uri.parse("$baseUrl/passengerTrips/fetchActiveTrip/?id=$userId"),
+  );
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  } else {
+    throw Exception("Failed to load fetch active trips");
   }
 }
 

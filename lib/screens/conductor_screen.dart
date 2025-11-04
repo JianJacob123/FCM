@@ -880,7 +880,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
   late Future<List<dynamic>> notifications;
 
   String timeAgo(String isoDate) {
-    final date = DateTime.parse(isoDate);
+    final date = DateTime.parse(isoDate).toLocal();
     final diff = DateTime.now().difference(date);
 
     if (diff.inMinutes < 1) return 'just now';

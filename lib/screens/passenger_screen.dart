@@ -11,7 +11,6 @@ import '../helpers/location_service.dart';
 import '../models/trip_request.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api.dart';
-import '../services/notif_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
@@ -342,7 +341,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   /// Format time ago
   String timeAgo(String isoDate) {
-    final date = DateTime.parse(isoDate);
+    final date = DateTime.parse(isoDate).toLocal();
     final diff = DateTime.now().difference(date);
 
     if (diff.inMinutes < 1) return 'just now';
@@ -447,42 +446,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 }
 
-class TripStepper extends StatelessWidget {
-  final String currentStatus;
-  final List<String> steps = ["pending", "picked_up", "dropped_off"];
-
-  TripStepper({super.key, required this.currentStatus});
-
-  @override
-  Widget build(BuildContext context) {
-    int currentStep = steps.indexOf(currentStatus);
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: steps.map((s) {
-        int stepIndex = steps.indexOf(s);
-        bool isActive = stepIndex <= currentStep;
-
-        return Column(
-          children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: isActive ? Color(0xFF3E4795) : Colors.grey,
-              child: Icon(
-                isActive ? Icons.check : Icons.circle,
-                size: 16,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(s, style: TextStyle(fontSize: 12)),
-          ],
-        );
-      }).toList(),
-    );
-  }
-}
-
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -498,13 +461,20 @@ class _MapScreenState extends State<MapScreen> {
   Map<String, dynamic>? _selectedVehicle; // selected vehicle info
   List<LatLng> _routePolyline = [];
   int? _selectedRouteId; // will hold the chosen route_id
-  String? _currentTripStatus;
+  Map<String, dynamic>? _activeTrip;
+  Timer? _tripRefreshTimer;
+  bool _isTripExpanded = false;
 
   @override
   void initState() {
     super.initState();
 
     _getUserLocation(); //fetch at startup
+    _loadActiveTrip();
+    _tripRefreshTimer = Timer.periodic(Duration(seconds: 60), (timer) {
+      if (!mounted) return;
+      _loadActiveTrip();
+    });
 
     // --- Vehicle socket (no userId needed) ---
     vehicleSocket = IO.io(
@@ -568,54 +538,13 @@ class _MapScreenState extends State<MapScreen> {
     vehicleSocket.onDisconnect((_) {
       print('Vehicle disconnected');
     });
-
-    // --- Trip Status Socket ---
-    passengerTripSocket = IO.io(
-      "$baseUrl/tripstatus", //point to trips namespace
-      IO.OptionBuilder().setTransports(['websocket']).build(),
-    );
-
-    passengerTripSocket.connect();
-
-    passengerTripSocket.onConnect((_) {
-      print('Connected to trip backend');
-      final testId = "guest_123"; //For Testing
-      final userProvider = context.read<UserProvider>();
-      final userId = userProvider.isLoggedIn
-          ? userProvider.currentUser!.id
-          : userProvider.guestId;
-
-      if (userId == null) {
-        print("Error: userId is null");
-        return;
-      }
-
-      passengerTripSocket.emit("subscribeTrips", testId); // 🔑 join tripRoom
-    });
-
-    passengerTripSocket.on('tripCreated', (data) {
-      if (!mounted) return;
-      print("New trip: $data");
-      final status = data["status"] ?? "pending";
-
-      setState(() {
-        // handle trip UI updates here
-        _currentTripStatus = status;
-      });
-    });
-
-    passengerTripSocket.onDisconnect((_) {
-      print('Trip socket disconnected');
-    });
   }
 
   @override
   void dispose() {
+    _tripRefreshTimer?.cancel(); //clean up timer
     vehicleSocket.off('vehicleUpdate');
     vehicleSocket.dispose();
-    passengerTripSocket.off('tripCreated');
-    passengerTripSocket.dispose();
-
     super.dispose();
   }
 
@@ -629,6 +558,26 @@ class _MapScreenState extends State<MapScreen> {
       });
     } else {
       print('Unable to fetch user location');
+    }
+  }
+
+  Future<void> _loadActiveTrip() async {
+    final testId = "GUEST-123"; //for testing
+    final userProvider = context.read<UserProvider>();
+    final userId = userProvider.isLoggedIn
+        ? userProvider.currentUser!.id
+        : userProvider.guestId;
+
+    try {
+      final trips = await fetchActiveTrips(testId);
+
+      if (!mounted) return;
+
+      setState(() {
+        _activeTrip = trips;
+      });
+    } catch (e) {
+      print('Error loading active trip: $e');
     }
   }
 
@@ -740,21 +689,258 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
 
-          if (_currentTripStatus != null)
+          // === Active Trip Bottom Sheet ===
+          if (_activeTrip != null && !_isTripExpanded)
             Positioned(
-              top: 20,
-              left: 20,
-              right: 20,
-              child: Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(12),
+              bottom: 120,
+              left: 16,
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _isTripExpanded = true;
+                  });
+                },
                 child: Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 12,
+                        offset: const Offset(0, -4),
+                      ),
+                    ],
                   ),
-                  child: TripStepper(currentStatus: _currentTripStatus!),
+                  child: Row(
+                    mainAxisAlignment:
+                        MainAxisAlignment.start, // Align to start
+                    children: [
+                      Row(
+                        children: [
+                          // 1. Static Label
+                          Icon(
+                            Icons.directions,
+                            size: 24,
+                            color: Color(0xFF3E4795),
+                          ),
+
+                          const SizedBox(width: 6),
+
+                          // 2. Dynamic Status Value
+                          Text(
+                            _activeTrip!["status"].toString().toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              // Use color to indicate status (e.g., Orange for pending)
+                              color: _activeTrip!["status"] == "pending"
+                                  ? Colors.orange
+                                  : Colors
+                                        .blue, // Simplified color logic for example
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Add some space between the status and the icon
+                      const SizedBox(width: 10),
+
+                      // Arrow icon to indicate expandability
+                      const Icon(
+                        Icons.keyboard_arrow_up,
+                        size: 20,
+                        color: Colors.grey,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          if (_activeTrip != null && _isTripExpanded)
+            Positioned(
+              bottom: 90,
+              left: 20,
+              right: 20,
+              child: Container(
+                constraints: const BoxConstraints(
+                  minHeight: 120,
+                  maxHeight: 260,
+                ),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 12,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header Row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Active Trip",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF3E4795),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: () {
+                            setState(() {
+                              _isTripExpanded = false;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Status Chip
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _activeTrip!["status"] == "pending"
+                            ? Colors.orange.withOpacity(0.15)
+                            : _activeTrip!["status"] == "picked_up"
+                            ? Colors.blue.withOpacity(0.15)
+                            : Colors.green.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        _activeTrip!["status"].toString().toUpperCase(),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: _activeTrip!["status"] == "pending"
+                              ? Colors.orange
+                              : _activeTrip!["status"] == "picked_up"
+                              ? Colors.blue
+                              : Colors.green,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Trip info
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Pickup",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "${_activeTrip!["pickup_lat"]}, ${_activeTrip!["pickup_lng"]}",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Dropoff",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "${_activeTrip!["dropoff_lat"]}, ${_activeTrip!["dropoff_lng"]}",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Progress indicator
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Trip Progress",
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 8),
+                        LinearProgressIndicator(
+                          value: _activeTrip!["status"] == "pending"
+                              ? 0.3
+                              : _activeTrip!["status"] == "picked_up"
+                              ? 0.6
+                              : 1.0,
+                          minHeight: 8,
+                          backgroundColor: Colors.grey[300],
+                          color: _activeTrip!["status"] == "pending"
+                              ? Colors.orange
+                              : _activeTrip!["status"] == "picked_up"
+                              ? Colors.blue
+                              : Colors.green,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Action button
+                    if (_activeTrip!["status"] == "picked_up")
+                      Center(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            // Add logic to mark as completed
+                            print("Marking trip as completed...");
+                          },
+                          icon: const Icon(Icons.check_circle_outline),
+                          label: const Text("Mark as Completed"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3E4795),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
