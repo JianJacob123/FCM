@@ -883,7 +883,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
     final date = DateTime.parse(isoDate).toLocal();
     final diff = DateTime.now().difference(date);
 
-    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 1) return 'just nows';
     if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
     if (diff.inHours < 24) return '${diff.inHours} hours ago';
     if (diff.inDays < 7) return '${diff.inDays} days ago';

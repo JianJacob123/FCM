@@ -472,7 +472,7 @@ class _MapScreenState extends State<MapScreen> {
     _getUserLocation(); //fetch at startup
     _loadActiveTrip();
     _tripRefreshTimer = Timer.periodic(Duration(seconds: 60), (timer) {
-      if (!mounted) return;
+      if (!mounted) return; // check if widget is still mounted
       _loadActiveTrip();
     });
 

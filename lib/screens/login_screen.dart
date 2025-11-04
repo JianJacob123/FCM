@@ -68,6 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final data = responseData['data'];
 
         if (data['user_role'].toString().toLowerCase() != 'conductor') {
+          // only conductors allowed
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Access denied. Not a conductor.'),
