@@ -23,6 +23,7 @@ class _LandingScreenState extends State<LandingScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   VoidCallback? _scrollToAbout;
   VoidCallback? _scrollToTop;
+  bool _aboutInView = false;
   
   // Helper method to check screen size
   bool _isMobileScreen(BuildContext context) => MediaQuery.of(context).size.width < 600;
@@ -33,6 +34,13 @@ class _LandingScreenState extends State<LandingScreen> {
         setState(() {
           _homePageScrollOffset = offset;
         });
+      },
+      onAboutInViewChanged: (inView) {
+        if (_currentIndex == 0 && _aboutInView != inView) {
+          setState(() {
+            _aboutInView = inView;
+          });
+        }
       },
       onAboutScrollReady: (scrollCallback) {
         _scrollToAbout = scrollCallback;
@@ -217,7 +225,7 @@ class _LandingScreenState extends State<LandingScreen> {
                       children: [
                         _NavLink(
                           text: 'Home',
-                          isActive: _currentIndex == 0,
+                          isActive: _currentIndex == 0 && !_aboutInView,
                           onTap: () => setState(() {
                             _currentIndex = 0;
                             _homePageScrollOffset = 0.0;
@@ -229,7 +237,7 @@ class _LandingScreenState extends State<LandingScreen> {
                         ),
                         _NavLink(
                           text: 'About',
-                          isActive: _currentIndex == 1,
+                          isActive: (_currentIndex == 0 && _aboutInView) || _currentIndex == 1,
                           onTap: () {
                             // If on home page, scroll to About section
                             if (_currentIndex == 0 && _scrollToAbout != null) {
@@ -385,16 +393,41 @@ class _NavLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Text(
-        text,
-        style: TextStyle(
-          color: isActive ? const Color(0xFFA0A0E0) : const Color(0xFFE0E0E0),
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
+    return _Hoverable(
+      builder: (hover) => InkWell(
+        onTap: onTap,
+        child: AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 150),
+          style: TextStyle(
+            color: isActive
+                ? const Color(0xFFA0A0E0)
+                : (hover ? Colors.white : const Color(0xFFE0E0E0)),
+            fontSize: 16,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+            decoration: hover && !isActive ? TextDecoration.underline : TextDecoration.none,
+          ),
+          child: Text(text),
         ),
       ),
+    );
+  }
+}
+
+class _Hoverable extends StatefulWidget {
+  final Widget Function(bool isHovered) builder;
+  const _Hoverable({required this.builder});
+  @override
+  State<_Hoverable> createState() => _HoverableState();
+}
+
+class _HoverableState extends State<_Hoverable> {
+  bool _hover = false;
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: widget.builder(_hover),
     );
   }
 }
@@ -440,8 +473,9 @@ class HomePage extends StatefulWidget {
   final Function(VoidCallback)? onAboutScrollReady;
   final Function(VoidCallback)? onTopScrollReady;
   final VoidCallback? onNavigateToMap;
+  final Function(bool)? onAboutInViewChanged;
   
-  const HomePage({super.key, this.onScrollUpdate, this.onAboutScrollReady, this.onTopScrollReady, this.onNavigateToMap});
+  const HomePage({super.key, this.onScrollUpdate, this.onAboutScrollReady, this.onTopScrollReady, this.onNavigateToMap, this.onAboutInViewChanged});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -462,6 +496,20 @@ class _HomePageState extends State<HomePage> {
       // Notify parent of scroll position
       if (widget.onScrollUpdate != null) {
         widget.onScrollUpdate!(_scrollController.offset);
+      }
+      // Notify about section visibility
+      if (widget.onAboutInViewChanged != null) {
+        final ctx = _aboutSectionKey.currentContext;
+        if (ctx != null) {
+          final box = ctx.findRenderObject() as RenderBox?;
+          if (box != null && box.hasSize) {
+            final pos = box.localToGlobal(Offset.zero);
+            final size = box.size;
+            final height = MediaQuery.of(context).size.height;
+            final bool inView = pos.dy < height * 0.6 && pos.dy + size.height > height * 0.2;
+            widget.onAboutInViewChanged!(inView);
+          }
+        }
       }
     });
     
@@ -1773,41 +1821,40 @@ class _HomePageState extends State<HomePage> {
                                       _FooterLink(
                                         text: 'Home',
                                         onTap: () {
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(
-                                              builder: (context) => const AdminLoginScreen(),
-                                            ),
-                                          );
+                                          if (_scrollController.hasClients) {
+                                            _scrollController.animateTo(
+                                              0,
+                                              duration: const Duration(milliseconds: 500),
+                                              curve: Curves.easeInOut,
+                                            );
+                                          }
                                         },
                                       ),
                                       _FooterLink(
                                         text: 'Map',
                                         onTap: () {
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(
-                                              builder: (context) => const AdminLoginScreen(),
-                                            ),
-                                          );
+                                          if (widget.onNavigateToMap != null) {
+                                            widget.onNavigateToMap!();
+                                          }
                                         },
                                       ),
                                       _FooterLink(
                                         text: 'About',
                                         onTap: () {
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(
-                                              builder: (context) => const AdminLoginScreen(),
-                                            ),
-                                          );
+                                          final ctx = _aboutSectionKey.currentContext;
+                                          if (ctx != null) {
+                                            Scrollable.ensureVisible(
+                                              ctx,
+                                              duration: const Duration(milliseconds: 500),
+                                              curve: Curves.easeInOut,
+                                            );
+                                          }
                                         },
                                       ),
                                       _FooterLink(
                                         text: 'Download App',
                                         onTap: () {
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(
-                                              builder: (context) => const AdminLoginScreen(),
-                                            ),
-                                          );
+                                          _showDownloadAppModal(context);
                                         },
                                       ),
                                     ],
@@ -2153,48 +2200,54 @@ class _FeatureItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 48,
-            color: const Color.fromRGBO(62, 71, 149, 1),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color.fromRGBO(62, 71, 149, 1),
+    return _Hoverable(
+      builder: (hover) => AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        transform: hover ? (Matrix4.identity()..translate(0.0, -4.0, 0.0)) : Matrix4.identity(),
+        padding: const EdgeInsets.all(24.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(hover ? 0.18 : 0.08),
+              blurRadius: hover ? 16 : 8,
+              offset: const Offset(0, 4),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            description,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[700],
-              height: 1.5,
+          ],
+          border: hover ? Border.all(color: const Color(0xFF3E4795).withOpacity(0.15)) : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 48,
+              color: const Color.fromRGBO(62, 71, 149, 1),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color.fromRGBO(62, 71, 149, 1),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
