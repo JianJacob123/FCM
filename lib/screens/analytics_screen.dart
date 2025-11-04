@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:http/http.dart' as http;
 import '../widgets/donut_chart_painter.dart';
 import '../widgets/interactive_donut_chart.dart';
@@ -41,6 +45,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   Map<String, dynamic>? _dailyPassengerBreakdown;
   String? _selectedPeriod;
   String? _tooltipText;
+  DateTime _selectedDate = DateTime.now();
   
   // Cache to prevent repeated requests (reduced for more dynamic updates)
   DateTime? _lastLoadTime;
@@ -61,7 +66,8 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
     return '${hour - 12} PM';
   }
 
-  String _formatDateLong(DateTime d) {
+  String _formatDateLong(DateTime? d) {
+    final DateTime x = d ?? DateTime.now();
     const months = [
       'January',
       'February',
@@ -76,7 +82,138 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       'November',
       'December',
     ];
-    return '${months[d.month - 1]} ${d.day}, ${d.year}';
+    return '${months[x.month - 1]} ${x.day}, ${x.year}';
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020, 1, 1),
+      lastDate: DateTime(2100, 12, 31),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = DateTime(picked.year, picked.month, picked.day);
+      });
+      _lastLoadTime = null; // force refresh
+      _load();
+    }
+  }
+
+  Future<void> _generateReport() async {
+    final String dateStr = _formatDateYMD(_selectedDate);
+    Future<Uint8List> buildPdf() async {
+      final doc = pw.Document();
+      doc.addPage(
+        pw.MultiPage(
+          pageTheme: pw.PageTheme(
+            margin: const pw.EdgeInsets.all(24),
+          ),
+          build: (ctx) {
+            // Compute average trip duration (overall)
+            double? overallAvgMinutes;
+            List<List<String>> vehicleRows = [];
+            final ta = _tripDurationAnalytics;
+            if (ta != null) {
+              final vehicles = List<Map<String, dynamic>>.from(ta['vehicles'] ?? const []);
+              if (vehicles.isNotEmpty) {
+                double sum = 0;
+                for (final v in vehicles) {
+                  final avg = (v['average_duration_minutes'] as num?)?.toDouble() ?? 0;
+                  sum += avg;
+                  vehicleRows.add([
+                    (v['vehicle_id']?.toString() ?? '—'),
+                    avg.toStringAsFixed(1),
+                    (v['trip_count']?.toString() ?? '0'),
+                  ]);
+                }
+                overallAvgMinutes = sum / vehicles.length;
+              }
+            }
+
+            final List<List<String>> fleetRows = [];
+            if (_fleetHours.isNotEmpty && _fleetCounts.isNotEmpty) {
+              for (int i = 0; i < _fleetHours.length && i < _fleetCounts.length; i++) {
+                fleetRows.add([_fleetHours[i].toString(), _fleetCounts[i].toString()]);
+              }
+            }
+
+            return [
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('Analytics Report', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+                  pw.Text(dateStr, style: pw.TextStyle(fontSize: 12)),
+                ],
+              ),
+              pw.SizedBox(height: 16),
+              pw.Text('Summary', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 6),
+              pw.Table.fromTextArray(
+                headers: ['Field', 'Value'],
+                data: [
+                  ['Date', dateStr],
+                  ['Units in Operation', '$_unitsInOperation / $_fleetTotalUnits'],
+                  ['Daily Passenger Count', _dailyPassengerCount.toString()],
+                ],
+                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                cellAlignment: pw.Alignment.centerLeft,
+                headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+              ),
+
+              pw.SizedBox(height: 16),
+              pw.Text('Fleet Activity by Hour', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 6),
+              fleetRows.isNotEmpty
+                  ? pw.Table.fromTextArray(
+                      headers: ['Hour', 'Buses'],
+                      data: fleetRows,
+                      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      cellAlignment: pw.Alignment.centerLeft,
+                      headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+                    )
+                  : pw.Text('No fleet activity data for the selected date.'),
+
+              pw.SizedBox(height: 16),
+              pw.Text('Average Trip Duration', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 6),
+              pw.Text(overallAvgMinutes != null
+                  ? 'Overall average: ${overallAvgMinutes.toStringAsFixed(1)} minutes'
+                  : 'No trip duration data for the selected date.'),
+
+              pw.SizedBox(height: 20),
+              pw.Text('Forecast', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 8),
+              pw.Text('Expected Peak Time: '
+                  '${_peakHour != null ? _formatHour12(_peakHour!) : 'N/A'}'
+                  '${_peakValue != null ? ' (${_peakValue!.toStringAsFixed(0)} pax)' : ''}'),
+
+              pw.SizedBox(height: 8),
+              pw.Text('Hourly Passenger Forecast', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 6),
+              pw.Table.fromTextArray(
+                headers: ['Hour', 'Passengers'],
+                data: List.generate(_hourlyPredictions.length, (i) => [
+                  _hours.isNotEmpty && i < _hours.length ? _hours[i].toString() : i.toString(),
+                  _hourlyPredictions[i].toStringAsFixed(0),
+                ]),
+                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                cellAlignment: pw.Alignment.centerLeft,
+                headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+              ),
+            ];
+          },
+        ),
+      );
+      return doc.save();
+    }
+
+    final bytes = await buildPdf();
+    await Printing.sharePdf(
+      bytes: bytes,
+      filename: 'analytics_$dateStr.pdf',
+    );
   }
 
   void _showYearSelector() {
@@ -657,7 +794,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   Future<({int deployedUnits, int totalUnits})> _fetchTodaySchedules() async {
     try {
       final uri = Uri.parse(
-        '$baseUrl/api/schedules?date=${_formatDateYMD(DateTime.now())}',
+        '$baseUrl/api/schedules?date=${_formatDateYMD(_selectedDate)}',
       );
       final res = await http.get(uri);
       if (res.statusCode != 200) {
@@ -689,7 +826,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   Future<List<Map<String, dynamic>>> _fetchTripsPerUnit() async {
     try {
       final uri = Uri.parse(
-        '$baseUrl/api/trips-per-unit?date=${_formatDateYMD(DateTime.now())}',
+        '$baseUrl/api/trips-per-unit?date=${_formatDateYMD(_selectedDate)}',
       );
       final res = await http.get(uri);
       if (res.statusCode != 200) return const [];
@@ -708,7 +845,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   Future<Map<String, List<int>>> _fetchFleetActivity() async {
     try {
       final uri = Uri.parse(
-        '$baseUrl/api/fleet-activity?date=${_formatDateYMD(DateTime.now())}',
+        '$baseUrl/api/fleet-activity?date=${_formatDateYMD(_selectedDate)}',
       );
       final res = await http.get(uri);
       final labels = List<int>.generate(17, (i) => i + 4);
@@ -739,16 +876,15 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final allTrips = List<Map<String, dynamic>>.from(body['data'] ?? []);
       
-      // Filter trips for today only (use local date; API times are UTC)
-      final nowLocal = DateTime.now();
-      final todayLocalStr = _formatDateYMD(nowLocal);
+      // Filter trips for selected date only (use local date; API times are UTC)
+      final selectedLocalStr = _formatDateYMD(_selectedDate);
       final trips = allTrips.where((trip) {
         final startTime = trip['start_time'] as String?;
         if (startTime == null) return false;
         try {
           final startUtc = DateTime.parse(startTime);
           final startLocal = startUtc.toLocal();
-          return _formatDateYMD(startLocal) == todayLocalStr;
+          return _formatDateYMD(startLocal) == selectedLocalStr;
         } catch (_) {
           return false;
         }
@@ -796,7 +932,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       return {
         'vehicles': vehicleAverages,
         'total_vehicles': vehicleAverages.length,
-        'date': _formatDateYMD(DateTime.now()),
+        'date': _formatDateYMD(_selectedDate),
       };
     } catch (e) {
       print('Error fetching trip duration analytics: $e');
@@ -969,6 +1105,19 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
                         tooltip: 'Analytics Information',
                       ),
                     ),
+                    const SizedBox(width: 4),
+                    Tooltip(
+                      message: 'Select Forecast Year',
+                      waitDuration: Duration(milliseconds: 300),
+                      child: IconButton(
+                        onPressed: _pickDate,
+                        icon: const Icon(
+                          Icons.calendar_today_outlined,
+                          color: Color(0xFF1E3A8A),
+                        ),
+                        tooltip: 'Choose date',
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -987,7 +1136,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
                         ],
                       ),
                       child: Text(
-                        _formatDateLong(DateTime.now()),
+                        _formatDateLong(_selectedDate),
                         style: const TextStyle(
                           fontSize: 14,
                           color: Colors.black87,
@@ -1015,7 +1164,10 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
             ),
             const SizedBox(height: 32),
             // Static operational metrics section
-            _OperationalMetricsSection(tripDurationAnalytics: _tripDurationAnalytics),
+            _OperationalMetricsSection(
+              tripDurationAnalytics: _tripDurationAnalytics,
+              selectedDate: _selectedDate,
+            ),
             const SizedBox(height: 16),
             // Charts in a row (Daily + Hourly) directly below Fleet Activity
             Row(
@@ -1111,6 +1263,23 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
                       ),
                     ),
               ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _generateReport,
+                  icon: const Icon(Icons.picture_as_pdf),
+                  label: const Text('Generate Report'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E3A8A),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -1613,8 +1782,9 @@ class _AreaChartPainter extends CustomPainter {
 // Static operational metrics section (mock visuals)
 class _OperationalMetricsSection extends StatelessWidget {
   final Map<String, dynamic>? tripDurationAnalytics;
+  final DateTime selectedDate;
   
-  const _OperationalMetricsSection({this.tripDurationAnalytics});
+  const _OperationalMetricsSection({super.key, this.tripDurationAnalytics, required this.selectedDate});
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1628,7 +1798,7 @@ class _OperationalMetricsSection extends StatelessWidget {
                 child: SizedBox(
                   height: 180,
                   width: double.infinity,
-                  child: _InteractiveFleetChart(),
+                  child: _InteractiveFleetChart(selectedDate: selectedDate),
                 ),
               ),
             ),
@@ -1698,6 +1868,8 @@ class _Card extends StatelessWidget {
 }
 
 class _InteractiveFleetChart extends StatefulWidget {
+  final DateTime selectedDate;
+  const _InteractiveFleetChart({super.key, required this.selectedDate});
   @override
   _InteractiveFleetChartState createState() => _InteractiveFleetChartState();
 }
@@ -1716,7 +1888,7 @@ class _InteractiveFleetChartState extends State<_InteractiveFleetChart> {
   Future<void> _loadFleetData() async {
     try {
       final uri = Uri.parse(
-        '$baseUrl/api/fleet-activity?date=${_formatDateYMD(DateTime.now())}',
+        '$baseUrl/api/fleet-activity?date=${_formatDateYMD(widget.selectedDate)}',
       );
       final res = await http.get(uri);
       if (res.statusCode == 200) {

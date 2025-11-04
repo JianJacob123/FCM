@@ -47,5 +47,8 @@ app.*.map.json
 # Environment files
 nodejs journey/.env
 
-# Virtual environment
-forecasting/
+# Forecasting repo large/local-only artifacts
+forecasting/venv/
+forecasting/__pycache__/
+forecasting/**/*.log
+forecasting/*.log
