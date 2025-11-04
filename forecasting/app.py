@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
+from flask_caching import Cache
 import pandas as pd
 import numpy as np
 import joblib
@@ -15,6 +16,12 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app, origins=['*'], methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], 
      allow_headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Origin'])
+
+# Simple cache setup; switch to Redis by setting CACHE_TYPE and connection URL via env
+cache = Cache(app, config={
+    'CACHE_TYPE': os.getenv('CACHE_TYPE', 'SimpleCache'),
+    'CACHE_DEFAULT_TIMEOUT': int(os.getenv('CACHE_DEFAULT_TIMEOUT', '600'))
+})
 
 # Add CORS headers to all responses
 @app.after_request
@@ -140,6 +147,7 @@ def forecast_peak():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/daily_forecast', methods=['GET'])
+@cache.cached(timeout=600)
 def daily_forecast():
     """Get weekly passenger forecast (Sunday to Saturday) using Prophet model"""
     try:
@@ -193,6 +201,7 @@ def daily_forecast():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/hourly_forecast', methods=['GET'])
+@cache.cached(timeout=600)
 def hourly_forecast():
     """Get hourly passenger forecast for operational hours (4:00 AM to 8:00 PM) using XGBoost model"""
     try:
@@ -252,6 +261,7 @@ def hourly_forecast():
 
 
 @app.route('/yearly_daily', methods=['GET'])
+@cache.cached(timeout=600, query_string=True)
 def yearly_daily_forecast():
     """Get a yearly daily passenger forecast grid for a given year.
 

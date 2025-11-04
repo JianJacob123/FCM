@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Get forecasting API base URL from environment or fallback to localhost
 String? _forecastingBaseUrl;
@@ -67,6 +68,49 @@ Future<bool> forecastingHealth() async {
     return false;
   }
 }
+// Generic exponential backoff retry helper
+Future<T> _retryWithBackoff<T>(Future<T> Function() action,
+    {int maxAttempts = 3, Duration initialDelay = const Duration(seconds: 1)}) async {
+  int attempt = 0;
+  Duration delay = initialDelay;
+  while (true) {
+    attempt += 1;
+    try {
+      return await action();
+    } catch (e) {
+      if (attempt >= maxAttempts) rethrow;
+      await Future.delayed(delay);
+      delay = Duration(milliseconds: (delay.inMilliseconds * 2));
+      if (delay.inSeconds > 8) {
+        delay = const Duration(seconds: 8);
+      }
+    }
+  }
+}
+
+Future<void> _saveCache(String key, String json) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, json);
+    await prefs.setInt('${key}_ts', DateTime.now().millisecondsSinceEpoch);
+  } catch (_) {}
+}
+
+Future<String?> _loadCache(String key, {Duration maxAge = const Duration(hours: 24)}) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final ts = prefs.getInt('${key}_ts');
+    if (ts == null) return prefs.getString(key);
+    final age = DateTime.now().millisecondsSinceEpoch - ts;
+    if (age <= maxAge.inMilliseconds) {
+      return prefs.getString(key);
+    }
+    return null;
+  } catch (_) {
+    return null;
+  }
+}
+
 
 // Test network connectivity to forecasting API
 Future<void> testNetworkConnectivity() async {
@@ -89,11 +133,15 @@ Future<void> testNetworkConnectivity() async {
 // Peak demand prediction for a single feature set
 Future<double> forecastPeak(Map<String, dynamic> features) async {
   try {
-    final res = await http.post(
-      _baseUri('/forecast/peak'),
-      headers: const {'Content-Type': 'application/json'},
-      body: jsonEncode({'features': features}),
-    ).timeout(Duration(seconds: 15));
+    final res = await _retryWithBackoff(() async {
+      return await http
+          .post(
+            _baseUri('/forecast/peak'),
+            headers: const {'Content-Type': 'application/json'},
+            body: jsonEncode({'features': features}),
+          )
+          .timeout(const Duration(seconds: 25));
+    });
     if (res.statusCode != 200) {
       throw Exception('Peak forecast failed: ${res.statusCode} ${res.body}');
     }
@@ -109,12 +157,17 @@ Future<double> forecastPeak(Map<String, dynamic> features) async {
 Future<({List<DateTime> dates, List<double> predictions})>
 forecastDaily() async {
   try {
+    const cacheKey = 'daily_forecast_cache_v1';
     final uri = _baseUri('/daily_forecast');
-    final res = await http.get(uri).timeout(Duration(seconds: 15));
+    final res = await _retryWithBackoff(() async {
+      return await http.get(uri).timeout(const Duration(seconds: 25));
+    });
     if (res.statusCode != 200) {
       throw Exception('Daily forecast failed: ${res.statusCode}');
     }
     final data = jsonDecode(res.body) as Map<String, dynamic>;
+    // Save cache
+    _saveCache(cacheKey, res.body);
     final dates = (data['dates'] as List)
         .map((e) => DateTime.parse(e as String))
         .toList();
@@ -124,6 +177,20 @@ forecastDaily() async {
     return (dates: dates, predictions: preds);
   } catch (e) {
     print('Error in forecastDaily: $e');
+    // Try cache fallback
+    final cached = await _loadCache('daily_forecast_cache_v1');
+    if (cached != null) {
+      try {
+        final data = jsonDecode(cached) as Map<String, dynamic>;
+        final dates = (data['dates'] as List)
+            .map((e) => DateTime.parse(e as String))
+            .toList();
+        final preds = (data['predictions'] as List)
+            .map((e) => (e as num).toDouble())
+            .toList();
+        return (dates: dates, predictions: preds);
+      } catch (_) {}
+    }
     rethrow;
   }
 }
@@ -134,10 +201,14 @@ Future<
 >
 forecastHourly() async {
   try {
+    const cacheKey = 'hourly_forecast_cache_v1';
     final uri = _baseUri('/hourly_forecast');
-    final res = await http.get(uri).timeout(Duration(seconds: 15));
+    final res = await _retryWithBackoff(() async {
+      return await http.get(uri).timeout(const Duration(seconds: 25));
+    });
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body) as Map<String, dynamic>;
+      _saveCache(cacheKey, res.body);
       final hours = (data['hours'] as List).map((e) => e as int).toList();
       final preds = (data['predictions'] as List)
           .map((e) => (e as num).toDouble())
@@ -155,6 +226,24 @@ forecastHourly() async {
     }
   } catch (e) {
     print('Error in forecastHourly: $e');
+    final cached = await _loadCache('hourly_forecast_cache_v1');
+    if (cached != null) {
+      try {
+        final data = jsonDecode(cached) as Map<String, dynamic>;
+        final hours = (data['hours'] as List).map((e) => e as int).toList();
+        final preds = (data['predictions'] as List)
+            .map((e) => (e as num).toDouble())
+            .toList();
+        final peakHour = data['peak_hour'] as int;
+        final peakValue = (data['peak_value'] as num).toDouble();
+        return (
+          hours: hours,
+          predictions: preds,
+          peakHour: peakHour,
+          peakValue: peakValue,
+        );
+      } catch (_) {}
+    }
     rethrow;
   }
 }
@@ -163,11 +252,15 @@ forecastHourly() async {
 Future<({int year, List<List<double?>> grid})> forecastYearlyDaily(int year) async {
   try {
     final uri = _baseUri('/yearly_daily?year=$year');
-    final res = await http.get(uri).timeout(Duration(seconds: 15));
+    final cacheKey = 'yearly_daily_${year}_v1';
+    final res = await _retryWithBackoff(() async {
+      return await http.get(uri).timeout(const Duration(seconds: 25));
+    });
     if (res.statusCode != 200) {
       throw Exception('Yearly forecast failed: ${res.statusCode} ${res.body}');
     }
     final data = jsonDecode(res.body) as Map<String, dynamic>;
+    _saveCache(cacheKey, res.body);
     final int yr = data['year'] as int;
     final List<dynamic> rawGrid = data['grid'] as List<dynamic>;
     // Convert dynamic -> List<List<double?>> with nulls preserved
@@ -179,6 +272,20 @@ Future<({int year, List<List<double?>> grid})> forecastYearlyDaily(int year) asy
     return (year: yr, grid: grid);
   } catch (e) {
     print('Error in forecastYearlyDaily: $e');
+    final cached = await _loadCache('yearly_daily_${year}_v1');
+    if (cached != null) {
+      try {
+        final data = jsonDecode(cached) as Map<String, dynamic>;
+        final int yr = data['year'] as int;
+        final List<dynamic> rawGrid = data['grid'] as List<dynamic>;
+        final List<List<double?>> grid = rawGrid
+            .map<List<double?>>((row) => (row as List<dynamic>)
+                .map<double?>((e) => e == null ? null : (e as num).toDouble())
+                .toList())
+            .toList();
+        return (year: yr, grid: grid);
+      } catch (_) {}
+    }
     rethrow;
   }
 }
