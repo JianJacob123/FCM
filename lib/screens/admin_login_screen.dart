@@ -45,6 +45,78 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       // 2. Check if successful
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
+
+        if (responseData['data']['user_role'] != 'admin') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Access denied. Not an admin user.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        // 3. Build user from backend response
+        final user = UserModel(
+          id: responseData['data']['user_id'].toString(),
+          name: responseData['data']['full_name'],
+          role: responseData['data']['user_role'] == 'admin'
+              ? UserRole.admin
+              : responseData['data']['user_role'] == 'conductor'
+              ? UserRole.conductor
+              : UserRole.passenger,
+        );
+
+        // 4. Store in provider
+        context.read<UserProvider>().loginUser(user);
+
+        // 5. Navigate to appropriate screen based on role
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => AdminScreen()));
+      } else {
+        final errorData = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorData['error'] ?? 'Login failed.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (err) {
+      print("Login error: $err");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Something went wrong. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  //THIS IS CODE WITH OTP, CHANGE
+  /*Future<void> _login() async {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (username.isEmpty || password.isEmpty) {
+      setState(() {
+        _error = 'Please enter both username and password.';
+      });
+      return;
+    }
+
+    try {
+      // 1. Call your backend
+      final response = await http.post(
+        Uri.parse('$baseUrl/users/login'), // change to your endpoint
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({"username": username, "password": password}),
+      );
+
+      // 2. Check if successful
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
         final data = responseData['data'];
 
         if (data['user_role'] != 'admin') {
@@ -211,7 +283,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         );
       },
     );
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {

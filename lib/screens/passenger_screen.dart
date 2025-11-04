@@ -568,8 +568,13 @@ class _MapScreenState extends State<MapScreen> {
         ? userProvider.currentUser!.id
         : userProvider.guestId;
 
+    if (userId == null) {
+      // Handle error: user not logged in
+      throw Exception("Id Not Found");
+    }
+
     try {
-      final trips = await fetchActiveTrips(testId);
+      final trips = await fetchActiveTrips(userId);
 
       if (!mounted) return;
 
