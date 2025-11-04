@@ -1,0 +1,14 @@
+✓ XGBoost model loaded successfully
+✓ Prophet model loaded successfully
+Loaded 2 models successfully
+==================================================
+FCM Forecasting Service
+==================================================
+Loaded models: ['xgboost_peak', 'prophet_peak']
+Starting service on port 5001
+Debug mode: False
+==================================================
+ * Serving Flask app 'app'
+ * Debug mode: off
+Address already in use
+Port 5001 is in use by another program. Either identify and stop that program, or start the server with a different port.
