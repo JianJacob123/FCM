@@ -868,29 +868,16 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
 
   Future<Map<String, dynamic>?> _fetchTripDurationAnalytics() async {
     try {
-      // Fetch trips for today with start_time and end_time
-      final uri = Uri.parse('$baseUrl/trips/api/admin/trips?limit=1000');
+      // Fetch trips for selected date (server filters by local date)
+      final date = _formatDateYMD(_selectedDate);
+      final uri = Uri.parse('$baseUrl/trips/api/trips-by-date?date=$date&tz=Asia/Manila&limit=1000');
       final res = await http.get(uri);
       if (res.statusCode != 200) return null;
       
       final body = jsonDecode(res.body) as Map<String, dynamic>;
-      final allTrips = List<Map<String, dynamic>>.from(body['data'] ?? []);
+      final trips = List<Map<String, dynamic>>.from(body['data'] ?? []);
       
-      // Filter trips for selected date only (use local date; API times are UTC)
-      final selectedLocalStr = _formatDateYMD(_selectedDate);
-      final trips = allTrips.where((trip) {
-        final startTime = trip['start_time'] as String?;
-        if (startTime == null) return false;
-        try {
-          final startUtc = DateTime.parse(startTime);
-          final startLocal = startUtc.toLocal();
-          return _formatDateYMD(startLocal) == selectedLocalStr;
-        } catch (_) {
-          return false;
-        }
-      }).toList();
-      
-      print('Found ${trips.length} trips for today (local) out of ${allTrips.length} total trips');
+      print('Found ${trips.length} trips for selected date $date');
       
       // Group trips by vehicle_id and calculate average duration (use local times)
       final Map<int, List<double>> vehicleDurations = {};
@@ -943,8 +930,9 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   // Fetch daily passenger count with time breakdown from dedicated API endpoint
   Future<({int total, Map<String, dynamic> breakdown})> _fetchDailyPassengerCount() async {
     try {
-      // Use the new dedicated endpoint for today's passenger count
-      final uri = Uri.parse('$baseUrl/trips/api/today-passengers');
+      // Use date-aware endpoint with timezone
+      final date = _formatDateYMD(_selectedDate);
+      final uri = Uri.parse('$baseUrl/trips/api/today-passengers?date=$date&tz=Asia/Manila');
       final res = await http.get(uri);
       if (res.statusCode != 200) {
         print('API error: ${res.statusCode} - ${res.body}');
@@ -954,9 +942,9 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final totalPassengers = body['total_passengers'] as int? ?? 0;
       final timeBreakdown = body['time_breakdown'] as Map<String, dynamic>? ?? <String, dynamic>{};
-      final date = body['date'] as String? ?? 'unknown';
+      final respDate = body['date'] as String? ?? 'unknown';
       
-      print('Today\'s passenger count: $totalPassengers (date: $date)');
+      print('Today\'s passenger count: $totalPassengers (date: $respDate)');
       print('Time breakdown: $timeBreakdown');
       
       return (total: totalPassengers, breakdown: timeBreakdown);

@@ -60,14 +60,37 @@ async function getAllTripsForAdmin(req, res) {
 
 module.exports.getAllTripsForAdmin = getAllTripsForAdmin;
 
+// Get trips for a specific date (converted to local timezone)
+async function getTripsByDate(req, res) {
+  try {
+    const { date, tz = 'Asia/Manila', page = 1, limit = 1000 } = req.query;
+    if (!date) return err(res, 400, 'date (YYYY-MM-DD) is required');
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const trips = await model.getTripsForLocalDate(date, tz, parseInt(limit), offset);
+    return send(res, 200, { success: true, date, tz, data: trips });
+  } catch (e) {
+    console.error('getTripsByDate error', e);
+    return err(res, 500, `Failed to fetch trips for date: ${e.message}`);
+  }
+}
+
+module.exports.getTripsByDate = getTripsByDate;
+
 // Get today's passenger count with time breakdown
 async function getTodayPassengerCount(req, res) {
   try {
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-    
-    const result = await model.getTodayPassengerCount(startOfDay, endOfDay);
+    const { date, tz = 'Asia/Manila' } = req.query;
+    let result;
+    if (date) {
+      // Date-aware path using DB timezone conversion
+      result = await model.getPassengerCountForLocalDate(date, tz);
+    } else {
+      // Legacy: compute for "today" in server timezone
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      result = await model.getTodayPassengerCount(startOfDay, endOfDay);
+    }
     
     // Calculate percentages
     const total = result.total_passengers;
@@ -92,7 +115,8 @@ async function getTodayPassengerCount(req, res) {
           percentage: parseFloat(eveningPct)
         }
       },
-      date: today.toISOString().split('T')[0]
+      date: date || new Date().toISOString().split('T')[0],
+      tz
     });
   } catch (e) {
     console.error('getTodayPassengerCount error', e);

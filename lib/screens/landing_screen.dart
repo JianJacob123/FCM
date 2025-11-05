@@ -9,6 +9,7 @@ import '../services/api.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
+import '../utils/download.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -737,8 +738,17 @@ class _HomePageState extends State<HomePage> {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.of(context).pop(); // Close modal
-                        // TODO: Add Android app download link here
+                        Navigator.of(context).pop();
+                        final url = (dotenv.env['ANDROID_APK_URL'] ?? '').isNotEmpty
+                            ? dotenv.env['ANDROID_APK_URL']!
+                            : '/downloads/app-release.apk';
+                        if (url.isNotEmpty) {
+                          downloadFromUrl(url, filename: 'fcm_app.apk');
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('ANDROID_APK_URL not set.')),
+                          );
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF5C5C8A),
@@ -804,8 +814,17 @@ class _HomePageState extends State<HomePage> {
                   // Download App button with Android icon
                   ElevatedButton.icon(
                     onPressed: () {
-                      Navigator.of(context).pop(); // Close modal
-                      // TODO: Add Android app download link here
+                      Navigator.of(context).pop();
+                      final url = (dotenv.env['ANDROID_APK_URL'] ?? '').isNotEmpty
+                          ? dotenv.env['ANDROID_APK_URL']!
+                          : '/downloads/app-release.apk';
+                      if (url.isNotEmpty) {
+                        downloadFromUrl(url, filename: 'fcm_app.apk');
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('ANDROID_APK_URL not set.')),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5C5C8A),
@@ -1670,8 +1689,13 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                     ],
                                   ),
-                                  child: const Center(
-                                    child: Icon(Icons.qr_code_2, size: 140, color: Color(0xFF3E4795)),
+                                  child: Center(
+                                    child: Image.asset(
+                                      'assets/FCM App.png',
+                                      width: 160,
+                                      height: 160,
+                                      fit: BoxFit.contain,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -1924,9 +1948,14 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-                                      child: const Center(
-                                        child: Icon(Icons.qr_code_2, size: 180, color: Color(0xFF3E4795)),
-              ),
+                                      child: Center(
+                                        child: Image.asset(
+                                          'assets/FCM App.png',
+                                          width: 200,
+                                          height: 200,
+                                          fit: BoxFit.contain,
+                                        ),
+                                      ),
             ),
           ),
         ),

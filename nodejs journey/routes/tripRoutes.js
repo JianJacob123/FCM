@@ -13,6 +13,7 @@ router.get('/api/fleet-activity', metricsCtrl.fleetActivityByHour);
 
 // Admin trips route
 router.get('/api/admin/trips', metricsCtrl.getAllTripsForAdmin);
+router.get('/api/trips-by-date', metricsCtrl.getTripsByDate);
 
 // Today's passenger count route
 router.get('/api/today-passengers', metricsCtrl.getTodayPassengerCount);

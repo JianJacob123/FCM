@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+import '../utils/download.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'admin_login_screen.dart';
@@ -4090,15 +4089,7 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
       final filename = 'schedule_${DateFormat('yyyy-MM-dd').format(_selectedDate)}.png';
 
       if (kIsWeb) {
-        final blob = html.Blob([bytes]);
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.AnchorElement(href: url)
-          ..download = filename
-          ..style.display = 'none';
-        html.document.body!.children.add(anchor);
-        anchor.click();
-        anchor.remove();
-        html.Url.revokeObjectUrl(url);
+        downloadBytes(bytes, filename);
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

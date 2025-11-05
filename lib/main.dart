@@ -48,7 +48,7 @@ class MyApp extends StatelessWidget {
               brightness: Brightness.light,
             ),
             home: kIsWeb
-                ? const LandingScreen()
+                ? const AdminScreen()
                 : const SplashScreen(), //kIsWeb ? const SplashScreen() : const SplashScreen(), //const AdminLoginScreen(),
           );
         },

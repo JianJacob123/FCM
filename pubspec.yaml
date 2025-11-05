@@ -78,6 +78,7 @@ flutter:
     - assets/3d.png
     - assets/android.png
     - assets/app.png
+    - assets/FCM App.png
     - assets/apple.png
     - assets/icons/
     - assets/.env

@@ -105,6 +105,30 @@ const getTotalTripsCount = async () => {
     return res.rows[0].total;
 }
 
+// Get trips for a specific local date with timezone conversion
+const getTripsForLocalDate = async (dateYmd, tz = 'Asia/Manila', limit = 1000, offset = 0) => {
+    const sql = `
+        SELECT 
+            t.trip_id,
+            t.vehicle_id,
+            CONCAT('Vehicle ', t.vehicle_id) as vehicle_number,
+            t.start_time,
+            t.end_time,
+            t.start_lat,
+            t.start_lng,
+            t.end_lat,
+            t.end_lng,
+            t.status,
+            t.total_passenger_accumulated
+        FROM trips t
+        WHERE DATE((t.start_time AT TIME ZONE 'UTC') AT TIME ZONE $2) = $1
+        ORDER BY t.start_time DESC
+        LIMIT $3 OFFSET $4
+    `;
+    const res = await client.query(sql, [dateYmd, tz, limit, offset]);
+    return res.rows;
+}
+
 // Get today's passenger count with time-based breakdown
 const getTodayPassengerCount = async (startOfDay, endOfDay) => {
     const sql = `
@@ -156,6 +180,39 @@ const getTodayPassengerCount = async (startOfDay, endOfDay) => {
     };
 }
 
+// Passenger count for a specific local date with timezone conversion
+const getPassengerCountForLocalDate = async (dateYmd, tz = 'Asia/Manila') => {
+    const sql = `
+        SELECT 
+            COALESCE(SUM(total_passenger_accumulated), 0) as total_passengers,
+            COALESCE(SUM(CASE 
+                WHEN EXTRACT(HOUR FROM ((end_time AT TIME ZONE 'UTC') AT TIME ZONE $2)) >= 4 
+                 AND EXTRACT(HOUR FROM ((end_time AT TIME ZONE 'UTC') AT TIME ZONE $2)) < 12 
+                THEN total_passenger_accumulated ELSE 0 END), 0) as morning_passengers,
+            COALESCE(SUM(CASE 
+                WHEN EXTRACT(HOUR FROM ((end_time AT TIME ZONE 'UTC') AT TIME ZONE $2)) >= 12 
+                 AND EXTRACT(HOUR FROM ((end_time AT TIME ZONE 'UTC') AT TIME ZONE $2)) < 16 
+                THEN total_passenger_accumulated ELSE 0 END), 0) as midday_passengers,
+            COALESCE(SUM(CASE 
+                WHEN EXTRACT(HOUR FROM ((end_time AT TIME ZONE 'UTC') AT TIME ZONE $2)) >= 16 
+                 AND EXTRACT(HOUR FROM ((end_time AT TIME ZONE 'UTC') AT TIME ZONE $2)) <= 20 
+                 OR EXTRACT(HOUR FROM ((end_time AT TIME ZONE 'UTC') AT TIME ZONE $2)) >= 21
+                THEN total_passenger_accumulated ELSE 0 END), 0) as evening_passengers,
+            COUNT(*) as total_trips
+        FROM trips
+        WHERE DATE(((start_time AT TIME ZONE 'UTC') AT TIME ZONE $2)) = $1
+    `;
+    const res = await client.query(sql, [dateYmd, tz]);
+    const row = res.rows[0];
+    return {
+        total_passengers: parseInt(row.total_passengers),
+        morning_passengers: parseInt(row.morning_passengers),
+        midday_passengers: parseInt(row.midday_passengers),
+        evening_passengers: parseInt(row.evening_passengers),
+        debug_info: { total_trips: row.total_trips }
+    };
+}
+
 module.exports = {
     getActiveTripsByVehicle,
     insertTrip,
@@ -169,5 +226,6 @@ module.exports = {
     countActiveVehiclesByHour,
     getAllTrips,
     getTotalTripsCount,
-    getTodayPassengerCount
+    getTodayPassengerCount,
+    getPassengerCountForLocalDate
 };
