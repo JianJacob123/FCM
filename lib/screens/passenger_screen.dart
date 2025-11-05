@@ -15,6 +15,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import 'dart:async';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 
 final baseUrl = dotenv.env['API_BASE_URL'];
@@ -464,12 +465,13 @@ class _MapScreenState extends State<MapScreen> {
   Map<String, dynamic>? _activeTrip;
   Timer? _tripRefreshTimer;
   bool _isTripExpanded = false;
+  StreamSubscription<Position>? _positionSubscription;
 
   @override
   void initState() {
     super.initState();
 
-    _getUserLocation(); //fetch at startup
+    _startListeningToLocation();
     _loadActiveTrip();
     _tripRefreshTimer = Timer.periodic(Duration(seconds: 60), (timer) {
       if (!mounted) return; // check if widget is still mounted
@@ -543,12 +545,13 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _tripRefreshTimer?.cancel(); //clean up timer
+    _positionSubscription?.cancel(); //clean up location subscription
     vehicleSocket.off('vehicleUpdate');
     vehicleSocket.dispose();
     super.dispose();
   }
 
-  Future<void> _getUserLocation() async {
+  /*Future<void> _getUserLocation() async {
     final position = await LocationService.getCurrentLocation();
 
     if (!mounted) return;
@@ -559,6 +562,26 @@ class _MapScreenState extends State<MapScreen> {
     } else {
       print('Unable to fetch user location');
     }
+  }*/
+
+  void _startListeningToLocation() {
+    // 1. Get permission (important to run this first)
+    LocationService.requestPermission().then((hasPermission) {
+      if (!mounted || !hasPermission) return;
+
+      // 2. Subscribe to the real-time stream
+      _positionSubscription = LocationService.getLocationStream().listen((
+        position,
+      ) {
+        if (!mounted) return;
+        setState(() {
+          // Update the user location every time a new position is received
+          _userLocation = LatLng(position.latitude, position.longitude);
+        });
+        // Optional: you can check the stream settings in LocationService
+        // (currently set to update every 10 meters)
+      });
+    });
   }
 
   Future<void> _loadActiveTrip() async {
@@ -660,12 +683,30 @@ class _MapScreenState extends State<MapScreen> {
                   if (_userLocation != null)
                     Marker(
                       point: _userLocation!,
-                      width: 40,
+                      width: 40, // Increase width/height
                       height: 40,
-                      child: const Icon(
-                        Icons.person_pin_circle,
-                        color: Colors.orange,
-                        size: 32,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color(
+                            0xFF3E4795,
+                          ).withOpacity(0.3), // Light blue for accuracy area
+                        ),
+                        alignment: Alignment.center,
+                        child: Container(
+                          // The center blue dot
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFF3E4795), // Solid blue inner circle
+                            border: Border.all(
+                              color: Colors
+                                  .white, // White border like a Google Maps pin
+                              width: 3,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ..._vehicleMarkers.values.toList(),
@@ -790,6 +831,8 @@ class _MapScreenState extends State<MapScreen> {
                   ],
                 ),
                 child: Column(
+                  mainAxisSize:
+                      MainAxisSize.min, // 👈 this makes height wrap content
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Header Row
@@ -847,87 +890,93 @@ class _MapScreenState extends State<MapScreen> {
 
                     // Trip info
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "Pickup",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
+                        Expanded(
+                          // ✅ gives column flexible width
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Pickup Location",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              "${_activeTrip!["pickup_lat"]}, ${_activeTrip!["pickup_lng"]}",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
+                              const SizedBox(height: 4),
+                              Text(
+                                "${_activeTrip!["pickup_location_name"]}",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow
+                                    .ellipsis, // ✅ now works properly
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "Dropoff",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
+                        const SizedBox(width: 20),
+                        Expanded(
+                          // ✅ also wrap this one
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Dropoff Location",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              "${_activeTrip!["dropoff_lat"]}, ${_activeTrip!["dropoff_lng"]}",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
+                              const SizedBox(height: 4),
+                              Text(
+                                "${_activeTrip!["dropoff_location_name"]}",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 16),
-
-                    // Progress indicator
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Trip Progress",
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 8),
-                        LinearProgressIndicator(
-                          value: _activeTrip!["status"] == "pending"
-                              ? 0.3
-                              : _activeTrip!["status"] == "picked_up"
-                              ? 0.6
-                              : 1.0,
-                          minHeight: 8,
-                          backgroundColor: Colors.grey[300],
-                          color: _activeTrip!["status"] == "pending"
-                              ? Colors.orange
-                              : _activeTrip!["status"] == "picked_up"
-                              ? Colors.blue
-                              : Colors.green,
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
                     // Action button
-                    if (_activeTrip!["status"] == "picked_up")
-                      Center(
+                    if (_activeTrip!["status"] == "pending")
+                      Align(
+                        alignment: Alignment.centerRight,
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            // Add logic to mark as completed
+                            print("Marking trip as completed...");
+                          },
+                          icon: const Icon(Icons.cancel_outlined),
+                          label: const Text("Cancel Trip"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3E4795),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    if (_activeTrip!["status"] == "picked_up")
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
                             print("Marking trip as completed...");
                           },
                           icon: const Icon(Icons.check_circle_outline),
@@ -1297,7 +1346,7 @@ class _MapScreenState extends State<MapScreen> {
                         const SizedBox(width: 8), // spacing between buttons
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () {
+                            onPressed: () async {
                               if (_routePolyline.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -1329,7 +1378,8 @@ class _MapScreenState extends State<MapScreen> {
                                 _routePolyline,
                               );
 
-                              if (!isPickupValid || !isDropoffValid) {
+                              if (!isDropoffValid) {
+                                //Remove pickup valid to bypass.
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text(
@@ -1360,16 +1410,31 @@ class _MapScreenState extends State<MapScreen> {
 
                               print("🚖 Trip Request: ${trip.toJson()}");
 
-                              // Call API to create request
-                              createRequest(trip);
+                              try {
+                                // Send trip request to backend
+                                final message = await createRequest(trip);
 
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    "Destination set successfully!",
+                                // Show status snackbar
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(message)),
+                                );
+
+                                // ✅ Fetch and show the new active trip
+                                await _loadActiveTrip();
+
+                                // Optionally expand the modal automatically
+                                setState(() {
+                                  _isTripExpanded = true;
+                                  _pickedLocation = null;
+                                  _showPinnedLocation = false;
+                                });
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text("Failed to create trip: $e"),
                                   ),
-                                ),
-                              );
+                                );
+                              }
                             },
                             icon: const Icon(Icons.flag),
                             label: const Text(

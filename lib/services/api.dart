@@ -93,7 +93,7 @@ Future<List<dynamic>> fetchPendingTrips() async {
   }
 }
 
-Future<void> createRequest(TripRequest trip) async {
+Future<String> createRequest(TripRequest trip) async {
   final url = Uri.parse('$baseUrl/passengerTrips/createRequest');
 
   try {
@@ -110,15 +110,16 @@ Future<void> createRequest(TripRequest trip) async {
       }),
     );
 
-    if (response.statusCode == 201) {
+    if (response.statusCode == 200) {
+      return "Trip request created successfully!";
+    } else if (response.statusCode == 400) {
       final data = jsonDecode(response.body);
-      print('Location added: $data');
+      return data['error'] ?? "Passenger already has an active trip.";
     } else {
-      print('Failed: ${response.statusCode}');
-      print('Response Body: ${response.body}');
+      return "Unexpected error: ${response.statusCode}";
     }
   } catch (e) {
-    print('Error sending request: $e');
+    return "Error sending request: $e";
   }
 }
 
