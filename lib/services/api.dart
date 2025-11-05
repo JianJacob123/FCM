@@ -123,7 +123,7 @@ Future<String> createRequest(TripRequest trip) async {
   }
 }
 
-Future<void> addLocation(String userId, double lat, double lng) async {
+Future<String> addLocation(String userId, double lat, double lng) async {
   final url = Uri.parse('$baseUrl/favLocations/addFavLocation');
 
   try {
@@ -133,15 +133,16 @@ Future<void> addLocation(String userId, double lat, double lng) async {
       body: jsonEncode({"passenger_id": userId, "lat": lat, "lng": lng}),
     );
 
-    if (response.statusCode == 201) {
+    if (response.statusCode == 200) {
+      return "Favorite location added successfully!";
+    } else if (response.statusCode == 400) {
       final data = jsonDecode(response.body);
-      print('Location added: $data');
+      return data['error'] ?? "You have already added this location.";
     } else {
-      print('Failed: ${response.statusCode}');
-      print('Response Body: ${response.body}');
+      return "Unexpected error: ${response.statusCode}";
     }
   } catch (e) {
-    print('Error sending request: $e');
+    return "Error sending request: $e";
   }
 }
 

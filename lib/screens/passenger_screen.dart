@@ -1083,12 +1083,13 @@ class _MapScreenState extends State<MapScreen> {
                       tween: Tween(
                         begin: 0.2,
                         end:
-                            (double.tryParse(
-                                  _selectedVehicle!["route_progress_percent"]
-                                      .toString(),
-                                ) ??
-                                0) /
-                            100.clamp(0.0, 1.0),
+                            ((double.tryParse(
+                                          _selectedVehicle!["route_progress_percent"]
+                                              .toString(),
+                                        ) ??
+                                        0) /
+                                    100)
+                                .clamp(0.0, 1.0), // 👈 clamp after dividing
                       ),
                       duration: const Duration(
                         milliseconds: 800,
@@ -1313,7 +1314,7 @@ class _MapScreenState extends State<MapScreen> {
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () {
+                            onPressed: () async {
                               final userProvider = context.read<UserProvider>();
                               final userId = userProvider.isLoggedIn
                                   ? userProvider.currentUser!.id
@@ -1323,11 +1324,16 @@ class _MapScreenState extends State<MapScreen> {
                                 // Handle error: user not logged in
                                 throw Exception("Id Not Found");
                               }
-                              addLocation(
+                              final message = await addLocation(
                                 userId,
                                 _pickedLocation!.latitude,
                                 _pickedLocation!.longitude,
                               );
+
+                              // Show status snackbar
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(SnackBar(content: Text(message)));
                             },
                             icon: const Icon(Icons.favorite_border),
                             label: const Text(
