@@ -3001,6 +3001,7 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
     'Service Maintenance',
   ];
   final List<String> _recipientOptions = ['All Commuters', 'All FCM Unit'];
+  static const int _maxContentLength = 300;
 
   @override
   void initState() {
@@ -3075,6 +3076,12 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
                         ),
                       ),
                       onChanged: (v) => setState(() => _title = v),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Title is required';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 20),
                     const Text(
@@ -3105,6 +3112,12 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
                           )
                           .toList(),
                       onChanged: (v) => setState(() => _type = v),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Notification type is required';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 20),
                     const Text(
@@ -3115,20 +3128,50 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    TextFormField(
-                      initialValue: _content,
-                      minLines: 2,
-                      maxLines: 4,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    Stack(
+                      children: [
+                        TextFormField(
+                          initialValue: _content,
+                          minLines: 2,
+                          maxLines: 4,
+                          maxLength: _maxContentLength,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              top: 10,
+                              bottom: 28, // Extra bottom padding to prevent overlap with counter
+                            ),
+                            counterText: '', // Hide default counter, we'll show custom one
+                          ),
+                          onChanged: (v) => setState(() => _content = v),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Content is required';
+                            }
+                            if (value.length > _maxContentLength) {
+                              return 'Content cannot exceed $_maxContentLength characters';
+                            }
+                            return null;
+                          },
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
+                        Positioned(
+                          bottom: 8,
+                          right: 12,
+                          child: Text(
+                            '${(_content?.length ?? 0)}/$_maxContentLength',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: (_content?.length ?? 0) > _maxContentLength
+                                  ? Colors.red
+                                  : Colors.grey[600],
+                            ),
+                          ),
                         ),
-                      ),
-                      onChanged: (v) => setState(() => _content = v),
+                      ],
                     ),
                     const SizedBox(height: 20),
                     const Text(

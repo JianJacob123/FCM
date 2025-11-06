@@ -947,38 +947,10 @@ class _NotificationsTabState extends State<NotificationsTab> {
                       itemCount: snapshot.data!.length,
                       itemBuilder: (context, index) {
                         final notif = snapshot.data![index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16.0),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF3F3F3),
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: ListTile(
-                              title: Text(
-                                notif["notif_title"],
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              subtitle: Text(
-                                notif["content"],
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                              trailing: Text(
-                                timeAgo(notif["notif_date"]),
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                            ),
-                          ),
+                        return _ExpandableNotificationCard(
+                          title: notif["notif_title"],
+                          content: notif["content"],
+                          timeAgo: timeAgo(notif["notif_date"]),
                         );
                       },
                     );
@@ -986,6 +958,100 @@ class _NotificationsTabState extends State<NotificationsTab> {
                 },
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ExpandableNotificationCard extends StatefulWidget {
+  final String title;
+  final String content;
+  final String timeAgo;
+
+  const _ExpandableNotificationCard({
+    required this.title,
+    required this.content,
+    required this.timeAgo,
+  });
+
+  @override
+  State<_ExpandableNotificationCard> createState() => _ExpandableNotificationCardState();
+}
+
+class _ExpandableNotificationCardState extends State<_ExpandableNotificationCard> {
+  bool _isExpanded = false;
+  static const int _maxPreviewLength = 100;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool needsExpansion = widget.content.length > _maxPreviewLength;
+    final String displayContent = _isExpanded || !needsExpansion
+        ? widget.content
+        : '${widget.content.substring(0, _maxPreviewLength)}...';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F3F3),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    widget.timeAgo,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                displayContent,
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+            if (needsExpansion)
+              Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isExpanded = !_isExpanded;
+                    });
+                  },
+                  child: Text(
+                    _isExpanded ? 'Read less' : 'Read more',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF3E4795),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

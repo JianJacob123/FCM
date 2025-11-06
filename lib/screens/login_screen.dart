@@ -21,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _usernameController = TextEditingController();
   bool _showDriverLogin = false;
+  bool _obscurePassword = true;
 
   double _dragStartY = 0;
 
@@ -258,26 +259,27 @@ class _LoginScreenState extends State<LoginScreen> {
                             const SizedBox(height: 16),
                             TextField(
                               controller: _passwordController,
-                              obscureText: true,
-                              decoration: const InputDecoration(
+                              obscureText: _obscurePassword,
+                              decoration: InputDecoration(
                                 labelText: 'Password',
-                                border: OutlineInputBorder(),
+                                border: const OutlineInputBorder(),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility
+                                        : Icons.visibility_off,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                                ),
                               ),
                             ),
                             const SizedBox(height: 16),
                             Row(
                               children: [
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: _loginAsDriver,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Color(0xFF3E4795),
-                                      foregroundColor: Colors.white,
-                                    ),
-                                    child: const Text('Login'),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
                                 Expanded(
                                   child: ElevatedButton(
                                     onPressed: () => setState(
@@ -288,6 +290,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                       foregroundColor: Colors.white,
                                     ),
                                     child: const Text('Cancel'),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: _loginAsDriver,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Color(0xFF3E4795),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    child: const Text('Login'),
                                   ),
                                 ),
                               ],
