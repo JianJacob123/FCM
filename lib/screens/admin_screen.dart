@@ -331,8 +331,6 @@ class _AdminScreenState extends State<AdminScreen> {
     super.dispose();
   }
 
-  
-
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -1215,12 +1213,13 @@ class _MapScreenState extends State<MapScreen> {
                       tween: Tween(
                         begin: 0.2,
                         end:
-                            (double.tryParse(
-                                  _selectedVehicle!["route_progress_percent"]
-                                      .toString(),
-                                ) ??
-                                0) /
-                            100.clamp(0.0, 1.0),
+                            ((double.tryParse(
+                                          _selectedVehicle!["route_progress_percent"]
+                                              .toString(),
+                                        ) ??
+                                        0) /
+                                    100)
+                                .clamp(0.0, 1.0), //clamp after dividing
                       ),
                       duration: const Duration(
                         milliseconds: 800,
@@ -2818,8 +2817,12 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
   // Spam prevention: track last notification sent
   String? _lastNotificationContent;
   DateTime? _lastNotificationTime;
-  static const Duration _duplicateCooldown = Duration(minutes: 1); // 1 minute cooldown for same content
-  static const Duration _generalCooldown = Duration(seconds: 30); // 30 seconds cooldown between any notifications
+  static const Duration _duplicateCooldown = Duration(
+    minutes: 1,
+  ); // 1 minute cooldown for same content
+  static const Duration _generalCooldown = Duration(
+    seconds: 30,
+  ); // 30 seconds cooldown between any notifications
 
   // Store scheduled notifications
   List<Map<String, dynamic>> _scheduledNotifications = [
@@ -2953,13 +2956,18 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
 
               // Check general cooldown (30 seconds between any notifications)
               if (_lastNotificationTime != null) {
-                final timeSinceLastNotification = now.difference(_lastNotificationTime!);
+                final timeSinceLastNotification = now.difference(
+                  _lastNotificationTime!,
+                );
                 if (timeSinceLastNotification < _generalCooldown) {
-                  final remainingSeconds = (_generalCooldown - timeSinceLastNotification).inSeconds;
+                  final remainingSeconds =
+                      (_generalCooldown - timeSinceLastNotification).inSeconds;
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Please wait ${remainingSeconds} seconds before sending another notification.'),
+                        content: Text(
+                          'Please wait ${remainingSeconds} seconds before sending another notification.',
+                        ),
                         backgroundColor: Colors.red,
                         duration: const Duration(seconds: 3),
                       ),
@@ -2970,10 +2978,12 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
               }
 
               // Check duplicate content cooldown (1 minute for same content)
-              if (_lastNotificationContent != null && 
+              if (_lastNotificationContent != null &&
                   _lastNotificationContent == content &&
                   _lastNotificationTime != null) {
-                final timeSinceDuplicate = now.difference(_lastNotificationTime!);
+                final timeSinceDuplicate = now.difference(
+                  _lastNotificationTime!,
+                );
                 if (timeSinceDuplicate < _duplicateCooldown) {
                   final remaining = _duplicateCooldown - timeSinceDuplicate;
                   final remainingSeconds = remaining.inSeconds;
@@ -2997,7 +3007,7 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
               final formattedDate = DateFormat(
                 'yyyy-MM-dd HH:mm:ss',
               ).format(now.toUtc());
-              
+
               // Call your backend API here
               await createNotification(
                 notif['title'],
@@ -3202,9 +3212,11 @@ class _ComposeNotificationModalState extends State<_ComposeNotificationModal> {
                               left: 16,
                               right: 16,
                               top: 10,
-                              bottom: 28, // Extra bottom padding to prevent overlap with counter
+                              bottom:
+                                  28, // Extra bottom padding to prevent overlap with counter
                             ),
-                            counterText: '', // Hide default counter, we'll show custom one
+                            counterText:
+                                '', // Hide default counter, we'll show custom one
                           ),
                           onChanged: (v) => setState(() => _content = v),
                           validator: (value) {
@@ -4177,7 +4189,9 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
       if (ctx == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Schedule view is not ready yet. Try again.')),
+            const SnackBar(
+              content: Text('Schedule view is not ready yet. Try again.'),
+            ),
           );
         }
         return;
@@ -4188,22 +4202,25 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final bytes = byteData!.buffer.asUint8List();
 
-      final filename = 'schedule_${DateFormat('yyyy-MM-dd').format(_selectedDate)}.png';
+      final filename =
+          'schedule_${DateFormat('yyyy-MM-dd').format(_selectedDate)}.png';
 
       if (kIsWeb) {
         downloadBytes(bytes, filename);
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Saving images is supported on web in this build.')),
+            const SnackBar(
+              content: Text('Saving images is supported on web in this build.'),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save image: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save image: $e')));
       }
     }
   }
@@ -4740,7 +4757,10 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF3E4795),
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
                               elevation: 0,
                             ),
                             icon: const Icon(Icons.download, size: 18),
@@ -4758,177 +4778,181 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
                   child: RepaintBoundary(
                     key: _scheduleShotKey,
                     child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
-                          spreadRadius: 1,
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        // Table header
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            spreadRadius: 1,
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
                           ),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF3E4795),
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(12),
-                              topRight: Radius.circular(12),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // Table header
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  'Time',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF3E4795),
+                              borderRadius: BorderRadius.only(
+                                topLeft: Radius.circular(12),
+                                topRight: Radius.circular(12),
                               ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  'Unit Number',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  'Status',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              // Reason column removed
-                              if (_showActions)
-                                const Expanded(
-                                  flex: 1,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 2,
                                   child: Text(
-                                    'Actions',
+                                    'Time',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    'Unit Number',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
-                            ],
-                          ),
-                        ),
-
-                        // Table content
-                        Expanded(
-                          child: _isLoading
-                              ? const Center(child: CircularProgressIndicator())
-                              : _schedules.isEmpty
-                              ? const Center(
+                                Expanded(
+                                  flex: 2,
                                   child: Text(
-                                    'No schedules found for this date',
+                                    'Status',
                                     style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                )
-                              : ListView.builder(
-                                  itemCount: _schedules.length,
-                                  itemBuilder: (context, index) {
-                                    final schedule = _schedules[index];
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 12,
+                                ),
+                                // Reason column removed
+                                if (_showActions)
+                                  const Expanded(
+                                    flex: 1,
+                                    child: Text(
+                                      'Actions',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                      decoration: BoxDecoration(
-                                        border: Border(
-                                          bottom: BorderSide(
-                                            color: Colors.grey.withOpacity(0.2),
-                                            width: 1,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+
+                          // Table content
+                          Expanded(
+                            child: _isLoading
+                                ? const Center(
+                                    child: CircularProgressIndicator(),
+                                  )
+                                : _schedules.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      'No schedules found for this date',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    itemCount: _schedules.length,
+                                    itemBuilder: (context, index) {
+                                      final schedule = _schedules[index];
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: Colors.grey.withOpacity(
+                                                0.2,
+                                              ),
+                                              width: 1,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            flex: 2,
-                                            child: Text(
-                                              schedule['status'] == 'Active'
-                                                  ? (schedule['time_start'] ??
-                                                        'N/A')
-                                                  : '---',
-                                            ),
-                                          ),
-                                          Expanded(
-                                            flex: 2,
-                                            child: Text(
-                                              'Unit ${schedule['vehicle_id'] ?? 'N/A'}',
-                                            ),
-                                          ),
-                                          Expanded(
-                                            flex: 2,
-                                            child: Text(
-                                              schedule['status'] ?? 'N/A',
-                                            ),
-                                          ),
-                                          // Reason cell removed
-                                          if (_showActions)
+                                        child: Row(
+                                          children: [
                                             Expanded(
-                                              flex: 1,
-                                              child: Row(
-                                                children: [
-                                                  IconButton(
-                                                    icon: const Icon(
-                                                      Icons.edit,
-                                                      color: Colors.blue,
-                                                      size: 20,
-                                                    ),
-                                                    onPressed: () =>
-                                                        _showEditFormDialog(
-                                                          schedule,
-                                                        ),
-                                                    tooltip: 'Edit',
-                                                  ),
-                                                  IconButton(
-                                                    icon: const Icon(
-                                                      Icons.delete,
-                                                      color: Colors.red,
-                                                      size: 20,
-                                                    ),
-                                                    onPressed: () =>
-                                                        _deleteSchedule(
-                                                          schedule['id'],
-                                                        ),
-                                                    tooltip: 'Delete',
-                                                  ),
-                                                ],
+                                              flex: 2,
+                                              child: Text(
+                                                schedule['status'] == 'Active'
+                                                    ? (schedule['time_start'] ??
+                                                          'N/A')
+                                                    : '---',
                                               ),
                                             ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                        ),
-                      ],
+                                            Expanded(
+                                              flex: 2,
+                                              child: Text(
+                                                'Unit ${schedule['vehicle_id'] ?? 'N/A'}',
+                                              ),
+                                            ),
+                                            Expanded(
+                                              flex: 2,
+                                              child: Text(
+                                                schedule['status'] ?? 'N/A',
+                                              ),
+                                            ),
+                                            // Reason cell removed
+                                            if (_showActions)
+                                              Expanded(
+                                                flex: 1,
+                                                child: Row(
+                                                  children: [
+                                                    IconButton(
+                                                      icon: const Icon(
+                                                        Icons.edit,
+                                                        color: Colors.blue,
+                                                        size: 20,
+                                                      ),
+                                                      onPressed: () =>
+                                                          _showEditFormDialog(
+                                                            schedule,
+                                                          ),
+                                                      tooltip: 'Edit',
+                                                    ),
+                                                    IconButton(
+                                                      icon: const Icon(
+                                                        Icons.delete,
+                                                        color: Colors.red,
+                                                        size: 20,
+                                                      ),
+                                                      onPressed: () =>
+                                                          _deleteSchedule(
+                                                            schedule['id'],
+                                                          ),
+                                                      tooltip: 'Delete',
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
                   ),
                 ),
               ],

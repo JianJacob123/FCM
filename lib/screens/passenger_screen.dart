@@ -433,10 +433,12 @@ class _ExpandableNotificationCard extends StatefulWidget {
   });
 
   @override
-  State<_ExpandableNotificationCard> createState() => _ExpandableNotificationCardState();
+  State<_ExpandableNotificationCard> createState() =>
+      _ExpandableNotificationCardState();
 }
 
-class _ExpandableNotificationCardState extends State<_ExpandableNotificationCard> {
+class _ExpandableNotificationCardState
+    extends State<_ExpandableNotificationCard> {
   bool _isExpanded = false;
   static const int _maxPreviewLength = 100;
 
@@ -474,20 +476,14 @@ class _ExpandableNotificationCardState extends State<_ExpandableNotificationCard
                   const SizedBox(width: 8),
                   Text(
                     widget.timeAgo,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
                   ),
                 ],
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text(
-                displayContent,
-                style: const TextStyle(fontSize: 14),
-              ),
+              child: Text(displayContent, style: const TextStyle(fontSize: 14)),
             ),
             if (needsExpansion)
               Padding(
@@ -1207,7 +1203,7 @@ class _MapScreenState extends State<MapScreen> {
                                         ) ??
                                         0) /
                                     100)
-                                .clamp(0.0, 1.0), // 👈 clamp after dividing
+                                .clamp(0.0, 1.0), //clamp after dividing
                       ),
                       duration: const Duration(
                         milliseconds: 800,
@@ -1682,19 +1678,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: const [
-                          Text('1. What is the FCM Transport mobile app?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            '1. What is the FCM Transport mobile app?',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           SizedBox(height: 4),
-                          Text('The FCM Transport app is a convenient tool designed for passengers to track active FCM buses in real time, stay updated with important notifications, and manage their favorite routes and trips—all in one app.'),
+                          Text(
+                            'The FCM Transport app is a convenient tool designed for passengers to track active FCM buses in real time, stay updated with important notifications, and manage their favorite routes and trips—all in one app.',
+                          ),
                           SizedBox(height: 12),
 
-                          Text('2. How do I track a vehicle?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            '2. How do I track a vehicle?',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           SizedBox(height: 4),
-                          Text('Simply open the Map section, choose the route or vehicle number you want to monitor, and view its real-time location and movement along the Bauan–Lipa route.'),
+                          Text(
+                            'Simply open the Map section, choose the route or vehicle number you want to monitor, and view its real-time location and movement along the Bauan–Lipa route.',
+                          ),
                           SizedBox(height: 12),
 
-                          Text('3. What kind of notifications will I receive?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            '3. What kind of notifications will I receive?',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           SizedBox(height: 4),
-                          Text('You\'ll receive official updates from FCM Transport\'s admin, including:'),
+                          Text(
+                            'You\'ll receive official updates from FCM Transport\'s admin, including:',
+                          ),
                           SizedBox(height: 6),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1707,39 +1718,74 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                           SizedBox(height: 12),
 
-                          Text('4. How can I save my favorite locations?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            '4. How can I save my favorite locations?',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           SizedBox(height: 4),
-                          Text('Tap the “Add Favorites” icon when selecting any location on the map. Your saved locations will appear in your Favorites list, allowing quick access to tracking or trip planning later on.'),
+                          Text(
+                            'Tap the “Add Favorites” icon when selecting any location on the map. Your saved locations will appear in your Favorites list, allowing quick access to tracking or trip planning later on.',
+                          ),
                           SizedBox(height: 12),
 
-                          Text('5. What is the Trip History feature for?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            '5. What is the Trip History feature for?',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           SizedBox(height: 4),
-                          Text('The Trip History section allows you to view a summary of your previously tracked trips for easier reference to your past routes and travel activity.'),
+                          Text(
+                            'The Trip History section allows you to view a summary of your previously tracked trips for easier reference to your past routes and travel activity.',
+                          ),
                           SizedBox(height: 12),
 
-                          Text('6. Does the app collect my personal information?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            '6. Does the app collect my personal information?',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           SizedBox(height: 4),
-                          Text('The app only collects location data necessary for providing accurate tracking and route-related information. Your data is handled securely and in accordance with our Privacy Policy.'),
+                          Text(
+                            'The app only collects location data necessary for providing accurate tracking and route-related information. Your data is handled securely and in accordance with our Privacy Policy.',
+                          ),
                           SizedBox(height: 12),
 
-                          Text('7. Can I use the app without enabling location access?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            '7. Can I use the app without enabling location access?',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           SizedBox(height: 4),
-                          Text('You can browse routes and vehicles without enabling location, but you will not have the option to set a destination or view your current position on the map.'),
+                          Text(
+                            'You can browse routes and vehicles without enabling location, but you will not have the option to set a destination or view your current position on the map.',
+                          ),
                           SizedBox(height: 12),
 
-                          Text('8. How do I install the app?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            '8. How do I install the app?',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           SizedBox(height: 4),
-                          Text('You can download the FCM Transport mobile app directly from the official link provided on our website. The app is currently available for Android devices only.'),
+                          Text(
+                            'You can download the FCM Transport mobile app directly from the official link provided on our website. The app is currently available for Android devices only.',
+                          ),
                           SizedBox(height: 12),
 
-                          Text('9. How often is the information on the map updated?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            '9. How often is the information on the map updated?',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           SizedBox(height: 4),
-                          Text('Bus locations and statuses are updated in real time, but minor delays may occur depending on network stability or signal strength.'),
+                          Text(
+                            'Bus locations and statuses are updated in real time, but minor delays may occur depending on network stability or signal strength.',
+                          ),
                           SizedBox(height: 12),
 
-                          Text('10. What should I do if the app is not working properly?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            '10. What should I do if the app is not working properly?',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           SizedBox(height: 4),
-                          Text('Try closing and reopening the app, ensuring that your internet connection is stable. If issues persist, you may reinstall the app or contact our support team for assistance.'),
+                          Text(
+                            'Try closing and reopening the app, ensuring that your internet connection is stable. If issues persist, you may reinstall the app or contact our support team for assistance.',
+                          ),
                         ],
                       ),
                     ),
@@ -1768,7 +1814,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Developer'),
             subtitle: const Text('BatStateU-Lipa IT Students'),
           ),
-    
+
           const SizedBox(height: 32),
 
           // Exit
@@ -1793,7 +1839,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           // Navigate to login screen by pushing and removing all routes
                           if (context.mounted) {
                             Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(builder: (context) => const LoginScreen()),
+                              MaterialPageRoute(
+                                builder: (context) => const LoginScreen(),
+                              ),
                               (route) => false,
                             );
                           }
@@ -1917,14 +1965,14 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
         child: FutureBuilder<List<dynamic>>(
           // Use the class variable for the future
           future: _futureTripHistory,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          } else if (snapshot.hasData) {
-            final trips = snapshot.data!;
-            if (trips.isEmpty) {
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text("Error: ${snapshot.error}"));
+            } else if (snapshot.hasData) {
+              final trips = snapshot.data!;
+              if (trips.isEmpty) {
                 // Ensure the list is scrollable for RefreshIndicator to work on empty data
                 return ListView(
                   children: const [
@@ -1932,75 +1980,75 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
                     Center(child: Text("No trip history available.")),
                   ],
                 );
-            }
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: trips.length,
-              itemBuilder: (context, index) {
-                final trip = trips[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF3F3F3),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: ListTile(
-                      leading: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFBFC6F7),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.directions_bus,
-                          color: Color(0xFF3E4795),
-                          size: 28,
-                        ),
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: trips.length,
+                itemBuilder: (context, index) {
+                  final trip = trips[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F3F3),
+                        borderRadius: BorderRadius.circular(18),
                       ),
-                      title: Text(
+                      child: ListTile(
+                        leading: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFBFC6F7),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.directions_bus,
+                            color: Color(0xFF3E4795),
+                            size: 28,
+                          ),
+                        ),
+                        title: Text(
                           'Trip Request ${trip["request_id"] ?? "--"}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 4),
-                          Text(
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            Text(
                               'From: ${trip["pickup_location_name"] ?? "Unknown"}',
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                          Text(
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            Text(
                               'To: ${trip["dropoff_location_name"] ?? "Unknown"}',
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ],
-                      ),
-                      trailing: Text(
-                          timeAgo(trip["created_at"] ?? "Unknown Date"),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
                         ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                        trailing: Text(
+                          timeAgo(trip["created_at"] ?? "Unknown Date"),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-            );
-          } else {
+                  );
+                },
+              );
+            } else {
               // Handle the case where snapshot.hasData is false but no error occurred (e.g., initial null data)
-            return const Center(child: Text("No trip history available."));
-          }
-        },
+              return const Center(child: Text("No trip history available."));
+            }
+          },
         ),
       ),
     );

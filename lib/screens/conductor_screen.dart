@@ -710,12 +710,13 @@ class _MapScreenState extends State<MapScreen> {
                       tween: Tween(
                         begin: 0.2,
                         end:
-                            (double.tryParse(
-                                  _selectedVehicle!["route_progress_percent"]
-                                      .toString(),
-                                ) ??
-                                0) /
-                            100.clamp(0.0, 1.0),
+                            ((double.tryParse(
+                                          _selectedVehicle!["route_progress_percent"]
+                                              .toString(),
+                                        ) ??
+                                        0) /
+                                    100)
+                                .clamp(0.0, 1.0), //clamp after dividing
                       ),
                       duration: const Duration(
                         milliseconds: 800,
@@ -977,10 +978,12 @@ class _ExpandableNotificationCard extends StatefulWidget {
   });
 
   @override
-  State<_ExpandableNotificationCard> createState() => _ExpandableNotificationCardState();
+  State<_ExpandableNotificationCard> createState() =>
+      _ExpandableNotificationCardState();
 }
 
-class _ExpandableNotificationCardState extends State<_ExpandableNotificationCard> {
+class _ExpandableNotificationCardState
+    extends State<_ExpandableNotificationCard> {
   bool _isExpanded = false;
   static const int _maxPreviewLength = 100;
 
@@ -1018,20 +1021,14 @@ class _ExpandableNotificationCardState extends State<_ExpandableNotificationCard
                   const SizedBox(width: 8),
                   Text(
                     widget.timeAgo,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
                   ),
                 ],
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text(
-                displayContent,
-                style: const TextStyle(fontSize: 14),
-              ),
+              child: Text(displayContent, style: const TextStyle(fontSize: 14)),
             ),
             if (needsExpansion)
               Padding(
@@ -1202,14 +1199,14 @@ class _PassengerPickupTabState extends State<PassengerPickupTab> {
                               ),
                             ),
                             title: Text(
-                              pickup['passenger_id'] ?? 'Unknown',
+                              'Passenger Incoming',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
                             ),
                             subtitle: Text(
-                              'Location: ${pickup['pickup_lat'] ?? ""}, ${pickup['pickup_lng'] ?? ""}',
+                              'Location: ${pickup['pickup_location_name'] ?? ""}',
                               style: const TextStyle(fontSize: 14),
                             ),
                             trailing: Text(
@@ -1456,7 +1453,10 @@ class _ProfileTabState extends State<ProfileTab> {
   Future<void> _loadAssignedVehicle() async {
     if (!mounted) return;
     try {
-      final user = Provider.of<UserProvider>(context, listen: false).currentUser;
+      final user = Provider.of<UserProvider>(
+        context,
+        listen: false,
+      ).currentUser;
       if (user == null) {
         setState(() => _loadingAssignment = false);
         return;
@@ -1464,19 +1464,23 @@ class _ProfileTabState extends State<ProfileTab> {
       final res = await VehicleAssignmentApiService.getAllAssignments();
       final assignments = res.data ?? [];
       final match = assignments.firstWhere(
-        (a) => a.driverId?.toString() == user.id || a.conductorId?.toString() == user.id,
-        orElse: () => assignments.isNotEmpty ? assignments.first : VehicleAssignment(
-          assignmentId: 0,
-          vehicleId: 0,
-          plateNumber: null,
-          driverId: null,
-          conductorId: null,
-          driverName: null,
-          conductorName: null,
-          assignedAt: DateTime.now(),
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        ),
+        (a) =>
+            a.driverId?.toString() == user.id ||
+            a.conductorId?.toString() == user.id,
+        orElse: () => assignments.isNotEmpty
+            ? assignments.first
+            : VehicleAssignment(
+                assignmentId: 0,
+                vehicleId: 0,
+                plateNumber: null,
+                driverId: null,
+                conductorId: null,
+                driverName: null,
+                conductorName: null,
+                assignedAt: DateTime.now(),
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              ),
       );
       if (assignments.isEmpty) {
         setState(() => _loadingAssignment = false);
@@ -1500,7 +1504,6 @@ class _ProfileTabState extends State<ProfileTab> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(

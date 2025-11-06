@@ -26,9 +26,10 @@ class _LandingScreenState extends State<LandingScreen> {
   VoidCallback? _scrollToAbout;
   VoidCallback? _scrollToTop;
   bool _aboutInView = false;
-  
+
   // Helper method to check screen size
-  bool _isMobileScreen(BuildContext context) => MediaQuery.of(context).size.width < 600;
+  bool _isMobileScreen(BuildContext context) =>
+      MediaQuery.of(context).size.width < 600;
 
   List<Widget> get _pages => [
     HomePage(
@@ -65,9 +66,7 @@ class _LandingScreenState extends State<LandingScreen> {
     // Navigate to login screen where users can continue as passenger
     // This ensures providers are properly initialized
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => const LoginScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
   }
 
@@ -78,7 +77,8 @@ class _LandingScreenState extends State<LandingScreen> {
         // When scrolled (background is white), make navbar solid blue
         // Use same transition length as background (500 pixels)
         const double transitionLength = 500.0;
-        final double scrollProgress = (_homePageScrollOffset / transitionLength).clamp(0.0, 1.0);
+        final double scrollProgress = (_homePageScrollOffset / transitionLength)
+            .clamp(0.0, 1.0);
         // Start transparent (0.3 opacity) when at top, become fully solid (1.0) when scrolled
         final double opacity = 0.3 + (scrollProgress * 0.7);
         // When opacity is high (close to 1.0), return solid color
@@ -104,7 +104,8 @@ class _LandingScreenState extends State<LandingScreen> {
         // Reduce blur as we scroll (when background becomes white)
         // Use same transition length as background (500 pixels)
         const double transitionLength = 500.0;
-        final double scrollProgress = (_homePageScrollOffset / transitionLength).clamp(0.0, 1.0);
+        final double scrollProgress = (_homePageScrollOffset / transitionLength)
+            .clamp(0.0, 1.0);
         // Start with blur, remove blur completely when over white background
         if (scrollProgress >= 0.95) {
           return 0.0;
@@ -122,30 +123,30 @@ class _LandingScreenState extends State<LandingScreen> {
   @override
   Widget build(BuildContext context) {
     final isMobile = _isMobileScreen(context);
-    
+
     return Scaffold(
       key: _scaffoldKey,
       drawer: isMobile ? _buildDrawer(context) : null,
       body: Stack(
         children: [
           // Main content
-          IndexedStack(
-            index: _currentIndex,
-            children: _pages,
-          ),
+          IndexedStack(index: _currentIndex, children: _pages),
           // Header
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-              child: ClipRRect(
+            child: ClipRRect(
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(12),
                 bottomRight: Radius.circular(12),
               ),
               child: _getNavBarBlur() > 0
                   ? BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: _getNavBarBlur(), sigmaY: _getNavBarBlur()),
+                      filter: ImageFilter.blur(
+                        sigmaX: _getNavBarBlur(),
+                        sigmaY: _getNavBarBlur(),
+                      ),
                       child: _buildNavBarContainer(),
                     )
                   : _buildNavBarContainer(),
@@ -158,7 +159,7 @@ class _LandingScreenState extends State<LandingScreen> {
 
   Widget _buildNavBarContainer() {
     final isMobile = _isMobileScreen(context);
-    
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return AnimatedContainer(
@@ -169,14 +170,14 @@ class _LandingScreenState extends State<LandingScreen> {
             horizontal: isMobile ? 12 : 20,
             vertical: isMobile ? 8 : 12,
           ),
-              decoration: BoxDecoration(
+          decoration: BoxDecoration(
             color: _getNavBarColor(),
             borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(12),
               bottomRight: Radius.circular(12),
             ),
-                boxShadow: [
-                  BoxShadow(
+            boxShadow: [
+              BoxShadow(
                 color: Colors.black.withOpacity(0.25),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
@@ -185,48 +186,44 @@ class _LandingScreenState extends State<LandingScreen> {
               BoxShadow(
                 color: Colors.black.withOpacity(0.15),
                 blurRadius: 6,
-                    offset: const Offset(0, 2),
+                offset: const Offset(0, 2),
                 spreadRadius: 0,
-                  ),
-                ],
               ),
-              child: SafeArea(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Logo (click to go Home and scroll to top)
-                    InkWell(
-                      onTap: () {
-                        setState(() {
-                          _currentIndex = 0;
-                          _homePageScrollOffset = 0.0;
-                        });
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          _scrollToTop?.call();
-                        });
-                      },
-                      child: Image.asset(
-                  'assets/logo2.png',
-                  height: isMobile ? 45 : 70,
-                  width: isMobile ? 45 : 70,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                    return Icon(
-                              Icons.directions_bus,
-                              color: Colors.white,
-                      size: isMobile ? 35 : 55,
-                            );
-                          },
-                      ),
-                        ),
+            ],
+          ),
+          child: SafeArea(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Logo (click to go Home and scroll to top)
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _currentIndex = 0;
+                      _homePageScrollOffset = 0.0;
+                    });
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _scrollToTop?.call();
+                    });
+                  },
+                  child: Image.asset(
+                    'assets/logo2.png',
+                    height: isMobile ? 45 : 70,
+                    width: isMobile ? 45 : 70,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        Icons.directions_bus,
+                        color: Colors.white,
+                        size: isMobile ? 35 : 55,
+                      );
+                    },
+                  ),
+                ),
                 // Navigation Links - show hamburger on mobile, full nav on desktop
                 if (isMobile)
                   IconButton(
-                    icon: const Icon(
-                      Icons.menu,
-                            color: Colors.white,
-                      size: 28,
-                    ),
+                    icon: const Icon(Icons.menu, color: Colors.white, size: 28),
                     onPressed: () {
                       _scaffoldKey.currentState?.openDrawer();
                     },
@@ -250,7 +247,9 @@ class _LandingScreenState extends State<LandingScreen> {
                         ),
                         _NavLink(
                           text: 'About',
-                          isActive: (_currentIndex == 0 && _aboutInView) || _currentIndex == 1,
+                          isActive:
+                              (_currentIndex == 0 && _aboutInView) ||
+                              _currentIndex == 1,
                           onTap: () {
                             // If on home page, scroll to About section
                             if (_currentIndex == 0 && _scrollToAbout != null) {
@@ -279,10 +278,10 @@ class _LandingScreenState extends State<LandingScreen> {
                         ),
                       ],
                     ),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -297,9 +296,7 @@ class _LandingScreenState extends State<LandingScreen> {
           // Drawer Header
           Container(
             height: 120,
-            decoration: const BoxDecoration(
-              color: Color(0xFF5C5C8A),
-            ),
+            decoration: const BoxDecoration(color: Color(0xFF5C5C8A)),
             child: SafeArea(
               child: Row(
                 children: [
@@ -346,9 +343,9 @@ class _LandingScreenState extends State<LandingScreen> {
               setState(() {
                 _currentIndex = 0;
                 _homePageScrollOffset = 0.0;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _scrollToTop?.call();
-              });
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _scrollToTop?.call();
+                });
               });
             },
           ),
@@ -408,16 +405,18 @@ class _NavLink extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Hoverable(
       builder: (hover) => InkWell(
-      onTap: onTap,
+        onTap: onTap,
         child: AnimatedDefaultTextStyle(
           duration: const Duration(milliseconds: 150),
-        style: TextStyle(
+          style: TextStyle(
             color: isActive
                 ? const Color(0xFFA0A0E0)
                 : (hover ? Colors.white : const Color(0xFFE0E0E0)),
-          fontSize: 16,
+            fontSize: 16,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-            decoration: hover && !isActive ? TextDecoration.underline : TextDecoration.none,
+            decoration: hover && !isActive
+                ? TextDecoration.underline
+                : TextDecoration.none,
           ),
           child: Text(text),
         ),
@@ -487,8 +486,15 @@ class HomePage extends StatefulWidget {
   final Function(VoidCallback)? onTopScrollReady;
   final VoidCallback? onNavigateToMap;
   final Function(bool)? onAboutInViewChanged;
-  
-  const HomePage({super.key, this.onScrollUpdate, this.onAboutScrollReady, this.onTopScrollReady, this.onNavigateToMap, this.onAboutInViewChanged});
+
+  const HomePage({
+    super.key,
+    this.onScrollUpdate,
+    this.onAboutScrollReady,
+    this.onTopScrollReady,
+    this.onNavigateToMap,
+    this.onAboutInViewChanged,
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -519,13 +525,14 @@ class _HomePageState extends State<HomePage> {
             final pos = box.localToGlobal(Offset.zero);
             final size = box.size;
             final height = MediaQuery.of(context).size.height;
-            final bool inView = pos.dy < height * 0.6 && pos.dy + size.height > height * 0.2;
+            final bool inView =
+                pos.dy < height * 0.6 && pos.dy + size.height > height * 0.2;
             widget.onAboutInViewChanged!(inView);
           }
         }
       }
     });
-    
+
     // Register scroll to about method with parent
     if (widget.onAboutScrollReady != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -569,7 +576,9 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           title: const Text('Terms of Service'),
           content: SizedBox(
             width: 600,
@@ -578,54 +587,109 @@ class _HomePageState extends State<HomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
                   SizedBox(height: 4),
-                  Text('Last Updated: November 6, 2025', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                    'Last Updated: November 6, 2025',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                   SizedBox(height: 16),
-                  Text('Welcome to the official website of FCM Transport Corporation ("we," "our," or "us"). By accessing or using this website, you agree to comply with and be bound by the following Terms of Service. Please read them carefully before using the site.'),
+                  Text(
+                    'Welcome to the official website of FCM Transport Corporation ("we," "our," or "us"). By accessing or using this website, you agree to comply with and be bound by the following Terms of Service. Please read them carefully before using the site.',
+                  ),
                   SizedBox(height: 16),
-                  Text('1. Purpose of the Website', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '1. Purpose of the Website',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('This website provides general information about FCM Transport Corporation, including our company background, transport services, and a real-time bus tracking feature through the “Map” section. The website is for informational and public service purposes only.'),
+                  Text(
+                    'This website provides general information about FCM Transport Corporation, including our company background, transport services, and a real-time bus tracking feature through the “Map” section. The website is for informational and public service purposes only.',
+                  ),
                   SizedBox(height: 12),
-                  Text('2. Acceptance of Terms', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '2. Acceptance of Terms',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('By browsing or using any part of this website, you acknowledge that you have read, understood, and agreed to these Terms. If you do not agree, please discontinue use immediately.'),
+                  Text(
+                    'By browsing or using any part of this website, you acknowledge that you have read, understood, and agreed to these Terms. If you do not agree, please discontinue use immediately.',
+                  ),
                   SizedBox(height: 12),
-                  Text('3. Use of the Website', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '3. Use of the Website',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('You agree to use this website responsibly and only for lawful purposes. You must not attempt to gain unauthorized access to any part of the site or its servers; interfere with or disrupt the site’s operation; or use the website’s content or data for commercial or malicious purposes.'),
+                  Text(
+                    'You agree to use this website responsibly and only for lawful purposes. You must not attempt to gain unauthorized access to any part of the site or its servers; interfere with or disrupt the site’s operation; or use the website’s content or data for commercial or malicious purposes.',
+                  ),
                   SizedBox(height: 12),
-                  Text('4. Accuracy of Information', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '4. Accuracy of Information',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('We strive to keep all content, including route and bus location information, accurate and up to date. However, data shown on the Map (such as active buses and estimated positions) may vary due to network delays or technical limitations. FCM Transport Corporation makes no guarantees regarding accuracy or availability.'),
+                  Text(
+                    'We strive to keep all content, including route and bus location information, accurate and up to date. However, data shown on the Map (such as active buses and estimated positions) may vary due to network delays or technical limitations. FCM Transport Corporation makes no guarantees regarding accuracy or availability.',
+                  ),
                   SizedBox(height: 12),
-                  Text('5. Intellectual Property Rights', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '5. Intellectual Property Rights',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('All content found on this website—including text, graphics, logos, and designs—is the property of FCM Transport Corporation and protected under applicable copyright and trademark laws. You may not reproduce, modify, or distribute any materials without prior written consent.'),
+                  Text(
+                    'All content found on this website—including text, graphics, logos, and designs—is the property of FCM Transport Corporation and protected under applicable copyright and trademark laws. You may not reproduce, modify, or distribute any materials without prior written consent.',
+                  ),
                   SizedBox(height: 12),
-                  Text('6. Limitation of Liability', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '6. Limitation of Liability',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('FCM Transport Corporation shall not be held liable for any direct, indirect, or incidental damages resulting from your access to or use of this website. Use of the Map and any transport data is at your own discretion and risk.'),
+                  Text(
+                    'FCM Transport Corporation shall not be held liable for any direct, indirect, or incidental damages resulting from your access to or use of this website. Use of the Map and any transport data is at your own discretion and risk.',
+                  ),
                   SizedBox(height: 12),
-                  Text('7. External Links', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '7. External Links',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('This website may contain links to third-party websites for convenience. We are not responsible for the content, accuracy, or policies of those external sites.'),
+                  Text(
+                    'This website may contain links to third-party websites for convenience. We are not responsible for the content, accuracy, or policies of those external sites.',
+                  ),
                   SizedBox(height: 12),
-                  Text('8. Changes to the Website and Terms', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '8. Changes to the Website and Terms',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('We may update or modify website content and these Terms of Service at any time without prior notice. Continued use of the site after updates constitutes acceptance of the new terms.'),
+                  Text(
+                    'We may update or modify website content and these Terms of Service at any time without prior notice. Continued use of the site after updates constitutes acceptance of the new terms.',
+                  ),
                   SizedBox(height: 12),
-                  Text('9. Contact Information', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '9. Contact Information',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('For questions or concerns about these Terms, you may reach us at:'),
+                  Text(
+                    'For questions or concerns about these Terms, you may reach us at:',
+                  ),
                   SizedBox(height: 4),
                   Text('📧 info@fcmtransport.com'),
-                  Text('🌐 FCM Transport - Batangas-Bauan Grand Terminal Corporation facebook page'),
+                  Text(
+                    '🌐 FCM Transport - Batangas-Bauan Grand Terminal Corporation facebook page',
+                  ),
                 ],
               ),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close')),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Close'),
+            ),
           ],
         );
       },
@@ -637,7 +701,9 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           title: const Text('Privacy Policy'),
           content: SizedBox(
             width: 600,
@@ -646,50 +712,100 @@ class _HomePageState extends State<HomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
                   SizedBox(height: 4),
-                  Text('Last Updated: November 6, 2025', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                    'Last Updated: November 6, 2025',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                   SizedBox(height: 16),
-                  Text('At FCM Transport Corporation ("we," "our," or "us"), we value your privacy and are committed to maintaining a safe and transparent online experience. This Privacy Policy explains how we handle information when you visit our website.'),
+                  Text(
+                    'At FCM Transport Corporation ("we," "our," or "us"), we value your privacy and are committed to maintaining a safe and transparent online experience. This Privacy Policy explains how we handle information when you visit our website.',
+                  ),
                   SizedBox(height: 16),
-                  Text('1. Information We Collect', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '1. Information We Collect',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('We do not collect, store, or process any personal information from visitors. Our website does not include contact forms, registration pages, or features that request user data.'),
+                  Text(
+                    'We do not collect, store, or process any personal information from visitors. Our website does not include contact forms, registration pages, or features that request user data.',
+                  ),
                   SizedBox(height: 12),
-                  Text('2. Non-Personal Information', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '2. Non-Personal Information',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('We do not use cookies, tracking technologies, or analytics tools that gather personally identifiable data. However, basic, anonymous server logs (such as visit counts or general browser types) may be automatically recorded by our hosting provider for site performance and security purposes. These logs do not identify individual visitors.'),
+                  Text(
+                    'We do not use cookies, tracking technologies, or analytics tools that gather personally identifiable data. However, basic, anonymous server logs (such as visit counts or general browser types) may be automatically recorded by our hosting provider for site performance and security purposes. These logs do not identify individual visitors.',
+                  ),
                   SizedBox(height: 12),
-                  Text('3. Use of Information', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '3. Use of Information',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('Since we do not collect personal data, there is no user information to process, analyze, or share.'),
+                  Text(
+                    'Since we do not collect personal data, there is no user information to process, analyze, or share.',
+                  ),
                   SizedBox(height: 12),
-                  Text('4. Data Sharing', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '4. Data Sharing',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('We do not sell, rent, or share any visitor data with third parties.'),
+                  Text(
+                    'We do not sell, rent, or share any visitor data with third parties.',
+                  ),
                   SizedBox(height: 12),
-                  Text('5. External Links', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '5. External Links',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('Our website may contain links to other websites, such as app download pages or social media platforms. We are not responsible for the content or privacy practices of those external sites. We encourage you to review their respective privacy policies when visiting them.'),
+                  Text(
+                    'Our website may contain links to other websites, such as app download pages or social media platforms. We are not responsible for the content or privacy practices of those external sites. We encourage you to review their respective privacy policies when visiting them.',
+                  ),
                   SizedBox(height: 12),
-                  Text('6. Data Security', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '6. Data Security',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('Although we do not collect personal data, our website is hosted on secure servers that use standard security measures to prevent unauthorized access or misuse of the site.'),
+                  Text(
+                    'Although we do not collect personal data, our website is hosted on secure servers that use standard security measures to prevent unauthorized access or misuse of the site.',
+                  ),
                   SizedBox(height: 12),
-                  Text('7. Updates to This Policy', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '7. Updates to This Policy',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('We may update this Privacy Policy from time to time to reflect changes in our website or legal requirements. Any updates will be posted on this page with a revised “Last Updated” date.'),
+                  Text(
+                    'We may update this Privacy Policy from time to time to reflect changes in our website or legal requirements. Any updates will be posted on this page with a revised “Last Updated” date.',
+                  ),
                   SizedBox(height: 12),
-                  Text('8. Contact Us', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    '8. Contact Us',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(height: 6),
-                  Text('For any questions or concerns regarding this Privacy Policy, you may contact us at:'),
+                  Text(
+                    'For any questions or concerns regarding this Privacy Policy, you may contact us at:',
+                  ),
                   SizedBox(height: 4),
                   Text('📧 fcmtransport@gmail.com'),
-                  Text('🌐 FCM Transport - Batangas-Bauan Grand Terminal Corporation facebook page'),
+                  Text(
+                    '🌐 FCM Transport - Batangas-Bauan Grand Terminal Corporation facebook page',
+                  ),
                 ],
               ),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close')),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Close'),
+            ),
           ],
         );
       },
@@ -705,11 +821,18 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Responsive helper methods
-  bool _isMobile(BuildContext context) => MediaQuery.of(context).size.width < 600;
-  bool _isTablet(BuildContext context) => 
-      MediaQuery.of(context).size.width >= 600 && MediaQuery.of(context).size.width < 1024;
-  
-  double _getResponsiveFontSize(BuildContext context, double desktop, double tablet, double mobile) {
+  bool _isMobile(BuildContext context) =>
+      MediaQuery.of(context).size.width < 600;
+  bool _isTablet(BuildContext context) =>
+      MediaQuery.of(context).size.width >= 600 &&
+      MediaQuery.of(context).size.width < 1024;
+
+  double _getResponsiveFontSize(
+    BuildContext context,
+    double desktop,
+    double tablet,
+    double mobile,
+  ) {
     if (_isMobile(context)) return mobile;
     if (_isTablet(context)) return tablet;
     return desktop;
@@ -717,8 +840,10 @@ class _HomePageState extends State<HomePage> {
 
   EdgeInsets _getResponsivePadding(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    if (width < 600) return const EdgeInsets.symmetric(horizontal: 20.0, vertical: 60.0);
-    if (width < 1024) return const EdgeInsets.symmetric(horizontal: 30.0, vertical: 60.0);
+    if (width < 600)
+      return const EdgeInsets.symmetric(horizontal: 20.0, vertical: 60.0);
+    if (width < 1024)
+      return const EdgeInsets.symmetric(horizontal: 30.0, vertical: 60.0);
     return const EdgeInsets.symmetric(horizontal: 40.0, vertical: 60.0);
   }
 
@@ -727,17 +852,11 @@ class _HomePageState extends State<HomePage> {
       onTap: widget.onNavigateToMap ?? () {}, // Navigate to map page
       child: Container(
         height: 56,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 24,
-          vertical: 16,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         decoration: BoxDecoration(
           color: const Color(0xFF5C5C8A).withOpacity(0.3),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-          color: Colors.white,
-            width: 1.5,
-          ),
+          border: Border.all(color: Colors.white, width: 1.5),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -747,16 +866,12 @@ class _HomePageState extends State<HomePage> {
               'Track FCM Units',
               style: TextStyle(
                 fontWeight: FontWeight.w500,
-          fontSize: 16,
+                fontSize: 16,
                 color: Colors.white,
               ),
             ),
             const SizedBox(width: 12),
-            const Icon(
-              Icons.play_arrow,
-              size: 20,
-              color: Colors.white,
-            ),
+            const Icon(Icons.play_arrow, size: 20, color: Colors.white),
           ],
         ),
       ),
@@ -768,10 +883,7 @@ class _HomePageState extends State<HomePage> {
       onTap: () => _showDownloadAppModal(context),
       child: Container(
         height: 56,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 24,
-          vertical: 16,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         decoration: BoxDecoration(
           color: const Color(0xFF5C5C8A),
           borderRadius: BorderRadius.circular(16),
@@ -789,11 +901,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(width: 12),
-            const Icon(
-              Icons.smartphone,
-              size: 20,
-              color: Colors.white,
-            ),
+            const Icon(Icons.smartphone, size: 20, color: Colors.white),
           ],
         ),
       ),
@@ -802,7 +910,7 @@ class _HomePageState extends State<HomePage> {
 
   void _showDownloadAppModal(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -853,7 +961,10 @@ class _HomePageState extends State<HomePage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black87,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                           side: BorderSide(color: Colors.grey[300]!),
@@ -883,20 +994,26 @@ class _HomePageState extends State<HomePage> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.of(context).pop();
-                        final url = (dotenv.env['ANDROID_APK_URL'] ?? '').isNotEmpty
+                        final url =
+                            (dotenv.env['ANDROID_APK_URL'] ?? '').isNotEmpty
                             ? dotenv.env['ANDROID_APK_URL']!
                             : '/downloads/app-release.apk';
                         if (url.isNotEmpty) {
                           downloadFromUrl(url, filename: 'fcm_app.apk');
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('ANDROID_APK_URL not set.')),
+                            const SnackBar(
+                              content: Text('ANDROID_APK_URL not set.'),
+                            ),
                           );
                         }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF5C5C8A),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -931,7 +1048,10 @@ class _HomePageState extends State<HomePage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.black87,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                         side: BorderSide(color: Colors.grey[300]!),
@@ -959,20 +1079,26 @@ class _HomePageState extends State<HomePage> {
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.of(context).pop();
-                      final url = (dotenv.env['ANDROID_APK_URL'] ?? '').isNotEmpty
+                      final url =
+                          (dotenv.env['ANDROID_APK_URL'] ?? '').isNotEmpty
                           ? dotenv.env['ANDROID_APK_URL']!
                           : '/downloads/app-release.apk';
                       if (url.isNotEmpty) {
                         downloadFromUrl(url, filename: 'fcm_app.apk');
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('ANDROID_APK_URL not set.')),
+                          const SnackBar(
+                            content: Text('ANDROID_APK_URL not set.'),
+                          ),
                         );
                       }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5C5C8A),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -982,7 +1108,11 @@ class _HomePageState extends State<HomePage> {
                       width: 20,
                       height: 20,
                       errorBuilder: (context, error, stackTrace) {
-                        return const Icon(Icons.phone_android, size: 20, color: Colors.white);
+                        return const Icon(
+                          Icons.phone_android,
+                          size: 20,
+                          color: Colors.white,
+                        );
                       },
                     ),
                     label: const Text(
@@ -1005,66 +1135,76 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final double bgOpacity = _getBackgroundOpacity();
-    
+
     return Stack(
       children: [
         // White background (shown as image fades)
-        Positioned.fill(
-          child: Container(
-            color: Colors.white,
-          ),
-        ),
+        Positioned.fill(child: Container(color: Colors.white)),
         // Background Image with Gradient Overlay
         Positioned.fill(
           child: Opacity(
             opacity: bgOpacity,
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color.fromRGBO(62, 71, 149, 0.9),
-            ),
-            child: Stack(
-              children: [
-                // Background image with error handling
-                Positioned.fill(
-                  child: Image.asset(
-                    'assets/bg.jpeg',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: const Color.fromRGBO(62, 71, 149, 1),
-                      );
-                    },
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color.fromRGBO(62, 71, 149, 0.9),
+              ),
+              child: Stack(
+                children: [
+                  // Background image with error handling
+                  Positioned.fill(
+                    child: Image.asset(
+                      'assets/bg.jpeg',
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: const Color.fromRGBO(62, 71, 149, 1),
+                        );
+                      },
+                    ),
                   ),
-                ),
-                // Gradient overlay
-                Container(
+                  // Gradient overlay
+                  Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                         stops: const [0.0, 0.12, 0.24, 0.39, 0.65, 0.85, 0.97],
                         colors: [
-                          const Color(0xFFFFFFFF).withOpacity(1.0 * 0.7),    // 0% - White - 70%
-                          const Color(0xFF7680D9).withOpacity(0.96 * 0.7),   // 12% - #7680D9 - 67.2%
-                          const Color(0xFF555DA3).withOpacity(0.98 * 0.7),    // 24% - #555DA3 - 68.6%
-                          const Color(0xFF3E4795).withOpacity(0.98 * 0.7),    // 39% - #3E4795 - 68.6%
-                          const Color(0xFF293385).withOpacity(1.0 * 0.7),     // 65% - #293385 - 70%
-                          const Color(0xFF020A4B).withOpacity(1.0 * 0.7),     // 85% - #020A4B - 70%
-                          const Color(0xFF00073D).withOpacity(1.0 * 0.7),    // 97% - #00073D - 70%
+                          const Color(
+                            0xFFFFFFFF,
+                          ).withOpacity(1.0 * 0.7), // 0% - White - 70%
+                          const Color(
+                            0xFF7680D9,
+                          ).withOpacity(0.96 * 0.7), // 12% - #7680D9 - 67.2%
+                          const Color(
+                            0xFF555DA3,
+                          ).withOpacity(0.98 * 0.7), // 24% - #555DA3 - 68.6%
+                          const Color(
+                            0xFF3E4795,
+                          ).withOpacity(0.98 * 0.7), // 39% - #3E4795 - 68.6%
+                          const Color(
+                            0xFF293385,
+                          ).withOpacity(1.0 * 0.7), // 65% - #293385 - 70%
+                          const Color(
+                            0xFF020A4B,
+                          ).withOpacity(1.0 * 0.7), // 85% - #020A4B - 70%
+                          const Color(
+                            0xFF00073D,
+                          ).withOpacity(1.0 * 0.7), // 97% - #00073D - 70%
                         ],
                       ),
                     ),
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
         ),
         // Scrollable Content
         SafeArea(
           child: SingleChildScrollView(
             controller: _scrollController,
-                child: Column(
+            child: Column(
               children: [
                 // Hero Content
                 SizedBox(
@@ -1079,17 +1219,22 @@ class _HomePageState extends State<HomePage> {
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
+                        children: [
                           Text(
-                      'FCM Transport Services Corporation',
+                            'FCM Transport Services Corporation',
                             textAlign: TextAlign.center,
-                      style: TextStyle(
-                              fontSize: _getResponsiveFontSize(context, 56, 42, 32),
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        height: 1.2,
+                            style: TextStyle(
+                              fontSize: _getResponsiveFontSize(
+                                context,
+                                56,
+                                42,
+                                32,
+                              ),
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              height: 1.2,
                               shadows: [
                                 Shadow(
                                   color: Colors.black.withOpacity(0.5),
@@ -1102,16 +1247,21 @@ class _HomePageState extends State<HomePage> {
                                   offset: const Offset(0, 2),
                                 ),
                               ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
                           Text(
-                      "Your reliable transport service from Bauan to Lipa",
+                            "Your reliable transport service from Bauan to Lipa",
                             textAlign: TextAlign.center,
-                      style: TextStyle(
-                              fontSize: _getResponsiveFontSize(context, 28, 22, 18),
-                        color: Colors.white,
-                        fontWeight: FontWeight.w300,
+                            style: TextStyle(
+                              fontSize: _getResponsiveFontSize(
+                                context,
+                                28,
+                                22,
+                                18,
+                              ),
+                              color: Colors.white,
+                              fontWeight: FontWeight.w300,
                               shadows: [
                                 Shadow(
                                   color: Colors.grey.withOpacity(0.5),
@@ -1119,9 +1269,9 @@ class _HomePageState extends State<HomePage> {
                                   offset: const Offset(0, 2),
                                 ),
                               ],
-                      ),
-                    ),
-                    const SizedBox(height: 40),
+                            ),
+                          ),
+                          const SizedBox(height: 40),
                           _isMobile(context)
                               ? Column(
                                   children: [
@@ -1133,9 +1283,7 @@ class _HomePageState extends State<HomePage> {
                               : Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Flexible(
-                                      child: _buildTrackButton(context),
-                                    ),
+                                    Flexible(child: _buildTrackButton(context)),
                                     const SizedBox(width: 16),
                                     Flexible(
                                       child: _buildDownloadButton(context),
@@ -1237,7 +1385,8 @@ class _HomePageState extends State<HomePage> {
                             child: _FeatureItem(
                               icon: Icons.access_time,
                               title: 'On-Time Service',
-                              description: 'We prioritize punctuality to ensure you reach your destination on schedule.',
+                              description:
+                                  'We prioritize punctuality to ensure you reach your destination on schedule.',
                             ),
                           ),
                           const SizedBox(width: 20),
@@ -1245,7 +1394,8 @@ class _HomePageState extends State<HomePage> {
                             child: _FeatureItem(
                               icon: Icons.security,
                               title: 'Safe & Reliable',
-                              description: 'Your safety is our top priority with well-maintained vehicles and trained drivers.',
+                              description:
+                                  'Your safety is our top priority with well-maintained vehicles and trained drivers.',
                             ),
                           ),
                           const SizedBox(width: 20),
@@ -1253,7 +1403,8 @@ class _HomePageState extends State<HomePage> {
                             child: _FeatureItem(
                               icon: Icons.track_changes,
                               title: 'Real-Time Tracking',
-                              description: 'Track your bus in real-time and know exactly when it will arrive.',
+                              description:
+                                  'Track your bus in real-time and know exactly when it will arrive.',
                             ),
                           ),
                         ],
@@ -1274,7 +1425,12 @@ class _HomePageState extends State<HomePage> {
                             Text(
                               'About FCM Transport',
                               style: TextStyle(
-                                fontSize: _getResponsiveFontSize(context, 36, 28, 24),
+                                fontSize: _getResponsiveFontSize(
+                                  context,
+                                  36,
+                                  28,
+                                  24,
+                                ),
                                 fontWeight: FontWeight.bold,
                                 color: const Color.fromRGBO(62, 71, 149, 1),
                               ),
@@ -1283,7 +1439,12 @@ class _HomePageState extends State<HomePage> {
                             Text(
                               'FCM Transport Batangas-Bauan-Grand Terminal Corporation is dedicated to providing modern and reliable public transportation services in Batangas. In partnership with Hino Batangas, we launched 15 Hino Modern Public Utility Vehicles (PUVs) featuring ergonomic seating, efficient air-conditioning, and robust safety systems.',
                               style: TextStyle(
-                                fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                fontSize: _getResponsiveFontSize(
+                                  context,
+                                  16,
+                                  15,
+                                  14,
+                                ),
                                 color: Colors.grey[700],
                                 height: 1.6,
                               ),
@@ -1292,7 +1453,12 @@ class _HomePageState extends State<HomePage> {
                             Text(
                               'Our vision is to offer better transport services to Bauan and neighboring areas, supported by the Land Transportation Franchising and Regulatory Board (LTFRB) Region IV and the local government of Batangas. We aim to improve commuting between Bauan and Lipa, creating opportunities for work, business, and leisure.',
                               style: TextStyle(
-                                fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                fontSize: _getResponsiveFontSize(
+                                  context,
+                                  16,
+                                  15,
+                                  14,
+                                ),
                                 color: Colors.grey[700],
                                 height: 1.6,
                               ),
@@ -1301,7 +1467,12 @@ class _HomePageState extends State<HomePage> {
                             Text(
                               'This partnership with Hino reflects FCM Transport\'s commitment to innovation and our goal of providing safe, sustainable, and world-class mobility solutions.',
                               style: TextStyle(
-                                fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                fontSize: _getResponsiveFontSize(
+                                  context,
+                                  16,
+                                  15,
+                                  14,
+                                ),
                                 color: Colors.grey[700],
                                 height: 1.6,
                               ),
@@ -1346,16 +1517,31 @@ class _HomePageState extends State<HomePage> {
                                   Text(
                                     'About FCM Transport',
                                     style: TextStyle(
-                                      fontSize: _getResponsiveFontSize(context, 36, 28, 24),
+                                      fontSize: _getResponsiveFontSize(
+                                        context,
+                                        36,
+                                        28,
+                                        24,
+                                      ),
                                       fontWeight: FontWeight.bold,
-                                      color: const Color.fromRGBO(62, 71, 149, 1),
+                                      color: const Color.fromRGBO(
+                                        62,
+                                        71,
+                                        149,
+                                        1,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(height: 24),
                                   Text(
                                     'FCM Transport Batangas-Bauan-Grand Terminal Corporation is dedicated to providing modern and reliable public transportation services in Batangas. In partnership with Hino Batangas, we launched 15 Hino Modern Public Utility Vehicles (PUVs) featuring ergonomic seating, efficient air-conditioning, and robust safety systems.',
                                     style: TextStyle(
-                                      fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                      fontSize: _getResponsiveFontSize(
+                                        context,
+                                        16,
+                                        15,
+                                        14,
+                                      ),
                                       color: Colors.grey[700],
                                       height: 1.6,
                                     ),
@@ -1364,7 +1550,12 @@ class _HomePageState extends State<HomePage> {
                                   Text(
                                     'Our vision is to offer better transport services to Bauan and neighboring areas, supported by the Land Transportation Franchising and Regulatory Board (LTFRB) Region IV and the local government of Batangas. We aim to improve commuting between Bauan and Lipa, creating opportunities for work, business, and leisure.',
                                     style: TextStyle(
-                                      fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                      fontSize: _getResponsiveFontSize(
+                                        context,
+                                        16,
+                                        15,
+                                        14,
+                                      ),
                                       color: Colors.grey[700],
                                       height: 1.6,
                                     ),
@@ -1373,7 +1564,12 @@ class _HomePageState extends State<HomePage> {
                                   Text(
                                     'This partnership with Hino reflects FCM Transport\'s commitment to innovation and our goal of providing safe, sustainable, and world-class mobility solutions.',
                                     style: TextStyle(
-                                      fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                      fontSize: _getResponsiveFontSize(
+                                        context,
+                                        16,
+                                        15,
+                                        14,
+                                      ),
                                       color: Colors.grey[700],
                                       height: 1.6,
                                     ),
@@ -1426,45 +1622,68 @@ class _HomePageState extends State<HomePage> {
                                 return AnimatedContainer(
                                   duration: const Duration(milliseconds: 180),
                                   curve: Curves.easeOut,
-                                  transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
+                                  transform: Matrix4.identity()
+                                    ..translate(0.0, hover ? -4.0 : 0.0),
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: hover ? const Color(0xFF3E4795).withOpacity(0.2) : Colors.transparent,
+                                      color: hover
+                                          ? const Color(
+                                              0xFF3E4795,
+                                            ).withOpacity(0.2)
+                                          : Colors.transparent,
                                       width: 1.5,
                                     ),
-                                boxShadow: [
-                                  BoxShadow(
-                                        color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(
+                                          hover ? 0.12 : 0.08,
+                                        ),
                                         blurRadius: hover ? 14 : 8,
-                                    offset: const Offset(0, 2),
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Our Vision',
-                                    style: TextStyle(
-                                      fontSize: _getResponsiveFontSize(context, 28, 24, 22),
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color.fromRGBO(62, 71, 149, 1),
-                                    ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Our Vision',
+                                        style: TextStyle(
+                                          fontSize: _getResponsiveFontSize(
+                                            context,
+                                            28,
+                                            24,
+                                            22,
+                                          ),
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color.fromRGBO(
+                                            62,
+                                            71,
+                                            149,
+                                            1,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'To be the most trusted and modern transport service in Batangas—connecting communities with reliable, comfortable, and inclusive mobility.',
+                                        style: TextStyle(
+                                          fontSize: _getResponsiveFontSize(
+                                            context,
+                                            16,
+                                            15,
+                                            14,
+                                          ),
+                                          color: Colors.grey[700],
+                                          height: 1.6,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'To be the most trusted and modern transport service in Batangas—connecting communities with reliable, comfortable, and inclusive mobility.',
-                                    style: TextStyle(
-                                      fontSize: _getResponsiveFontSize(context, 16, 15, 14),
-                                      color: Colors.grey[700],
-                                      height: 1.6,
-                                    ),
-                                  ),
-                                ],
-                              ),
                                 );
                               },
                             ),
@@ -1475,52 +1694,75 @@ class _HomePageState extends State<HomePage> {
                                 return AnimatedContainer(
                                   duration: const Duration(milliseconds: 180),
                                   curve: Curves.easeOut,
-                                  transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
+                                  transform: Matrix4.identity()
+                                    ..translate(0.0, hover ? -4.0 : 0.0),
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: hover ? const Color(0xFF3E4795).withOpacity(0.2) : Colors.transparent,
+                                      color: hover
+                                          ? const Color(
+                                              0xFF3E4795,
+                                            ).withOpacity(0.2)
+                                          : Colors.transparent,
                                       width: 1.5,
                                     ),
-                                boxShadow: [
-                                  BoxShadow(
-                                        color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(
+                                          hover ? 0.12 : 0.08,
+                                        ),
                                         blurRadius: hover ? 14 : 8,
-                                    offset: const Offset(0, 2),
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Our Mission',
-                                    style: TextStyle(
-                                      fontSize: _getResponsiveFontSize(context, 28, 24, 22),
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color.fromRGBO(62, 71, 149, 1),
-                                    ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Our Mission',
+                                        style: TextStyle(
+                                          fontSize: _getResponsiveFontSize(
+                                            context,
+                                            28,
+                                            24,
+                                            22,
+                                          ),
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color.fromRGBO(
+                                            62,
+                                            71,
+                                            149,
+                                            1,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Provide safe, efficient, and customer-focused public transport through well-maintained vehicles, trained personnel, and continuous innovation—delivering value to riders and supporting sustainable growth across Bauan, Lipa, and neighboring areas.',
+                                        style: TextStyle(
+                                          fontSize: _getResponsiveFontSize(
+                                            context,
+                                            16,
+                                            15,
+                                            14,
+                                          ),
+                                          color: Colors.grey[700],
+                                          height: 1.6,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Provide safe, efficient, and customer-focused public transport through well-maintained vehicles, trained personnel, and continuous innovation—delivering value to riders and supporting sustainable growth across Bauan, Lipa, and neighboring areas.',
-                                    style: TextStyle(
-                                      fontSize: _getResponsiveFontSize(context, 16, 15, 14),
-                                      color: Colors.grey[700],
-                                      height: 1.6,
-                                    ),
-                                  ),
-                                ],
-                              ),
                                 );
                               },
                             ),
                           ],
                         )
                       : IntrinsicHeight(
-                      child: Row(
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               // Vision Card
@@ -1528,48 +1770,73 @@ class _HomePageState extends State<HomePage> {
                                 child: _Hoverable(
                                   builder: (hover) {
                                     return AnimatedContainer(
-                                      duration: const Duration(milliseconds: 180),
+                                      duration: const Duration(
+                                        milliseconds: 180,
+                                      ),
                                       curve: Curves.easeOut,
-                                      transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
-                                  padding: const EdgeInsets.all(32),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
+                                      transform: Matrix4.identity()
+                                        ..translate(0.0, hover ? -4.0 : 0.0),
+                                      padding: const EdgeInsets.all(32),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
-                                          color: hover ? const Color(0xFF3E4795).withOpacity(0.2) : Colors.transparent,
+                                          color: hover
+                                              ? const Color(
+                                                  0xFF3E4795,
+                                                ).withOpacity(0.2)
+                                              : Colors.transparent,
                                           width: 1.5,
                                         ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                            color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(
+                                              hover ? 0.12 : 0.08,
+                                            ),
                                             blurRadius: hover ? 14 : 8,
-                                        offset: const Offset(0, 2),
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'Our Vision',
-                                        style: TextStyle(
-                                          fontSize: _getResponsiveFontSize(context, 28, 24, 22),
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color.fromRGBO(62, 71, 149, 1),
-                                        ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'Our Vision',
+                                            style: TextStyle(
+                                              fontSize: _getResponsiveFontSize(
+                                                context,
+                                                28,
+                                                24,
+                                                22,
+                                              ),
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color.fromRGBO(
+                                                62,
+                                                71,
+                                                149,
+                                                1,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'To be the most trusted and modern transport service in Batangas—connecting communities with reliable, comfortable, and inclusive mobility.',
+                                            style: TextStyle(
+                                              fontSize: _getResponsiveFontSize(
+                                                context,
+                                                16,
+                                                15,
+                                                14,
+                                              ),
+                                              color: Colors.grey[700],
+                                              height: 1.6,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'To be the most trusted and modern transport service in Batangas—connecting communities with reliable, comfortable, and inclusive mobility.',
-                                        style: TextStyle(
-                                          fontSize: _getResponsiveFontSize(context, 16, 15, 14),
-                                          color: Colors.grey[700],
-                                          height: 1.6,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
                                     );
                                   },
                                 ),
@@ -1580,48 +1847,73 @@ class _HomePageState extends State<HomePage> {
                                 child: _Hoverable(
                                   builder: (hover) {
                                     return AnimatedContainer(
-                                      duration: const Duration(milliseconds: 180),
+                                      duration: const Duration(
+                                        milliseconds: 180,
+                                      ),
                                       curve: Curves.easeOut,
-                                      transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
-                                  padding: const EdgeInsets.all(32),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
+                                      transform: Matrix4.identity()
+                                        ..translate(0.0, hover ? -4.0 : 0.0),
+                                      padding: const EdgeInsets.all(32),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
-                                          color: hover ? const Color(0xFF3E4795).withOpacity(0.2) : Colors.transparent,
+                                          color: hover
+                                              ? const Color(
+                                                  0xFF3E4795,
+                                                ).withOpacity(0.2)
+                                              : Colors.transparent,
                                           width: 1.5,
                                         ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                            color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(
+                                              hover ? 0.12 : 0.08,
+                                            ),
                                             blurRadius: hover ? 14 : 8,
-                                        offset: const Offset(0, 2),
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'Our Mission',
-                                        style: TextStyle(
-                                          fontSize: _getResponsiveFontSize(context, 28, 24, 22),
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color.fromRGBO(62, 71, 149, 1),
-                                        ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'Our Mission',
+                                            style: TextStyle(
+                                              fontSize: _getResponsiveFontSize(
+                                                context,
+                                                28,
+                                                24,
+                                                22,
+                                              ),
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color.fromRGBO(
+                                                62,
+                                                71,
+                                                149,
+                                                1,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'Provide safe, efficient, and customer-focused public transport through well-maintained vehicles, trained personnel, and continuous innovation—delivering value to riders and supporting sustainable growth across Bauan, Lipa, and neighboring areas.',
+                                            style: TextStyle(
+                                              fontSize: _getResponsiveFontSize(
+                                                context,
+                                                16,
+                                                15,
+                                                14,
+                                              ),
+                                              color: Colors.grey[700],
+                                              height: 1.6,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'Provide safe, efficient, and customer-focused public transport through well-maintained vehicles, trained personnel, and continuous innovation—delivering value to riders and supporting sustainable growth across Bauan, Lipa, and neighboring areas.',
-                                        style: TextStyle(
-                                          fontSize: _getResponsiveFontSize(context, 16, 15, 14),
-                                          color: Colors.grey[700],
-                                          height: 1.6,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
                                     );
                                   },
                                 ),
@@ -1662,42 +1954,48 @@ class _HomePageState extends State<HomePage> {
                                   icon: Icons.directions_bus,
                                   iconColor: const Color(0xFF5C5C8A),
                                   title: 'Fleet Size',
-                                  description: 'A total of 15 modern air-conditioned buses operate daily between Bauan and Lipa.',
+                                  description:
+                                      'A total of 15 modern air-conditioned buses operate daily between Bauan and Lipa.',
                                 ),
                                 const SizedBox(height: 20),
                                 _ServiceCard(
                                   icon: Icons.access_time,
                                   iconColor: const Color(0xFF9C27B0),
                                   title: 'Service Hours',
-                                  description: 'Bauan → Lipa: 4:30 AM – 7:00 PM\nLipa → Bauan: 6:00 AM – 8:00 PM',
+                                  description:
+                                      'Bauan → Lipa: 4:30 AM – 7:00 PM\nLipa → Bauan: 6:00 AM – 8:00 PM',
                                 ),
                                 const SizedBox(height: 20),
                                 _ServiceCard(
                                   icon: Icons.verified_user,
                                   iconColor: const Color(0xFF2196F3),
                                   title: 'Safety First',
-                                  description: 'Operated by certified professional drivers trained in safety and passenger care.',
+                                  description:
+                                      'Operated by certified professional drivers trained in safety and passenger care.',
                                 ),
                                 const SizedBox(height: 20),
                                 _ServiceCard(
                                   icon: Icons.accessible,
                                   iconColor: const Color(0xFF2196F3),
                                   title: 'Accessibility',
-                                  description: 'Spacious seating and well-maintained interiors ensure a comfortable ride throughout your journey.',
+                                  description:
+                                      'Spacious seating and well-maintained interiors ensure a comfortable ride throughout your journey.',
                                 ),
                                 const SizedBox(height: 20),
                                 _ServiceCard(
                                   icon: Icons.local_offer,
                                   iconColor: const Color(0xFF5C5C8A),
                                   title: 'Affordable Fares',
-                                  description: 'Budget-friendly rates with discounts for students, seniors, and PWD.',
+                                  description:
+                                      'Budget-friendly rates with discounts for students, seniors, and PWD.',
                                 ),
                                 const SizedBox(height: 20),
                                 _ServiceCard(
                                   icon: Icons.air,
                                   iconColor: const Color(0xFF2196F3),
                                   title: 'On-board Amenities',
-                                  description: 'Air-conditioned buses on all trips for a cool and convenient travel experience.',
+                                  description:
+                                      'Air-conditioned buses on all trips for a cool and convenient travel experience.',
                                 ),
                               ],
                             )
@@ -1710,7 +2008,8 @@ class _HomePageState extends State<HomePage> {
                                         icon: Icons.directions_bus,
                                         iconColor: const Color(0xFF5C5C8A),
                                         title: 'Fleet Size',
-                                        description: 'A total of 15 modern air-conditioned buses operate daily between Bauan and Lipa.',
+                                        description:
+                                            'A total of 15 modern air-conditioned buses operate daily between Bauan and Lipa.',
                                       ),
                                     ),
                                     const SizedBox(width: 20),
@@ -1719,7 +2018,8 @@ class _HomePageState extends State<HomePage> {
                                         icon: Icons.access_time,
                                         iconColor: const Color(0xFF9C27B0),
                                         title: 'Service Hours',
-                                        description: 'Bauan → Lipa: 4:30 AM – 7:00 PM\nLipa → Bauan: 6:00 AM – 8:00 PM',
+                                        description:
+                                            'Bauan → Lipa: 4:30 AM – 7:00 PM\nLipa → Bauan: 6:00 AM – 8:00 PM',
                                       ),
                                     ),
                                     const SizedBox(width: 20),
@@ -1728,7 +2028,8 @@ class _HomePageState extends State<HomePage> {
                                         icon: Icons.verified_user,
                                         iconColor: const Color(0xFF2196F3),
                                         title: 'Safety First',
-                                        description: 'Operated by certified professional drivers trained in safety and passenger care.',
+                                        description:
+                                            'Operated by certified professional drivers trained in safety and passenger care.',
                                       ),
                                     ),
                                   ],
@@ -1741,7 +2042,8 @@ class _HomePageState extends State<HomePage> {
                                         icon: Icons.accessible,
                                         iconColor: const Color(0xFF2196F3),
                                         title: 'Accessibility',
-                                        description: 'Spacious seating and well-maintained interiors ensure a comfortable ride throughout your journey.',
+                                        description:
+                                            'Spacious seating and well-maintained interiors ensure a comfortable ride throughout your journey.',
                                       ),
                                     ),
                                     const SizedBox(width: 20),
@@ -1750,7 +2052,8 @@ class _HomePageState extends State<HomePage> {
                                         icon: Icons.local_offer,
                                         iconColor: const Color(0xFF5C5C8A),
                                         title: 'Affordable Fares',
-                                        description: 'Budget-friendly rates with discounts for students, seniors, and PWD.',
+                                        description:
+                                            'Budget-friendly rates with discounts for students, seniors, and PWD.',
                                       ),
                                     ),
                                     const SizedBox(width: 20),
@@ -1759,7 +2062,8 @@ class _HomePageState extends State<HomePage> {
                                         icon: Icons.air,
                                         iconColor: const Color(0xFF2196F3),
                                         title: 'On-board Amenities',
-                                        description: 'Air-conditioned buses on all trips for a cool and convenient travel experience.',
+                                        description:
+                                            'Air-conditioned buses on all trips for a cool and convenient travel experience.',
                                       ),
                                     ),
                                   ],
@@ -1773,9 +2077,7 @@ class _HomePageState extends State<HomePage> {
                 Container(
                   width: double.infinity,
                   padding: _getResponsivePadding(context),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                  ),
+                  decoration: const BoxDecoration(color: Colors.white),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1808,7 +2110,12 @@ class _HomePageState extends State<HomePage> {
                                   'Stay connected and informed with real-time tracking of FCM Transport units through our mobile app.',
                                   textAlign: TextAlign.left,
                                   style: TextStyle(
-                                    fontSize: _getResponsiveFontSize(context, 18, 16, 14),
+                                    fontSize: _getResponsiveFontSize(
+                                      context,
+                                      18,
+                                      16,
+                                      14,
+                                    ),
                                     color: Colors.grey[700],
                                     height: 1.6,
                                   ),
@@ -1817,14 +2124,29 @@ class _HomePageState extends State<HomePage> {
                                 Align(
                                   alignment: Alignment.centerLeft,
                                   child: ConstrainedBox(
-                                    constraints: const BoxConstraints(maxWidth: 800),
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 800,
+                                    ),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: const [
-                                        _BulletPoint(text: 'Track active FCM buses along the Bauan–Lipa route in real time'),
-                                        _BulletPoint(text: 'View estimated arrival times to plan your trip better'),
-                                        _BulletPoint(text: 'Save your favorite locations for quick access'),
-                                        _BulletPoint(text: 'Receive instant updates directly from our operators'),
+                                        _BulletPoint(
+                                          text:
+                                              'Track active FCM buses along the Bauan–Lipa route in real time',
+                                        ),
+                                        _BulletPoint(
+                                          text:
+                                              'View estimated arrival times to plan your trip better',
+                                        ),
+                                        _BulletPoint(
+                                          text:
+                                              'Save your favorite locations for quick access',
+                                        ),
+                                        _BulletPoint(
+                                          text:
+                                              'Receive instant updates directly from our operators',
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -1834,7 +2156,12 @@ class _HomePageState extends State<HomePage> {
                                   'Experience smart, convenient, and reliable commuting—anytime, anywhere.',
                                   textAlign: TextAlign.left,
                                   style: TextStyle(
-                                    fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                    fontSize: _getResponsiveFontSize(
+                                      context,
+                                      16,
+                                      15,
+                                      14,
+                                    ),
                                     color: Colors.grey[700],
                                     height: 1.6,
                                   ),
@@ -1844,22 +2171,42 @@ class _HomePageState extends State<HomePage> {
                                   'Currently available for Android users only.',
                                   textAlign: TextAlign.left,
                                   style: TextStyle(
-                                    fontSize: _getResponsiveFontSize(context, 14, 14, 13),
+                                    fontSize: _getResponsiveFontSize(
+                                      context,
+                                      14,
+                                      14,
+                                      13,
+                                    ),
                                     color: Colors.grey[600],
                                   ),
                                 ),
                                 const SizedBox(height: 16),
                                 ElevatedButton.icon(
-                                  onPressed: () => _showDownloadAppModal(context),
-                      style: ElevatedButton.styleFrom(
+                                  onPressed: () =>
+                                      _showDownloadAppModal(context),
+                                  style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF3E4795),
-                        foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                     elevation: 4,
                                   ),
-                                  icon: const Icon(Icons.android, size: 22, color: Colors.white),
-                                  label: const Text('Download App', style: TextStyle(fontWeight: FontWeight.w600)),
+                                  icon: const Icon(
+                                    Icons.android,
+                                    size: 22,
+                                    color: Colors.white,
+                                  ),
+                                  label: const Text(
+                                    'Download App',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ),
                                 const SizedBox(height: 20),
                                 // QR container (mobile)
@@ -1901,9 +2248,10 @@ class _HomePageState extends State<HomePage> {
                                         'assets/app.png',
                                         height: 360,
                                         fit: BoxFit.contain,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return const SizedBox.shrink();
-                                        },
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return const SizedBox.shrink();
+                                            },
                                       ),
                                     ),
                                   ),
@@ -1911,27 +2259,48 @@ class _HomePageState extends State<HomePage> {
                                 Expanded(
                                   flex: 2,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Stay connected and informed with real-time tracking of FCM Transport units through our mobile app.',
                                         textAlign: TextAlign.left,
                                         style: TextStyle(
-                                          fontSize: _getResponsiveFontSize(context, 18, 16, 14),
+                                          fontSize: _getResponsiveFontSize(
+                                            context,
+                                            18,
+                                            16,
+                                            14,
+                                          ),
                                           color: Colors.grey[700],
                                           height: 1.6,
                                         ),
                                       ),
                                       const SizedBox(height: 20),
                                       ConstrainedBox(
-                                        constraints: const BoxConstraints(maxWidth: 800),
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 800,
+                                        ),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: const [
-                                            _BulletPoint(text: 'Track active FCM buses along the Bauan–Lipa route in real time'),
-                                            _BulletPoint(text: 'View estimated arrival times to plan your trip better'),
-                                            _BulletPoint(text: 'Save your favorite locations for quick access'),
-                                            _BulletPoint(text: 'Receive instant updates directly from our operators'),
+                                            _BulletPoint(
+                                              text:
+                                                  'Track active FCM buses along the Bauan–Lipa route in real time',
+                                            ),
+                                            _BulletPoint(
+                                              text:
+                                                  'View estimated arrival times to plan your trip better',
+                                            ),
+                                            _BulletPoint(
+                                              text:
+                                                  'Save your favorite locations for quick access',
+                                            ),
+                                            _BulletPoint(
+                                              text:
+                                                  'Receive instant updates directly from our operators',
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -1940,7 +2309,12 @@ class _HomePageState extends State<HomePage> {
                                         'Experience smart, convenient, and reliable commuting—anytime, anywhere.',
                                         textAlign: TextAlign.left,
                                         style: TextStyle(
-                                          fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                          fontSize: _getResponsiveFontSize(
+                                            context,
+                                            16,
+                                            15,
+                                            14,
+                                          ),
                                           color: Colors.grey[700],
                                           height: 1.6,
                                         ),
@@ -1950,22 +2324,46 @@ class _HomePageState extends State<HomePage> {
                                         'Currently available for Android users only.',
                                         textAlign: TextAlign.left,
                                         style: TextStyle(
-                                          fontSize: _getResponsiveFontSize(context, 14, 14, 13),
+                                          fontSize: _getResponsiveFontSize(
+                                            context,
+                                            14,
+                                            14,
+                                            13,
+                                          ),
                                           color: Colors.grey[600],
                                         ),
                                       ),
                                       const SizedBox(height: 16),
                                       ElevatedButton.icon(
-                                        onPressed: () => _showDownloadAppModal(context),
+                                        onPressed: () =>
+                                            _showDownloadAppModal(context),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF3E4795),
+                                          backgroundColor: const Color(
+                                            0xFF3E4795,
+                                          ),
                                           foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 4,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 20,
+                                            vertical: 14,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          elevation: 4,
                                         ),
-                                        icon: const Icon(Icons.android, size: 22, color: Colors.white),
-                                        label: const Text('Download App', style: TextStyle(fontWeight: FontWeight.w600)),
+                                        icon: const Icon(
+                                          Icons.android,
+                                          size: 22,
+                                          color: Colors.white,
+                                        ),
+                                        label: const Text(
+                                          'Download App',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -1983,17 +2381,22 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       // Main Footer Content
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 60.0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 40.0,
+                          vertical: 60.0,
+                        ),
                         child: Column(
                           children: [
                             // Top Section: Company Info, Links, Contact, QR
                             _isMobile(context)
                                 ? Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       // Company Information
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           const Text(
                                             'FCM Transport Corporation',
@@ -2017,7 +2420,8 @@ class _HomePageState extends State<HomePage> {
                                       const SizedBox(height: 24),
                                       // Quick Links
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           const Text(
                                             'Quick Links',
@@ -2028,16 +2432,59 @@ class _HomePageState extends State<HomePage> {
                                             ),
                                           ),
                                           const SizedBox(height: 12),
-                                          _FooterLink(text: 'Home', onTap: () { if (_scrollController.hasClients) { _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut); } }),
-                                          _FooterLink(text: 'Map', onTap: () { if (widget.onNavigateToMap != null) { widget.onNavigateToMap!(); } }),
-                                          _FooterLink(text: 'About', onTap: () { final ctx = _aboutSectionKey.currentContext; if (ctx != null) { Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut); } }),
-                                          _FooterLink(text: 'Download App', onTap: () { _showDownloadAppModal(context); }),
+                                          _FooterLink(
+                                            text: 'Home',
+                                            onTap: () {
+                                              if (_scrollController
+                                                  .hasClients) {
+                                                _scrollController.animateTo(
+                                                  0,
+                                                  duration: const Duration(
+                                                    milliseconds: 500,
+                                                  ),
+                                                  curve: Curves.easeInOut,
+                                                );
+                                              }
+                                            },
+                                          ),
+                                          _FooterLink(
+                                            text: 'Map',
+                                            onTap: () {
+                                              if (widget.onNavigateToMap !=
+                                                  null) {
+                                                widget.onNavigateToMap!();
+                                              }
+                                            },
+                                          ),
+                                          _FooterLink(
+                                            text: 'About',
+                                            onTap: () {
+                                              final ctx = _aboutSectionKey
+                                                  .currentContext;
+                                              if (ctx != null) {
+                                                Scrollable.ensureVisible(
+                                                  ctx,
+                                                  duration: const Duration(
+                                                    milliseconds: 500,
+                                                  ),
+                                                  curve: Curves.easeInOut,
+                                                );
+                                              }
+                                            },
+                                          ),
+                                          _FooterLink(
+                                            text: 'Download App',
+                                            onTap: () {
+                                              _showDownloadAppModal(context);
+                                            },
+                                          ),
                                         ],
                                       ),
                                       const SizedBox(height: 24),
                                       // Contact
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           const Text(
                                             'Contact Us',
@@ -2048,13 +2495,38 @@ class _HomePageState extends State<HomePage> {
                                             ),
                                           ),
                                           const SizedBox(height: 12),
-                                          const _ContactDetail(text: 'Makalintal Ave, Bauan, Batangas', icon: Icons.location_on),
+                                          const _ContactDetail(
+                                            text:
+                                                'Makalintal Ave, Bauan, Batangas',
+                                            icon: Icons.location_on,
+                                          ),
                                           const SizedBox(height: 8),
-                                          const _ContactDetail(text: 'info@fcmtransport.com', icon: Icons.email),
+                                          const _ContactDetail(
+                                            text: 'info@fcmtransport.com',
+                                            icon: Icons.email,
+                                          ),
                                           const SizedBox(height: 20),
-                                          const Text('Follow Us', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                                          const Text(
+                                            'Follow Us',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
                                           const SizedBox(height: 12),
-                                          Row(children: [ _SocialMediaButton(icon: Icons.facebook, onTap: () { launchUrlString('https://www.facebook.com/profile.php?id=100094508181738'); }) ]),
+                                          Row(
+                                            children: [
+                                              _SocialMediaButton(
+                                                icon: Icons.facebook,
+                                                onTap: () {
+                                                  launchUrlString(
+                                                    'https://www.facebook.com/profile.php?id=100094508181738',
+                                                  );
+                                                },
+                                              ),
+                                            ],
+                                          ),
                                         ],
                                       ),
                                       const SizedBox(height: 24),
@@ -2066,13 +2538,22 @@ class _HomePageState extends State<HomePage> {
                                           height: 220,
                                           decoration: BoxDecoration(
                                             color: Colors.white,
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                             boxShadow: [
-                                              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0,4)),
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(
+                                                  0.1,
+                                                ),
+                                                blurRadius: 10,
+                                                offset: const Offset(0, 4),
+                                              ),
                                             ],
                                           ),
                                           child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
                                             children: [
                                               Image.asset(
                                                 'assets/FCM App.png',
@@ -2083,7 +2564,11 @@ class _HomePageState extends State<HomePage> {
                                               const SizedBox(height: 8),
                                               const Text(
                                                 'FCM App for Android',
-                                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF3E4795)),
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Color(0xFF3E4795),
+                                                ),
                                               ),
                                             ],
                                           ),
@@ -2092,205 +2577,230 @@ class _HomePageState extends State<HomePage> {
                                     ],
                                   )
                                 : Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Company Information
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                                        'FCM Transport Corporation',
-                            style: TextStyle(
-                                          fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Text(
-                                        'Committed to safe, reliable, and modern public transport services across Southern Luzon.',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[400],
-                                          height: 1.6,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 40),
-                                // Quick Links
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
-                                        'Quick Links',
-                                        style: TextStyle(
-                              fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
+                                      // Company Information
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'FCM Transport Corporation',
+                                              style: TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Text(
+                                              'Committed to safe, reliable, and modern public transport services across Southern Luzon.',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.grey[400],
+                                                height: 1.6,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(height: 12),
-                                      _FooterLink(
-                                        text: 'Home',
-                                        onTap: () {
-                                          if (_scrollController.hasClients) {
-                                            _scrollController.animateTo(
-                                              0,
-                                              duration: const Duration(milliseconds: 500),
-                                              curve: Curves.easeInOut,
-                                            );
-                                          }
-                                        },
-                                      ),
-                                      _FooterLink(
-                                        text: 'Map',
-                                        onTap: () {
-                                          if (widget.onNavigateToMap != null) {
-                                            widget.onNavigateToMap!();
-                                          }
-                                        },
-                                      ),
-                                      _FooterLink(
-                                        text: 'About',
-                                        onTap: () {
-                                          final ctx = _aboutSectionKey.currentContext;
-                                          if (ctx != null) {
-                                            Scrollable.ensureVisible(
-                                              ctx,
-                                              duration: const Duration(milliseconds: 500),
-                                              curve: Curves.easeInOut,
-                                            );
-                                          }
-                                        },
-                                      ),
-                                      _FooterLink(
-                                        text: 'Download App',
-                                        onTap: () {
-                                          _showDownloadAppModal(context);
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 40),
-                                // Contact Details
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Contact Us',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
+                                      const SizedBox(width: 40),
+                                      // Quick Links
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Quick Links',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            _FooterLink(
+                                              text: 'Home',
+                                              onTap: () {
+                                                if (_scrollController
+                                                    .hasClients) {
+                                                  _scrollController.animateTo(
+                                                    0,
+                                                    duration: const Duration(
+                                                      milliseconds: 500,
+                                                    ),
+                                                    curve: Curves.easeInOut,
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                            _FooterLink(
+                                              text: 'Map',
+                                              onTap: () {
+                                                if (widget.onNavigateToMap !=
+                                                    null) {
+                                                  widget.onNavigateToMap!();
+                                                }
+                                              },
+                                            ),
+                                            _FooterLink(
+                                              text: 'About',
+                                              onTap: () {
+                                                final ctx = _aboutSectionKey
+                                                    .currentContext;
+                                                if (ctx != null) {
+                                                  Scrollable.ensureVisible(
+                                                    ctx,
+                                                    duration: const Duration(
+                                                      milliseconds: 500,
+                                                    ),
+                                                    curve: Curves.easeInOut,
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                            _FooterLink(
+                                              text: 'Download App',
+                                              onTap: () {
+                                                _showDownloadAppModal(context);
+                                              },
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(height: 12),
-                                      _ContactDetail(
-                                        text: 'Makalintal Ave, Bauan, Batangas',
-                                        icon: Icons.location_on,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      _ContactDetail(
-                                        text: 'info@fcmtransport.com',
-                                        icon: Icons.email,
-                                      ),
-                                      const SizedBox(height: 30),
-                                      // Follow Us Section
-                                      const Text(
-                                        'Follow Us',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
+                                      const SizedBox(width: 40),
+                                      // Contact Details
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Contact Us',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            _ContactDetail(
+                                              text:
+                                                  'Makalintal Ave, Bauan, Batangas',
+                                              icon: Icons.location_on,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            _ContactDetail(
+                                              text: 'info@fcmtransport.com',
+                                              icon: Icons.email,
+                                            ),
+                                            const SizedBox(height: 30),
+                                            // Follow Us Section
+                                            const Text(
+                                              'Follow Us',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Row(
+                                              children: [
+                                                _SocialMediaButton(
+                                                  icon: Icons.facebook,
+                                                  onTap: () {
+                                                    launchUrlString(
+                                                      'https://www.facebook.com/profile.php?id=100094508181738',
+                                                    );
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(height: 12),
-                                      Row(
-                                        children: [
-                                          _SocialMediaButton(
-                                            icon: Icons.facebook,
-                                            onTap: () {
-                                              launchUrlString('https://www.facebook.com/profile.php?id=100094508181738');
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                        ],
-                      ),
-                    ),
-                                // QR container (desktop)
-                                Expanded(
-                                  flex: 1,
-                                  child: Align(
-                                    alignment: Alignment.topLeft,
-                                    child: Container(
-                                      width: 260,
-                                      height: 260,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.1),
-                                            blurRadius: 10,
-                                            offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Image.asset(
-                                            'assets/FCM App.png',
-                                            width: 200,
-                                            height: 200,
-                                            fit: BoxFit.contain,
-                                          ),
-                                          const SizedBox(height: 12),
-                                          const Text(
-                                            'FCM App for Android',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                              color: Color(0xFF3E4795),
+                                      // QR container (desktop)
+                                      Expanded(
+                                        flex: 1,
+                                        child: Align(
+                                          alignment: Alignment.topLeft,
+                                          child: Container(
+                                            width: 260,
+                                            height: 260,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withOpacity(0.1),
+                                                  blurRadius: 10,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Image.asset(
+                                                  'assets/FCM App.png',
+                                                  width: 200,
+                                                  height: 200,
+                                                  fit: BoxFit.contain,
+                                                ),
+                                                const SizedBox(height: 12),
+                                                const Text(
+                                                  'FCM App for Android',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Color(0xFF3E4795),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                        ],
+                                        ),
                                       ),
-            ),
-          ),
-        ),
-      ],
-                ),
+                                    ],
+                                  ),
                           ],
                         ),
                       ),
                       // Copyright Notice
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 20.0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 40.0,
+                          vertical: 20.0,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.3),
                         ),
                         child: Builder(
                           builder: (context) {
-                            final bool isMobile = MediaQuery.of(context).size.width < 600;
+                            final bool isMobile =
+                                MediaQuery.of(context).size.width < 600;
                             final copyright = InkWell(
                               onTap: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
-                                    builder: (context) => const AdminLoginScreen(),
+                                    builder: (context) =>
+                                        const AdminLoginScreen(),
                                   ),
                                 );
                               },
                               child: Text(
                                 '© 2025 FCM Transport Corporation. All rights reserved.',
-                                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
+                                ),
                               ),
                             );
 
@@ -2299,12 +2809,27 @@ class _HomePageState extends State<HomePage> {
                               children: [
                                 TextButton(
                                   onPressed: _showPrivacyPolicy,
-                                  child: Text('Privacy Policy', style: TextStyle(fontSize: 12, color: Colors.grey[400])),
+                                  child: Text(
+                                    'Privacy Policy',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[400],
+                                    ),
+                                  ),
                                 ),
-                                Text(' | ', style: TextStyle(color: Colors.grey[500])),
+                                Text(
+                                  ' | ',
+                                  style: TextStyle(color: Colors.grey[500]),
+                                ),
                                 TextButton(
                                   onPressed: _showTermsOfService,
-                                  child: Text('Terms of Service', style: TextStyle(fontSize: 12, color: Colors.grey[400])),
+                                  child: Text(
+                                    'Terms of Service',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[400],
+                                    ),
+                                  ),
                                 ),
                               ],
                             );
@@ -2342,10 +2867,7 @@ class _StatCard extends StatelessWidget {
   final String number;
   final String label;
 
-  const _StatCard({
-    required this.number,
-    required this.label,
-  });
+  const _StatCard({required this.number, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -2362,47 +2884,54 @@ class _StatCard extends StatelessWidget {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
-      margin: const EdgeInsets.symmetric(horizontal: 8.0),
-          padding: EdgeInsets.symmetric(horizontal: paddingH, vertical: paddingV),
+          margin: const EdgeInsets.symmetric(horizontal: 8.0),
+          padding: EdgeInsets.symmetric(
+            horizontal: paddingH,
+            vertical: paddingV,
+          ),
           transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: hover ? const Color(0xFF3E4795).withOpacity(0.15) : Colors.transparent),
-        boxShadow: [
-          BoxShadow(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: hover
+                  ? const Color(0xFF3E4795).withOpacity(0.15)
+                  : Colors.transparent,
+            ),
+            boxShadow: [
+              BoxShadow(
                 color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
                 blurRadius: hover ? 14 : 8,
-            offset: const Offset(0, 2),
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            number,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                number,
                 style: TextStyle(
                   fontSize: numSize,
-              fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.bold,
                   color: const Color(0xFF333333),
-              height: 1.2,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: labelSize,
                   fontWeight: FontWeight.w500,
                   color: const Color(0xFF666666),
-            ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
         );
       },
     );
@@ -2449,10 +2978,7 @@ class _ScheduleCard extends StatelessWidget {
                   children: [
                     Text(
                       'First Trip',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -2472,10 +2998,7 @@ class _ScheduleCard extends StatelessWidget {
                   children: [
                     Text(
                       'Last Trip',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -2529,10 +3052,7 @@ class _TableCell extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Text(
         text,
-        style: const TextStyle(
-          fontSize: 14,
-          color: Color(0xFF333333),
-        ),
+        style: const TextStyle(fontSize: 14, color: Color(0xFF333333)),
       ),
     );
   }
@@ -2555,49 +3075,49 @@ class _FeatureItem extends StatelessWidget {
       builder: (hover) => AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
-        transform: hover ? (Matrix4.identity()..translate(0.0, -4.0, 0.0)) : Matrix4.identity(),
-      padding: const EdgeInsets.all(24.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
+        transform: hover
+            ? (Matrix4.identity()..translate(0.0, -4.0, 0.0))
+            : Matrix4.identity(),
+        padding: const EdgeInsets.all(24.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
               color: Colors.black.withOpacity(hover ? 0.18 : 0.08),
               blurRadius: hover ? 16 : 8,
               offset: const Offset(0, 4),
             ),
           ],
-          border: hover ? Border.all(color: const Color(0xFF3E4795).withOpacity(0.15)) : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 48,
-            color: const Color.fromRGBO(62, 71, 149, 1),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color.fromRGBO(62, 71, 149, 1),
+          border: hover
+              ? Border.all(color: const Color(0xFF3E4795).withOpacity(0.15))
+              : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(icon, size: 48, color: const Color.fromRGBO(62, 71, 149, 1)),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color.fromRGBO(62, 71, 149, 1),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            description,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[700],
-              height: 1.5,
+            const SizedBox(height: 8),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+                height: 1.5,
+              ),
             ),
-          ),
-        ],
+          ],
         ),
       ),
     );
@@ -2621,63 +3141,64 @@ class _ServiceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Hoverable(
       builder: (hover) => AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
-      padding: const EdgeInsets.all(24.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: hover ? const Color(0xFF3E4795).withOpacity(0.15) : Colors.transparent, width: 1.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
-            blurRadius: hover ? 14 : 8,
-            offset: const Offset(0, 2),
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
+        padding: const EdgeInsets.all(24.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: hover
+                ? const Color(0xFF3E4795).withOpacity(0.15)
+                : Colors.transparent,
+            width: 1.0,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
+              blurRadius: hover ? 14 : 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: iconColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(icon, size: 20, color: iconColor),
                 ),
-                child: Icon(
-                  icon,
-                  size: 20,
-                  color: iconColor,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color.fromRGBO(62, 71, 149, 1),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color.fromRGBO(62, 71, 149, 1),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            description,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[700],
-              height: 1.5,
+              ],
             ),
-          ),
-        ],
-      ),
+            const SizedBox(height: 12),
+            Text(
+              description,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2687,10 +3208,7 @@ class _FooterLink extends StatelessWidget {
   final String text;
   final VoidCallback onTap;
 
-  const _FooterLink({
-    required this.text,
-    required this.onTap,
-  });
+  const _FooterLink({required this.text, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -2700,10 +3218,7 @@ class _FooterLink extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 4.0),
         child: Text(
           text,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[300],
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey[300]),
         ),
       ),
     );
@@ -2714,20 +3229,13 @@ class _ContactDetail extends StatelessWidget {
   final String text;
   final IconData? icon;
 
-  const _ContactDetail({
-    required this.text,
-    this.icon,
-  });
+  const _ContactDetail({required this.text, this.icon});
 
   @override
   Widget build(BuildContext context) {
     final content = Text(
       text,
-      style: TextStyle(
-        fontSize: 14,
-        color: Colors.grey[300],
-        height: 1.4,
-      ),
+      style: TextStyle(fontSize: 14, color: Colors.grey[300], height: 1.4),
     );
     if (icon == null) return content;
     return Row(
@@ -2745,10 +3253,7 @@ class _SocialMediaButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
 
-  const _SocialMediaButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _SocialMediaButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -2760,11 +3265,7 @@ class _SocialMediaButton extends StatelessWidget {
           color: Colors.white.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(
-          icon,
-          color: Colors.white,
-          size: 24,
-        ),
+        child: Icon(icon, color: Colors.white, size: 24),
       ),
     );
   }
@@ -2801,11 +3302,7 @@ class _AppDownloadButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 32,
-              color: const Color.fromRGBO(62, 71, 149, 1),
-            ),
+            Icon(icon, size: 32, color: const Color.fromRGBO(62, 71, 149, 1)),
             const SizedBox(width: 12),
             Text(
               text,
@@ -2837,18 +3334,12 @@ class _FeatureCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            Icon(
-              icon,
-              size: 48,
-              color: const Color.fromRGBO(62, 71, 149, 1),
-            ),
+            Icon(icon, size: 48, color: const Color.fromRGBO(62, 71, 149, 1)),
             const SizedBox(height: 16),
             Text(
               title,
@@ -2862,10 +3353,7 @@ class _FeatureCard extends StatelessWidget {
             Text(
               description,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -2881,7 +3369,12 @@ class AboutPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.only(top: 100.0, left: 40.0, right: 40.0, bottom: 40.0),
+        padding: const EdgeInsets.only(
+          top: 100.0,
+          left: 40.0,
+          right: 40.0,
+          bottom: 40.0,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2939,9 +3432,13 @@ class AboutPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            _BulletPoint(text: 'Real-time bus tracking and arrival predictions'),
+            _BulletPoint(
+              text: 'Real-time bus tracking and arrival predictions',
+            ),
             _BulletPoint(text: 'Comprehensive route management system'),
-            _BulletPoint(text: 'Advanced analytics and forecasting capabilities'),
+            _BulletPoint(
+              text: 'Advanced analytics and forecasting capabilities',
+            ),
             _BulletPoint(text: 'Efficient vehicle and driver assignment'),
             _BulletPoint(text: 'Passenger-friendly mobile application'),
             const SizedBox(height: 40),
@@ -2955,11 +3452,7 @@ class AboutPage extends StatelessWidget {
                 padding: const EdgeInsets.all(24.0),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.bus_alert,
-                      size: 48,
-                      color: Colors.white,
-                    ),
+                    const Icon(Icons.bus_alert, size: 48, color: Colors.white),
                     const SizedBox(width: 20),
                     Expanded(
                       child: Column(
@@ -3036,7 +3529,12 @@ class ContactPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.only(top: 100.0, left: 40.0, right: 40.0, bottom: 40.0),
+        padding: const EdgeInsets.only(
+          top: 100.0,
+          left: 40.0,
+          right: 40.0,
+          bottom: 40.0,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -3107,7 +3605,10 @@ class ContactPage extends StatelessWidget {
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
                   children: [
-                    _OfficeHourRow(day: 'Monday - Friday', hours: '8:00 AM - 6:00 PM'),
+                    _OfficeHourRow(
+                      day: 'Monday - Friday',
+                      hours: '8:00 AM - 6:00 PM',
+                    ),
                     const Divider(),
                     _OfficeHourRow(day: 'Saturday', hours: '9:00 AM - 4:00 PM'),
                     const Divider(),
@@ -3220,11 +3721,7 @@ class _ContactItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 16.0),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: 32,
-              color: const Color.fromRGBO(62, 71, 149, 1),
-            ),
+            Icon(icon, size: 32, color: const Color.fromRGBO(62, 71, 149, 1)),
             const SizedBox(width: 20),
             Expanded(
               child: Column(
@@ -3241,10 +3738,7 @@ class _ContactItem extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     content,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[700],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                   ),
                 ],
               ),
@@ -3260,10 +3754,7 @@ class _OfficeHourRow extends StatelessWidget {
   final String day;
   final String hours;
 
-  const _OfficeHourRow({
-    required this.day,
-    required this.hours,
-  });
+  const _OfficeHourRow({required this.day, required this.hours});
 
   @override
   Widget build(BuildContext context) {
@@ -3274,24 +3765,14 @@ class _OfficeHourRow extends StatelessWidget {
         children: [
           Text(
             day,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
-          Text(
-            hours,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[700],
-            ),
-          ),
+          Text(hours, style: TextStyle(fontSize: 16, color: Colors.grey[700])),
         ],
       ),
     );
   }
 }
-
 
 // MapPage - Same map implementation as admin live tracking
 class MapPage extends StatefulWidget {
@@ -3501,16 +3982,19 @@ class _MapPageState extends State<MapPage> {
                     ),
                     const SizedBox(height: 8),
                     // Animated progress bar
-                    if (_selectedVehicle != null && _selectedVehicle!["route_progress_percent"] != null)
+                    if (_selectedVehicle != null &&
+                        _selectedVehicle!["route_progress_percent"] != null)
                       TweenAnimationBuilder<double>(
                         tween: Tween(
                           begin: 0.2,
-                          end: (double.tryParse(
-                                    _selectedVehicle!["route_progress_percent"]
-                                        .toString(),
-                                  ) ??
-                                  0) /
-                              100.clamp(0.0, 1.0),
+                          end:
+                              ((double.tryParse(
+                                            _selectedVehicle!["route_progress_percent"]
+                                                .toString(),
+                                          ) ??
+                                          0) /
+                                      100)
+                                  .clamp(0.0, 1.0), //clamp after dividing
                         ),
                         duration: const Duration(milliseconds: 800),
                         curve: Curves.easeOut,
