@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
+import '../services/vehicle_assignment_api.dart';
 import '../screens/login_screen.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../services/api.dart';
@@ -11,6 +12,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:intl/intl.dart';
 import '../providers/capacity_notifier.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 final baseUrl = dotenv.env['API_BASE_URL'];
 
@@ -1373,14 +1375,65 @@ class ProfileTab extends StatefulWidget {
 }
 
 class _ProfileTabState extends State<ProfileTab> {
-  bool notificationsEnabled = true;
+  String _busNumber = '—';
+  String _plateNumber = '—';
+  String _driverName = '—';
+  String _conductorName = '—';
+  bool _loadingAssignment = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadAssignedVehicle());
+  }
+
+  Future<void> _loadAssignedVehicle() async {
+    if (!mounted) return;
+    try {
+      final user = Provider.of<UserProvider>(context, listen: false).currentUser;
+      if (user == null) {
+        setState(() => _loadingAssignment = false);
+        return;
+      }
+      final res = await VehicleAssignmentApiService.getAllAssignments();
+      final assignments = res.data ?? [];
+      final match = assignments.firstWhere(
+        (a) => a.driverId?.toString() == user.id || a.conductorId?.toString() == user.id,
+        orElse: () => assignments.isNotEmpty ? assignments.first : VehicleAssignment(
+          assignmentId: 0,
+          vehicleId: 0,
+          plateNumber: null,
+          driverId: null,
+          conductorId: null,
+          driverName: null,
+          conductorName: null,
+          assignedAt: DateTime.now(),
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+      if (assignments.isEmpty) {
+        setState(() => _loadingAssignment = false);
+        return;
+      }
+
+      setState(() {
+        _busNumber = match.vehicleId > 0
+            ? 'FCM No. ${match.vehicleId.toString().padLeft(2, '0')}'
+            : '—';
+        _plateNumber = match.plateNumber ?? '—';
+        _driverName = match.driverName ?? '—';
+        _conductorName = match.conductorName ?? '—';
+        _loadingAssignment = false;
+      });
+    } catch (e) {
+      setState(() => _loadingAssignment = false);
+      debugPrint('Failed to load assigned vehicle: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final String busNumber = "FCM No. 05";
-    final String plateNumber = "DAL 7674";
-    final String driverName = "Nelson Suarez";
-    final String conductorEmail = "mixednames@gmail.com";
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -1404,7 +1457,7 @@ class _ProfileTabState extends State<ProfileTab> {
           ListTile(
             leading: const Icon(Icons.directions_bus, color: Color(0xFF3E4795)),
             title: const Text('Bus Number'),
-            subtitle: Text(busNumber),
+            subtitle: Text(_loadingAssignment ? 'Loading…' : _busNumber),
           ),
           ListTile(
             leading: const Icon(
@@ -1412,86 +1465,27 @@ class _ProfileTabState extends State<ProfileTab> {
               color: Color(0xFF3E4795),
             ),
             title: const Text('Plate Number'),
-            subtitle: Text(plateNumber),
+            subtitle: Text(_loadingAssignment ? 'Loading…' : _plateNumber),
           ),
           ListTile(
             leading: const Icon(Icons.person, color: Color(0xFF3E4795)),
             title: const Text("Driver's Name"),
-            subtitle: Text(driverName),
+            subtitle: Text(_loadingAssignment ? 'Loading…' : _driverName),
           ),
           ListTile(
             leading: const Icon(Icons.person, color: Color(0xFF3E4795)),
             title: const Text("Conductor's Name"),
-            subtitle: Text(conductorEmail),
+            subtitle: Text(_loadingAssignment ? 'Loading…' : _conductorName),
           ),
           const SizedBox(height: 24),
 
-          // Preferences
-          Text('Preferences', style: sectionStyle),
-          SwitchListTile(
-            title: const Text('Notifications'),
-            value: notificationsEnabled,
-            onChanged: (val) => setState(() => notificationsEnabled = val),
-          ),
-          const SizedBox(height: 24),
-
-          // Support
-          Text('Support', style: sectionStyle),
+          // Notifications
+          Text('Notifications', style: sectionStyle),
           ListTile(
-            leading: const Icon(Icons.phone, color: Color(0xFF3E4795)),
-            title: const Text('Call for Quick Assistance'),
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Quick Assistance'),
-                  content: const Text('Calling emergency support...'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.star, color: Color(0xFF3E4795)),
-            title: const Text('View Ratings'),
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('View Ratings'),
-                  content: const Text('Your current rating: 4.5/5 stars'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.email, color: Color(0xFF3E4795)),
-            title: const Text('Contact Admin'),
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Contact Admin'),
-                  content: const Text('Email: admin@fcmapp.com'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              );
+            leading: const Icon(Icons.notifications, color: Color(0xFF3E4795)),
+            title: const Text('Manage Notification Permissions'),
+            onTap: () async {
+              await openAppSettings();
             },
           ),
           const SizedBox(height: 24),
@@ -1506,47 +1500,7 @@ class _ProfileTabState extends State<ProfileTab> {
           ListTile(
             leading: const Icon(Icons.person, color: Color(0xFF3E4795)),
             title: const Text('Developer'),
-            subtitle: const Text('FCM App Team'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.star_rate, color: Color(0xFF3E4795)),
-            title: const Text('Rate the App'),
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Rate the App'),
-                  content: const Text(
-                    'This would open the app store for rating.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.share, color: Color(0xFF3E4795)),
-            title: const Text('Share the App'),
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Share the App'),
-                  content: const Text('This would open the share dialog.'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              );
-            },
+            subtitle: const Text('BatStateU-Lipa IT Students'),
           ),
           const SizedBox(height: 32),
 
