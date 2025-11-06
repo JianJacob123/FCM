@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from flask_caching import Cache
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import pandas as pd
 import numpy as np
 import joblib
@@ -22,6 +24,15 @@ cache = Cache(app, config={
     'CACHE_TYPE': os.getenv('CACHE_TYPE', 'SimpleCache'),
     'CACHE_DEFAULT_TIMEOUT': int(os.getenv('CACHE_DEFAULT_TIMEOUT', '600'))
 })
+
+# Rate limiting (configurable via env)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=[
+        os.getenv('RATE_LIMIT_DEFAULT', '120 per minute')
+    ],
+)
 
 # Add CORS headers to all responses
 @app.after_request
@@ -147,6 +158,7 @@ def forecast_peak():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/daily_forecast', methods=['GET'])
+@limiter.limit(os.getenv('RATE_LIMIT_FORECAST', '30 per minute'))
 @cache.cached(timeout=600)
 def daily_forecast():
     """Get weekly passenger forecast (Sunday to Saturday) using Prophet model"""
@@ -201,6 +213,7 @@ def daily_forecast():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/hourly_forecast', methods=['GET'])
+@limiter.limit(os.getenv('RATE_LIMIT_FORECAST', '30 per minute'))
 @cache.cached(timeout=600)
 def hourly_forecast():
     """Get hourly passenger forecast for operational hours (4:00 AM to 8:00 PM) using XGBoost model"""
@@ -261,6 +274,7 @@ def hourly_forecast():
 
 
 @app.route('/yearly_daily', methods=['GET'])
+@limiter.limit(os.getenv('RATE_LIMIT_FORECAST', '30 per minute'))
 @cache.cached(timeout=600, query_string=True)
 def yearly_daily_forecast():
     """Get a yearly daily passenger forecast grid for a given year.
