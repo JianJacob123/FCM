@@ -13,6 +13,8 @@ import 'services/notif_socket.dart';
 import 'services/notif_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'screens/terms_conditions_screen.dart';
 
 Future<void> main() async {
   // must be first line in main
@@ -132,17 +134,62 @@ class AppWrapper extends StatefulWidget {
 }
 
 class _AppWrapperState extends State<AppWrapper> {
+  bool _hasAcceptedTerms = false;
+  bool _checkedTerms = false;
+
   @override
   void initState() {
     super.initState();
     // Initialize user data when app starts
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<UserProvider>().initializeUser();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    // Check terms first
+    final prefs = await SharedPreferences.getInstance();
+    final accepted = prefs.getBool('accepted_terms') ?? false;
+
+    setState(() {
+      _hasAcceptedTerms = accepted;
+      _checkedTerms = true;
     });
+
+    // Initialize user data only after checking terms
+    if (accepted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<UserProvider>().initializeUser();
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_checkedTerms) {
+      // Still checking terms acceptance
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(
+            color: Color.fromRGBO(62, 71, 149, 1),
+          ),
+        ),
+      );
+    }
+
+    if (!_hasAcceptedTerms) {
+      // 👇 Show the Terms screen instead
+      return TermsAndConditionsScreen(
+        onAccept: () async {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('accepted_terms', true);
+
+          setState(() {
+            _hasAcceptedTerms = true;
+          });
+
+          context.read<UserProvider>().initializeUser();
+        },
+      );
+    }
     return Consumer<UserProvider>(
       builder: (context, userProvider, child) {
         if (userProvider.isLoading) {

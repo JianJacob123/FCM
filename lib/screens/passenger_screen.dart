@@ -586,7 +586,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _loadActiveTrip() async {
-    final testId = "GUEST-123"; //for testing
+    //final testId = "GUEST-123";
     final userProvider = context.read<UserProvider>();
     final userId = userProvider.isLoggedIn
         ? userProvider.currentUser!.id
@@ -954,8 +954,33 @@ class _MapScreenState extends State<MapScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            print("Marking trip as completed...");
+                          onPressed: () async {
+                            //final testId = "GUEST-123";
+                            final userProvider = context.read<UserProvider>();
+                            final userId = userProvider.isLoggedIn
+                                ? userProvider.currentUser!.id
+                                : userProvider
+                                      .guestId; // <-- fallback to guestId
+                            if (userId == null) {
+                              // Handle error: user not logged in
+                              throw Exception("Id Not Found");
+                            }
+
+                            final message = await cancelTrip(
+                              userId,
+                            ); //CHANGE TO userId LATER
+
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(SnackBar(content: Text(message)));
+
+                            // Optionally expand the modal automatically
+                            setState(() {
+                              _isTripExpanded = true;
+                              _pickedLocation = null;
+                              _showPinnedLocation = false;
+                              _activeTrip = null;
+                            });
                           },
                           icon: const Icon(Icons.cancel_outlined),
                           label: const Text("Cancel Trip"),
@@ -977,8 +1002,33 @@ class _MapScreenState extends State<MapScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            print("Marking trip as completed...");
+                          onPressed: () async {
+                            //final testId = "GUEST-123";
+                            final userProvider = context.read<UserProvider>();
+                            final userId = userProvider.isLoggedIn
+                                ? userProvider.currentUser!.id
+                                : userProvider
+                                      .guestId; // <-- fallback to guestId
+                            if (userId == null) {
+                              // Handle error: user not logged in
+                              throw Exception("Id Not Found");
+                            }
+
+                            final message = await markTripCompleted(
+                              userId,
+                            ); //CHANGE TO userId LATER
+
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(SnackBar(content: Text(message)));
+
+                            // Optionally expand the modal automatically
+                            setState(() {
+                              _isTripExpanded = true;
+                              _pickedLocation = null;
+                              _showPinnedLocation = false;
+                              _activeTrip = null;
+                            });
                           },
                           icon: const Icon(Icons.check_circle_outline),
                           label: const Text("Mark as Completed"),
@@ -1736,6 +1786,44 @@ class _BulletLine extends StatelessWidget {
 }
 
 class _TripHistoryScreenState extends State<TripHistoryScreen> {
+  late Future<List<dynamic>> _futureTripHistory;
+
+  @override
+  void initState() {
+    super.initState();
+    //final testId = "GUEST-123";
+    final userProvider = context.read<UserProvider>();
+    final userId = userProvider.isLoggedIn
+        ? userProvider.currentUser!.id
+        : userProvider.guestId;
+
+    _futureTripHistory = fetchTripHistory(userId ?? "");
+  }
+
+  /// Format time ago
+  String timeAgo(String isoDate) {
+    final date = DateTime.parse(isoDate).toLocal();
+    final diff = DateTime.now().difference(date);
+
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
+    if (diff.inHours < 24) return '${diff.inHours} hours ago';
+    if (diff.inDays < 7) return '${diff.inDays} days ago';
+    return DateFormat('MMM dd').format(date);
+  }
+
+  Future<void> _refreshData() async {
+    //final testId = "GUEST-123";
+    final userProvider = context.read<UserProvider>();
+    final userId = userProvider.isLoggedIn
+        ? userProvider.currentUser!.id
+        : userProvider.guestId;
+
+    setState(() {
+      _futureTripHistory = fetchTripHistory(userId ?? "");
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1746,93 +1834,103 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 24,
-            color: Color(0xFF3E4795), //Change the color here
+            color: Color(0xFF3E4795),
           ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
       ),
-      body: FutureBuilder<List<dynamic>>(
-        future: fetchTripHistory(
-          context.read<UserProvider>().currentUser?.id ?? "",
-        ),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          } else if (snapshot.hasData) {
-            final trips = snapshot.data!;
-            if (trips.isEmpty) {
+      // 4. Wrap the entire FutureBuilder in RefreshIndicator
+      body: RefreshIndicator(
+        onRefresh: _refreshData, // Assign the refresh function
+        child: FutureBuilder<List<dynamic>>(
+          // Use the class variable for the future
+          future: _futureTripHistory,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text("Error: ${snapshot.error}"));
+            } else if (snapshot.hasData) {
+              final trips = snapshot.data!;
+              if (trips.isEmpty) {
+                // Ensure the list is scrollable for RefreshIndicator to work on empty data
+                return ListView(
+                  children: const [
+                    SizedBox(height: 100), // Push the text down
+                    Center(child: Text("No trip history available.")),
+                  ],
+                );
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: trips.length,
+                itemBuilder: (context, index) {
+                  final trip = trips[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F3F3),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: ListTile(
+                        leading: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFBFC6F7),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.directions_bus,
+                            color: Color(0xFF3E4795),
+                            size: 28,
+                          ),
+                        ),
+                        title: Text(
+                          'Trip Request ${trip["request_id"] ?? "--"}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            Text(
+                              'From: ${trip["pickup_location_name"] ?? "Unknown"}',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            Text(
+                              'To: ${trip["dropoff_location_name"] ?? "Unknown"}',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                        trailing: Text(
+                          timeAgo(trip["created_at"] ?? "Unknown Date"),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            } else {
+              // Handle the case where snapshot.hasData is false but no error occurred (e.g., initial null data)
               return const Center(child: Text("No trip history available."));
             }
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: trips.length,
-              itemBuilder: (context, index) {
-                final trip = trips[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF3F3F3),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: ListTile(
-                      leading: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFBFC6F7),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.directions_bus,
-                          color: Color(0xFF3E4795),
-                          size: 28,
-                        ),
-                      ),
-                      title: Text(
-                        trip["route_name"] ?? "Unknown Route",
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 4),
-                          Text(
-                            'From: ${trip["pickup_location"] ?? "Unknown"}',
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                          Text(
-                            'To: ${trip["dropoff_location"] ?? "Unknown"}',
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ],
-                      ),
-                      trailing: Text(
-                        trip["trip_date"] ?? "Unknown Date",
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            );
-          } else {
-            return const Center(child: Text("No trip history available."));
-          }
-        },
+          },
+        ),
       ),
     );
   }

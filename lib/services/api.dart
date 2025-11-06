@@ -93,6 +93,7 @@ Future<List<dynamic>> fetchPendingTrips() async {
   }
 }
 
+//REQUEST HANDLERS
 Future<String> createRequest(TripRequest trip) async {
   final url = Uri.parse('$baseUrl/passengerTrips/createRequest');
 
@@ -123,6 +124,53 @@ Future<String> createRequest(TripRequest trip) async {
   }
 }
 
+Future<String> cancelTrip(String userId) async {
+  final url = Uri.parse('$baseUrl/passengerTrips/toCancelTrip');
+
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({"passenger_id": userId}),
+    );
+
+    if (response.statusCode == 200) {
+      return "Trip cancelled successfully!";
+    } else if (response.statusCode == 400) {
+      final data = jsonDecode(response.body);
+      return data['error'] ?? "You have no active trip to cancel.";
+    } else {
+      return "Unexpected error: ${response.statusCode}";
+    }
+  } catch (e) {
+    return "Error sending request: $e";
+  }
+}
+
+Future<String> markTripCompleted(String userId) async {
+  final url = Uri.parse('$baseUrl/passengerTrips/toMarkTripAsCompleted');
+
+  try {
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({"passenger_id": userId}),
+    );
+
+    if (response.statusCode == 200) {
+      return "Trip marked as completed successfully!";
+    } else if (response.statusCode == 400) {
+      final data = jsonDecode(response.body);
+      return data['error'] ?? "You have no active trip to complete.";
+    } else {
+      return "Unexpected error: ${response.statusCode}";
+    }
+  } catch (e) {
+    return "Error sending request: $e";
+  }
+}
+
+//Favorite Location Handlers
 Future<String> addLocation(String userId, double lat, double lng) async {
   final url = Uri.parse('$baseUrl/favLocations/addFavLocation');
 
