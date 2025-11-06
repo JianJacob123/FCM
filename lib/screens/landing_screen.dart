@@ -9,6 +9,7 @@ import '../services/api.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
+import 'package:url_launcher/url_launcher_string.dart';
 import '../utils/download.dart';
 
 class LandingScreen extends StatefulWidget {
@@ -1963,11 +1964,12 @@ class _HomePageState extends State<HomePage> {
                                       const SizedBox(height: 12),
                                       Row(
                                         children: [
-                                          _SocialMediaButton(icon: Icons.facebook, onTap: () {}),
-                          const SizedBox(width: 12),
-                                          _SocialMediaButton(icon: Icons.photo_camera, onTap: () {}), // Instagram
-                                          const SizedBox(width: 12),
-                                          _SocialMediaButton(icon: Icons.close, onTap: () {}), // Twitter/X
+                                          _SocialMediaButton(
+                                            icon: Icons.facebook,
+                                            onTap: () {
+                                              launchUrlString('https://www.facebook.com/profile.php?id=100094508181738');
+                                            },
+                                          ),
                                         ],
                                       ),
                         ],
@@ -1992,13 +1994,25 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-                                      child: Center(
-                                        child: Image.asset(
-                                          'assets/FCM App.png',
-                                          width: 200,
-                                          height: 200,
-                                          fit: BoxFit.contain,
-                                        ),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Image.asset(
+                                            'assets/FCM App.png',
+                                            width: 200,
+                                            height: 200,
+                                            fit: BoxFit.contain,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          const Text(
+                                            'FCM App for Android',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF3E4795),
+                                            ),
+                                          ),
+                                        ],
                                       ),
             ),
           ),

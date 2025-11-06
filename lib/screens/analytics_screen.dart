@@ -50,6 +50,8 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   // Cache to prevent repeated requests (reduced for more dynamic updates)
   DateTime? _lastLoadTime;
   static const Duration _cacheTimeout = Duration(minutes: 1); // Reduced from 5 minutes to 1 minute
+  DateTime? _lastLoadAttempt; // For simple rate limiting
+  bool _inFlight = false; // Prevent concurrent loads
   
   String get _lastUpdateText {
     if (_lastLoadTime == null) return 'Never updated';
@@ -701,6 +703,13 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   }
 
   Future<void> _load() async {
+    // Client-side rate limiting to avoid spamming expensive analytics calls
+    final now = DateTime.now();
+    if (_lastLoadAttempt != null && now.difference(_lastLoadAttempt!) < const Duration(seconds: 5)) {
+      return; // ignore rapid re-trigger
+    }
+    _lastLoadAttempt = now;
+    if (_inFlight) return;
     // Check cache first
     if (_lastLoadTime != null && 
         DateTime.now().difference(_lastLoadTime!) < _cacheTimeout &&
@@ -716,6 +725,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       });
     }
     try {
+      _inFlight = true;
       // Fetch in parallel (removed redundant network test)
       final hourlyF = fapi.forecastHourly();
       final dailyF = fapi.forecastDaily();
@@ -782,6 +792,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       if (mounted) {
         setState(() => _loading = false);
       }
+      _inFlight = false;
     }
   }
 
