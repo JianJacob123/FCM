@@ -1277,104 +1277,30 @@ class _HomePageState extends State<HomePage> {
                       ? Column(
                           children: [
                             // Vision Card
-                            Container(
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.08),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Our Vision',
-                                    style: TextStyle(
-                                      fontSize: _getResponsiveFontSize(context, 28, 24, 22),
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color.fromRGBO(62, 71, 149, 1),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'To be the most trusted and modern transport service in Batangas—connecting communities with reliable, comfortable, and inclusive mobility.',
-                                    style: TextStyle(
-                                      fontSize: _getResponsiveFontSize(context, 16, 15, 14),
-                                      color: Colors.grey[700],
-                                      height: 1.6,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            // Mission Card
-                            Container(
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.08),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Our Mission',
-                                    style: TextStyle(
-                                      fontSize: _getResponsiveFontSize(context, 28, 24, 22),
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color.fromRGBO(62, 71, 149, 1),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Provide safe, efficient, and customer-focused public transport through well-maintained vehicles, trained personnel, and continuous innovation—delivering value to riders and supporting sustainable growth across Bauan, Lipa, and neighboring areas.',
-                                    style: TextStyle(
-                                      fontSize: _getResponsiveFontSize(context, 16, 15, 14),
-                                      color: Colors.grey[700],
-                                      height: 1.6,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        )
-                      : IntrinsicHeight(
-                      child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Vision Card
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.all(32),
+                            _Hoverable(
+                              builder: (hover) {
+                                return AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  curve: Curves.easeOut,
+                                  transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
+                                  padding: const EdgeInsets.all(24),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: hover ? const Color(0xFF3E4795).withOpacity(0.2) : Colors.transparent,
+                                      width: 1.5,
+                                    ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.08),
-                                        blurRadius: 8,
+                                        color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
+                                        blurRadius: hover ? 14 : 8,
                                         offset: const Offset(0, 2),
                                       ),
                                     ],
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
                                         'Our Vision',
@@ -1395,27 +1321,35 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                     ],
                                   ),
-                                ),
-                              ),
-                              const SizedBox(width: 24),
-                              // Mission Card
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.all(32),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            // Mission Card
+                            _Hoverable(
+                              builder: (hover) {
+                                return AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  curve: Curves.easeOut,
+                                  transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
+                                  padding: const EdgeInsets.all(24),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: hover ? const Color(0xFF3E4795).withOpacity(0.2) : Colors.transparent,
+                                      width: 1.5,
+                                    ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.08),
-                                        blurRadius: 8,
+                                        color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
+                                        blurRadius: hover ? 14 : 8,
                                         offset: const Offset(0, 2),
                                       ),
                                     ],
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
                                         'Our Mission',
@@ -1436,6 +1370,116 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                     ],
                                   ),
+                                );
+                              },
+                            ),
+                          ],
+                        )
+                      : IntrinsicHeight(
+                      child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Vision Card
+                              Expanded(
+                                child: _Hoverable(
+                                  builder: (hover) {
+                                    return AnimatedContainer(
+                                      duration: const Duration(milliseconds: 180),
+                                      curve: Curves.easeOut,
+                                      transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
+                                      padding: const EdgeInsets.all(32),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: hover ? const Color(0xFF3E4795).withOpacity(0.2) : Colors.transparent,
+                                          width: 1.5,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
+                                            blurRadius: hover ? 14 : 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'Our Vision',
+                                            style: TextStyle(
+                                              fontSize: _getResponsiveFontSize(context, 28, 24, 22),
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color.fromRGBO(62, 71, 149, 1),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'To be the most trusted and modern transport service in Batangas—connecting communities with reliable, comfortable, and inclusive mobility.',
+                                            style: TextStyle(
+                                              fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                              color: Colors.grey[700],
+                                              height: 1.6,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 24),
+                              // Mission Card
+                              Expanded(
+                                child: _Hoverable(
+                                  builder: (hover) {
+                                    return AnimatedContainer(
+                                      duration: const Duration(milliseconds: 180),
+                                      curve: Curves.easeOut,
+                                      transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
+                                      padding: const EdgeInsets.all(32),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: hover ? const Color(0xFF3E4795).withOpacity(0.2) : Colors.transparent,
+                                          width: 1.5,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
+                                            blurRadius: hover ? 14 : 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'Our Mission',
+                                            style: TextStyle(
+                                              fontSize: _getResponsiveFontSize(context, 28, 24, 22),
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color.fromRGBO(62, 71, 149, 1),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'Provide safe, efficient, and customer-focused public transport through well-maintained vehicles, trained personnel, and continuous innovation—delivering value to riders and supporting sustainable growth across Bauan, Lipa, and neighboring areas.',
+                                            style: TextStyle(
+                                              fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                              color: Colors.grey[700],
+                                              height: 1.6,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ],
@@ -2043,46 +2087,62 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8.0),
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    final width = MediaQuery.of(context).size.width;
+    final isTablet = width < 1024 && width >= 600;
+    final isMobile = width < 600;
+    final numSize = isMobile ? 24.0 : (isTablet ? 28.0 : 32.0);
+    final labelSize = isMobile ? 12.0 : (isTablet ? 13.0 : 14.0);
+    final paddingV = isMobile ? 16.0 : 24.0;
+    final paddingH = isMobile ? 16.0 : 20.0;
+
+    return _Hoverable(
+      builder: (hover) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          margin: const EdgeInsets.symmetric(horizontal: 8.0),
+          padding: EdgeInsets.symmetric(horizontal: paddingH, vertical: paddingV),
+          transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: hover ? const Color(0xFF3E4795).withOpacity(0.15) : Colors.transparent),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
+                blurRadius: hover ? 14 : 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            number,
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF333333),
-              height: 1.2,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                number,
+                style: TextStyle(
+                  fontSize: numSize,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF333333),
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: labelSize,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF666666),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.normal,
-              color: Color(0xFF666666),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
