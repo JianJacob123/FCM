@@ -2815,6 +2815,12 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
   bool _showScheduledModal = false;
   int? _editingIndex;
 
+  // Spam prevention: track last notification sent
+  String? _lastNotificationContent;
+  DateTime? _lastNotificationTime;
+  static const Duration _duplicateCooldown = Duration(minutes: 1); // 1 minute cooldown for same content
+  static const Duration _generalCooldown = Duration(seconds: 30); // 30 seconds cooldown between any notifications
+
   // Store scheduled notifications
   List<Map<String, dynamic>> _scheduledNotifications = [
     // Example scheduled notification
@@ -2942,19 +2948,72 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
         if (_showCompose)
           _ComposeNotificationModal(
             onSave: (notif) async {
+              final now = DateTime.now();
+              final content = notif['content'] as String;
+
+              // Check general cooldown (30 seconds between any notifications)
+              if (_lastNotificationTime != null) {
+                final timeSinceLastNotification = now.difference(_lastNotificationTime!);
+                if (timeSinceLastNotification < _generalCooldown) {
+                  final remainingSeconds = (_generalCooldown - timeSinceLastNotification).inSeconds;
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Please wait ${remainingSeconds} seconds before sending another notification.'),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                  return;
+                }
+              }
+
+              // Check duplicate content cooldown (1 minute for same content)
+              if (_lastNotificationContent != null && 
+                  _lastNotificationContent == content &&
+                  _lastNotificationTime != null) {
+                final timeSinceDuplicate = now.difference(_lastNotificationTime!);
+                if (timeSinceDuplicate < _duplicateCooldown) {
+                  final remaining = _duplicateCooldown - timeSinceDuplicate;
+                  final remainingSeconds = remaining.inSeconds;
+                  final remainingMinutes = remaining.inMinutes;
+                  final message = remainingSeconds < 60
+                      ? 'You cannot send the same notification again. Please wait ${remainingSeconds}s.'
+                      : 'You cannot send the same notification again. Please wait ${remainingMinutes}m ${remainingSeconds % 60}s.';
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(message),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 4),
+                      ),
+                    );
+                  }
+                  return;
+                }
+              }
+
               final formattedDate = DateFormat(
                 'yyyy-MM-dd HH:mm:ss',
-              ).format(DateTime.now().toUtc());
+              ).format(now.toUtc());
+              
               // Call your backend API here
               await createNotification(
                 notif['title'],
                 notif['type'],
-                notif['content'],
+                content,
                 formattedDate,
                 (notif['recipients'] as Set<String>).join(
                   ',',
                 ), // flatten Set to string
               );
+
+              // Update spam prevention tracking
+              setState(() {
+                _lastNotificationContent = content;
+                _lastNotificationTime = now;
+              });
 
               _showSuccessDialog();
               // No scheduled storage
