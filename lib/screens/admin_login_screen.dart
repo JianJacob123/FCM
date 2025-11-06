@@ -285,6 +285,210 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     );
   }*/
 
+  void _showForgotPasswordDialog() {
+    final emailController = TextEditingController();
+    bool isSending = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Forgot Password',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Enter your email to receive a 6-digit OTP.',
+                    style: TextStyle(fontSize: 14, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: emailController,
+                    decoration: InputDecoration(
+                      hintText: 'Email address',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isSending
+                      ? null
+                      : () async {
+                          final email = emailController.text.trim();
+                          if (email.isEmpty) return;
+
+                          setModalState(() => isSending = true);
+
+                          final res = await http.post(
+                            Uri.parse('$baseUrl/users/forgot-password'),
+                            headers: {'Content-Type': 'application/json'},
+                            body: jsonEncode({'username': email}),
+                          );
+
+                          setModalState(() => isSending = false);
+
+                          if (res.statusCode == 200) {
+                            Navigator.of(context).pop(); // close current modal
+                            _showOtpResetDialog(email);
+                          } else {
+                            final err = jsonDecode(res.body);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  err['error'] ?? 'Failed to send OTP.',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                  child: isSending
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Send OTP'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showOtpResetDialog(String email) {
+    final otpController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    bool isVerifying = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Reset Password',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Enter the OTP sent to your email and set a new password.',
+                    style: TextStyle(fontSize: 14, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: otpController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    decoration: InputDecoration(
+                      hintText: '6-digit OTP',
+                      counterText: '',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: newPasswordController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      hintText: 'New Password',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isVerifying
+                      ? null
+                      : () async {
+                          final otp = otpController.text.trim();
+                          final newPassword = newPasswordController.text.trim();
+
+                          if (otp.isEmpty || newPassword.isEmpty) return;
+
+                          setModalState(() => isVerifying = true);
+
+                          final verifyRes = await http.post(
+                            Uri.parse('$baseUrl/users/reset-password'),
+                            headers: {'Content-Type': 'application/json'},
+                            body: jsonEncode({
+                              'username': email,
+                              'otp': otp,
+                              'newPassword': newPassword,
+                            }),
+                          );
+
+                          setModalState(() => isVerifying = false);
+
+                          if (verifyRes.statusCode == 200) {
+                            Navigator.of(context).pop(); // close modal
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Password reset successful!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          } else {
+                            final err = jsonDecode(verifyRes.body);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(err['error'] ?? 'Invalid OTP'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                  child: isVerifying
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Verify & Reset'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 768;
@@ -499,7 +703,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         // Forgot password link
         Center(
           child: TextButton(
-            onPressed: () {},
+            onPressed: () {
+              _showForgotPasswordDialog();
+            },
             style: ButtonStyle(
               padding: MaterialStateProperty.all(EdgeInsets.zero),
               minimumSize: MaterialStateProperty.all(Size(0, 0)),
