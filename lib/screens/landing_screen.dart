@@ -194,8 +194,18 @@ class _LandingScreenState extends State<LandingScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Logo
-                        Image.asset(
+                    // Logo (click to go Home and scroll to top)
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _currentIndex = 0;
+                          _homePageScrollOffset = 0.0;
+                        });
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _scrollToTop?.call();
+                        });
+                      },
+                      child: Image.asset(
                   'assets/logo2.png',
                   height: isMobile ? 45 : 70,
                   width: isMobile ? 45 : 70,
@@ -207,6 +217,7 @@ class _LandingScreenState extends State<LandingScreen> {
                       size: isMobile ? 35 : 55,
                             );
                           },
+                      ),
                         ),
                 // Navigation Links - show hamburger on mobile, full nav on desktop
                 if (isMobile)
@@ -397,14 +408,14 @@ class _NavLink extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Hoverable(
       builder: (hover) => InkWell(
-        onTap: onTap,
+      onTap: onTap,
         child: AnimatedDefaultTextStyle(
           duration: const Duration(milliseconds: 150),
-          style: TextStyle(
+        style: TextStyle(
             color: isActive
                 ? const Color(0xFFA0A0E0)
                 : (hover ? Colors.white : const Color(0xFFE0E0E0)),
-            fontSize: 16,
+          fontSize: 16,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
             decoration: hover && !isActive ? TextDecoration.underline : TextDecoration.none,
           ),
@@ -551,6 +562,138 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _showTermsOfService() {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: const Text('Terms of Service'),
+          content: SizedBox(
+            width: 600,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  SizedBox(height: 4),
+                  Text('Last Updated: November 6, 2025', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  SizedBox(height: 16),
+                  Text('Welcome to the official website of FCM Transport Corporation ("we," "our," or "us"). By accessing or using this website, you agree to comply with and be bound by the following Terms of Service. Please read them carefully before using the site.'),
+                  SizedBox(height: 16),
+                  Text('1. Purpose of the Website', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('This website provides general information about FCM Transport Corporation, including our company background, transport services, and a real-time bus tracking feature through the “Map” section. The website is for informational and public service purposes only.'),
+                  SizedBox(height: 12),
+                  Text('2. Acceptance of Terms', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('By browsing or using any part of this website, you acknowledge that you have read, understood, and agreed to these Terms. If you do not agree, please discontinue use immediately.'),
+                  SizedBox(height: 12),
+                  Text('3. Use of the Website', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('You agree to use this website responsibly and only for lawful purposes. You must not attempt to gain unauthorized access to any part of the site or its servers; interfere with or disrupt the site’s operation; or use the website’s content or data for commercial or malicious purposes.'),
+                  SizedBox(height: 12),
+                  Text('4. Accuracy of Information', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('We strive to keep all content, including route and bus location information, accurate and up to date. However, data shown on the Map (such as active buses and estimated positions) may vary due to network delays or technical limitations. FCM Transport Corporation makes no guarantees regarding accuracy or availability.'),
+                  SizedBox(height: 12),
+                  Text('5. Intellectual Property Rights', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('All content found on this website—including text, graphics, logos, and designs—is the property of FCM Transport Corporation and protected under applicable copyright and trademark laws. You may not reproduce, modify, or distribute any materials without prior written consent.'),
+                  SizedBox(height: 12),
+                  Text('6. Limitation of Liability', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('FCM Transport Corporation shall not be held liable for any direct, indirect, or incidental damages resulting from your access to or use of this website. Use of the Map and any transport data is at your own discretion and risk.'),
+                  SizedBox(height: 12),
+                  Text('7. External Links', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('This website may contain links to third-party websites for convenience. We are not responsible for the content, accuracy, or policies of those external sites.'),
+                  SizedBox(height: 12),
+                  Text('8. Changes to the Website and Terms', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('We may update or modify website content and these Terms of Service at any time without prior notice. Continued use of the site after updates constitutes acceptance of the new terms.'),
+                  SizedBox(height: 12),
+                  Text('9. Contact Information', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('For questions or concerns about these Terms, you may reach us at:'),
+                  SizedBox(height: 4),
+                  Text('📧 info@fcmtransport.com'),
+                  Text('🌐 FCM Transport - Batangas-Bauan Grand Terminal Corporation facebook page'),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close')),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showPrivacyPolicy() {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: const Text('Privacy Policy'),
+          content: SizedBox(
+            width: 600,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  SizedBox(height: 4),
+                  Text('Last Updated: November 6, 2025', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  SizedBox(height: 16),
+                  Text('At FCM Transport Corporation ("we," "our," or "us"), we value your privacy and are committed to maintaining a safe and transparent online experience. This Privacy Policy explains how we handle information when you visit our website.'),
+                  SizedBox(height: 16),
+                  Text('1. Information We Collect', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('We do not collect, store, or process any personal information from visitors. Our website does not include contact forms, registration pages, or features that request user data.'),
+                  SizedBox(height: 12),
+                  Text('2. Non-Personal Information', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('We do not use cookies, tracking technologies, or analytics tools that gather personally identifiable data. However, basic, anonymous server logs (such as visit counts or general browser types) may be automatically recorded by our hosting provider for site performance and security purposes. These logs do not identify individual visitors.'),
+                  SizedBox(height: 12),
+                  Text('3. Use of Information', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('Since we do not collect personal data, there is no user information to process, analyze, or share.'),
+                  SizedBox(height: 12),
+                  Text('4. Data Sharing', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('We do not sell, rent, or share any visitor data with third parties.'),
+                  SizedBox(height: 12),
+                  Text('5. External Links', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('Our website may contain links to other websites, such as app download pages or social media platforms. We are not responsible for the content or privacy practices of those external sites. We encourage you to review their respective privacy policies when visiting them.'),
+                  SizedBox(height: 12),
+                  Text('6. Data Security', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('Although we do not collect personal data, our website is hosted on secure servers that use standard security measures to prevent unauthorized access or misuse of the site.'),
+                  SizedBox(height: 12),
+                  Text('7. Updates to This Policy', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('We may update this Privacy Policy from time to time to reflect changes in our website or legal requirements. Any updates will be posted on this page with a revised “Last Updated” date.'),
+                  SizedBox(height: 12),
+                  Text('8. Contact Us', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 6),
+                  Text('For any questions or concerns regarding this Privacy Policy, you may contact us at:'),
+                  SizedBox(height: 4),
+                  Text('📧 fcmtransport@gmail.com'),
+                  Text('🌐 FCM Transport - Batangas-Bauan Grand Terminal Corporation facebook page'),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close')),
+          ],
+        );
+      },
+    );
   }
 
   // Calculate background opacity based on scroll position
@@ -1284,24 +1427,129 @@ class _HomePageState extends State<HomePage> {
                                   duration: const Duration(milliseconds: 180),
                                   curve: Curves.easeOut,
                                   transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
-                                  padding: const EdgeInsets.all(24),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: hover ? const Color(0xFF3E4795).withOpacity(0.2) : Colors.transparent,
                                       width: 1.5,
                                     ),
-                                    boxShadow: [
-                                      BoxShadow(
+                                boxShadow: [
+                                  BoxShadow(
                                         color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
                                         blurRadius: hover ? 14 : 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Our Vision',
+                                    style: TextStyle(
+                                      fontSize: _getResponsiveFontSize(context, 28, 24, 22),
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color.fromRGBO(62, 71, 149, 1),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'To be the most trusted and modern transport service in Batangas—connecting communities with reliable, comfortable, and inclusive mobility.',
+                                    style: TextStyle(
+                                      fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                      color: Colors.grey[700],
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            // Mission Card
+                            _Hoverable(
+                              builder: (hover) {
+                                return AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  curve: Curves.easeOut,
+                                  transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: hover ? const Color(0xFF3E4795).withOpacity(0.2) : Colors.transparent,
+                                      width: 1.5,
+                                    ),
+                                boxShadow: [
+                                  BoxShadow(
+                                        color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
+                                        blurRadius: hover ? 14 : 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Our Mission',
+                                    style: TextStyle(
+                                      fontSize: _getResponsiveFontSize(context, 28, 24, 22),
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color.fromRGBO(62, 71, 149, 1),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Provide safe, efficient, and customer-focused public transport through well-maintained vehicles, trained personnel, and continuous innovation—delivering value to riders and supporting sustainable growth across Bauan, Lipa, and neighboring areas.',
+                                    style: TextStyle(
+                                      fontSize: _getResponsiveFontSize(context, 16, 15, 14),
+                                      color: Colors.grey[700],
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                                );
+                              },
+                            ),
+                          ],
+                        )
+                      : IntrinsicHeight(
+                      child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Vision Card
+                              Expanded(
+                                child: _Hoverable(
+                                  builder: (hover) {
+                                    return AnimatedContainer(
+                                      duration: const Duration(milliseconds: 180),
+                                      curve: Curves.easeOut,
+                                      transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
+                                  padding: const EdgeInsets.all(32),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: hover ? const Color(0xFF3E4795).withOpacity(0.2) : Colors.transparent,
+                                          width: 1.5,
+                                        ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                            color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
+                                            blurRadius: hover ? 14 : 8,
                                         offset: const Offset(0, 2),
                                       ),
                                     ],
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
                                         'Our Vision',
@@ -1322,35 +1570,38 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                     ],
                                   ),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 20),
-                            // Mission Card
-                            _Hoverable(
-                              builder: (hover) {
-                                return AnimatedContainer(
-                                  duration: const Duration(milliseconds: 180),
-                                  curve: Curves.easeOut,
-                                  transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
-                                  padding: const EdgeInsets.all(24),
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 24),
+                              // Mission Card
+                              Expanded(
+                                child: _Hoverable(
+                                  builder: (hover) {
+                                    return AnimatedContainer(
+                                      duration: const Duration(milliseconds: 180),
+                                      curve: Curves.easeOut,
+                                      transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
+                                  padding: const EdgeInsets.all(32),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: hover ? const Color(0xFF3E4795).withOpacity(0.2) : Colors.transparent,
-                                      width: 1.5,
-                                    ),
+                                        border: Border.all(
+                                          color: hover ? const Color(0xFF3E4795).withOpacity(0.2) : Colors.transparent,
+                                          width: 1.5,
+                                        ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
-                                        blurRadius: hover ? 14 : 8,
+                                            color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
+                                            blurRadius: hover ? 14 : 8,
                                         offset: const Offset(0, 2),
                                       ),
                                     ],
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
                                         'Our Mission',
@@ -1371,114 +1622,6 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                     ],
                                   ),
-                                );
-                              },
-                            ),
-                          ],
-                        )
-                      : IntrinsicHeight(
-                      child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Vision Card
-                              Expanded(
-                                child: _Hoverable(
-                                  builder: (hover) {
-                                    return AnimatedContainer(
-                                      duration: const Duration(milliseconds: 180),
-                                      curve: Curves.easeOut,
-                                      transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
-                                      padding: const EdgeInsets.all(32),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: hover ? const Color(0xFF3E4795).withOpacity(0.2) : Colors.transparent,
-                                          width: 1.5,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
-                                            blurRadius: hover ? 14 : 8,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            'Our Vision',
-                                            style: TextStyle(
-                                              fontSize: _getResponsiveFontSize(context, 28, 24, 22),
-                                              fontWeight: FontWeight.bold,
-                                              color: const Color.fromRGBO(62, 71, 149, 1),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            'To be the most trusted and modern transport service in Batangas—connecting communities with reliable, comfortable, and inclusive mobility.',
-                                            style: TextStyle(
-                                              fontSize: _getResponsiveFontSize(context, 16, 15, 14),
-                                              color: Colors.grey[700],
-                                              height: 1.6,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 24),
-                              // Mission Card
-                              Expanded(
-                                child: _Hoverable(
-                                  builder: (hover) {
-                                    return AnimatedContainer(
-                                      duration: const Duration(milliseconds: 180),
-                                      curve: Curves.easeOut,
-                                      transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
-                                      padding: const EdgeInsets.all(32),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: hover ? const Color(0xFF3E4795).withOpacity(0.2) : Colors.transparent,
-                                          width: 1.5,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
-                                            blurRadius: hover ? 14 : 8,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            'Our Mission',
-                                            style: TextStyle(
-                                              fontSize: _getResponsiveFontSize(context, 28, 24, 22),
-                                              fontWeight: FontWeight.bold,
-                                              color: const Color.fromRGBO(62, 71, 149, 1),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            'Provide safe, efficient, and customer-focused public transport through well-maintained vehicles, trained personnel, and continuous innovation—delivering value to riders and supporting sustainable growth across Bauan, Lipa, and neighboring areas.',
-                                            style: TextStyle(
-                                              fontSize: _getResponsiveFontSize(context, 16, 15, 14),
-                                              color: Colors.grey[700],
-                                              height: 1.6,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
                                     );
                                   },
                                 ),
@@ -1496,7 +1639,7 @@ class _HomePageState extends State<HomePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'About Our Services',
+                        'What we offer?',
                         style: TextStyle(
                           fontSize: _getResponsiveFontSize(context, 36, 28, 24),
                           fontWeight: FontWeight.bold,
@@ -1843,8 +1986,112 @@ class _HomePageState extends State<HomePage> {
                         padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 60.0),
                         child: Column(
                           children: [
-                            // Top Section: Company Info and Quick Links
-                            Row(
+                            // Top Section: Company Info, Links, Contact, QR
+                            _isMobile(context)
+                                ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Company Information
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'FCM Transport Corporation',
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            'Committed to safe, reliable, and modern public transport services across Southern Luzon.',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[400],
+                                              height: 1.6,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 24),
+                                      // Quick Links
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Quick Links',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          _FooterLink(text: 'Home', onTap: () { if (_scrollController.hasClients) { _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut); } }),
+                                          _FooterLink(text: 'Map', onTap: () { if (widget.onNavigateToMap != null) { widget.onNavigateToMap!(); } }),
+                                          _FooterLink(text: 'About', onTap: () { final ctx = _aboutSectionKey.currentContext; if (ctx != null) { Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut); } }),
+                                          _FooterLink(text: 'Download App', onTap: () { _showDownloadAppModal(context); }),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 24),
+                                      // Contact
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Contact Us',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          const _ContactDetail(text: 'Makalintal Ave, Bauan, Batangas', icon: Icons.location_on),
+                                          const SizedBox(height: 8),
+                                          const _ContactDetail(text: 'info@fcmtransport.com', icon: Icons.email),
+                                          const SizedBox(height: 20),
+                                          const Text('Follow Us', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                                          const SizedBox(height: 12),
+                                          Row(children: [ _SocialMediaButton(icon: Icons.facebook, onTap: () { launchUrlString('https://www.facebook.com/profile.php?id=100094508181738'); }) ]),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 24),
+                                      // QR box
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Container(
+                                          width: 220,
+                                          height: 220,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(12),
+                                            boxShadow: [
+                                              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0,4)),
+                                            ],
+                                          ),
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Image.asset(
+                                                'assets/FCM App.png',
+                                                width: 160,
+                                                height: 160,
+                                                fit: BoxFit.contain,
+                                              ),
+                                              const SizedBox(height: 8),
+                                              const Text(
+                                                'FCM App for Android',
+                                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF3E4795)),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 // Company Information
@@ -1945,11 +2192,13 @@ class _HomePageState extends State<HomePage> {
                                       ),
                                       const SizedBox(height: 12),
                                       _ContactDetail(
-                                        text: 'FCM Transport Terminal, Poblacion, Bauang, La Union',
+                                        text: 'Makalintal Ave, Bauan, Batangas',
+                                        icon: Icons.location_on,
                                       ),
                                       const SizedBox(height: 8),
                                       _ContactDetail(
                                         text: 'info@fcmtransport.com',
+                                        icon: Icons.email,
                                       ),
                                       const SizedBox(height: 30),
                                       // Follow Us Section
@@ -2028,10 +2277,10 @@ class _HomePageState extends State<HomePage> {
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.3),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            InkWell(
+                        child: Builder(
+                          builder: (context) {
+                            final bool isMobile = MediaQuery.of(context).size.width < 600;
+                            final copyright = InkWell(
                               onTap: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
@@ -2041,41 +2290,40 @@ class _HomePageState extends State<HomePage> {
                               },
                               child: Text(
                                 '© 2025 FCM Transport Corporation. All rights reserved.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[500],
-                                ),
+                                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                               ),
-                            ),
-                            Row(
+                            );
+
+                            final links = Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 TextButton(
-                                  onPressed: () {},
-                                  child: Text(
-                                    'Privacy Policy',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[400],
-                                    ),
-                                  ),
+                                  onPressed: _showPrivacyPolicy,
+                                  child: Text('Privacy Policy', style: TextStyle(fontSize: 12, color: Colors.grey[400])),
                                 ),
-                                Text(
-                                  ' | ',
-                                  style: TextStyle(color: Colors.grey[500]),
-                                ),
+                                Text(' | ', style: TextStyle(color: Colors.grey[500])),
                                 TextButton(
-                                  onPressed: () {},
-                                  child: Text(
-                                    'Terms of Service',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[400],
-                                    ),
-                                  ),
+                                  onPressed: _showTermsOfService,
+                                  child: Text('Terms of Service', style: TextStyle(fontSize: 12, color: Colors.grey[400])),
                                 ),
                               ],
-                            ),
-                          ],
+                            );
+
+                            if (isMobile) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Center(child: copyright),
+                                  const SizedBox(height: 8),
+                                  links,
+                                ],
+                              );
+                            }
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [copyright, links],
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -2114,47 +2362,47 @@ class _StatCard extends StatelessWidget {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
-          margin: const EdgeInsets.symmetric(horizontal: 8.0),
+      margin: const EdgeInsets.symmetric(horizontal: 8.0),
           padding: EdgeInsets.symmetric(horizontal: paddingH, vertical: paddingV),
           transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
             border: Border.all(color: hover ? const Color(0xFF3E4795).withOpacity(0.15) : Colors.transparent),
-            boxShadow: [
-              BoxShadow(
+        boxShadow: [
+          BoxShadow(
                 color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
                 blurRadius: hover ? 14 : 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            offset: const Offset(0, 2),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                number,
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            number,
                 style: TextStyle(
                   fontSize: numSize,
-                  fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.bold,
                   color: const Color(0xFF333333),
-                  height: 1.2,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: labelSize,
                   fontWeight: FontWeight.w500,
                   color: const Color(0xFF666666),
-                ),
-              ),
-            ],
+            ),
           ),
+        ],
+      ),
         );
       },
     );
@@ -2308,48 +2556,48 @@ class _FeatureItem extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
         transform: hover ? (Matrix4.identity()..translate(0.0, -4.0, 0.0)) : Matrix4.identity(),
-        padding: const EdgeInsets.all(24.0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
+      padding: const EdgeInsets.all(24.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
               color: Colors.black.withOpacity(hover ? 0.18 : 0.08),
               blurRadius: hover ? 16 : 8,
               offset: const Offset(0, 4),
             ),
           ],
           border: hover ? Border.all(color: const Color(0xFF3E4795).withOpacity(0.15)) : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 48,
-              color: const Color.fromRGBO(62, 71, 149, 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: 48,
+            color: const Color.fromRGBO(62, 71, 149, 1),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color.fromRGBO(62, 71, 149, 1),
             ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color.fromRGBO(62, 71, 149, 1),
-              ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[700],
+              height: 1.5,
             ),
-            const SizedBox(height: 8),
-            Text(
-              description,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
-                height: 1.5,
-              ),
-            ),
-          ],
+          ),
+        ],
         ),
       ),
     );
@@ -2371,15 +2619,20 @@ class _ServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return _Hoverable(
+      builder: (hover) => AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
       padding: const EdgeInsets.all(24.0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: hover ? const Color(0xFF3E4795).withOpacity(0.15) : Colors.transparent, width: 1.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 8,
+            color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
+            blurRadius: hover ? 14 : 8,
             offset: const Offset(0, 2),
           ),
         ],
@@ -2425,6 +2678,7 @@ class _ServiceCard extends StatelessWidget {
           ),
         ],
       ),
+      ),
     );
   }
 }
@@ -2458,20 +2712,31 @@ class _FooterLink extends StatelessWidget {
 
 class _ContactDetail extends StatelessWidget {
   final String text;
+  final IconData? icon;
 
   const _ContactDetail({
     required this.text,
+    this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Text(
+    final content = Text(
       text,
       style: TextStyle(
         fontSize: 14,
         color: Colors.grey[300],
         height: 1.4,
       ),
+    );
+    if (icon == null) return content;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: Colors.white, size: 18),
+        const SizedBox(width: 8),
+        Expanded(child: content),
+      ],
     );
   }
 }

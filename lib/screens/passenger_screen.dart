@@ -17,6 +17,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 final baseUrl = dotenv.env['API_BASE_URL'];
 
@@ -1496,36 +1497,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(24, 40, 24, 120),
         children: [
-          Text('Preferences', style: sectionStyle),
-          SwitchListTile(
-            title: const Text('Notifications'),
-            value: notificationsEnabled,
-            onChanged: (val) => setState(() => notificationsEnabled = val),
-          ),
-          const SizedBox(height: 24),
+          // Removed Preferences/Notifications section
+          const SizedBox(height: 0),
 
-          // Location
+          // Permissions
           Text('Location', style: sectionStyle),
           ListTile(
             leading: const Icon(Icons.location_on),
             title: const Text('Manage Location Permissions'),
             onTap: () {
-              // Placeholder: Show a dialog or open settings
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Location Permissions'),
-                  content: const Text(
-                    'This would open the location permissions settings.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              );
+              openAppSettings();
+            },
+          ),
+          const SizedBox(height: 8),
+          Text('Notifications', style: sectionStyle),
+          ListTile(
+            leading: const Icon(Icons.notifications_active_outlined),
+            title: const Text('Manage Notification Permissions'),
+            onTap: () {
+              openAppSettings();
             },
           ),
           const SizedBox(height: 24),
@@ -1540,8 +1530,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
+                  backgroundColor: Colors.white,
                   title: const Text('Contact Us'),
-                  content: const Text('Email: support@fcmapp.com'),
+                  content: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.email, color: Color(0xFF3E4795)),
+                      SizedBox(width: 8),
+                      Flexible(child: Text('support@fcmapp.com')),
+                    ],
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
@@ -1556,18 +1554,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: const Icon(Icons.help_outline),
             title: const Text('FAQ'),
             onTap: () {
-              // Placeholder: Show a dialog or navigate to FAQ
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
+                  backgroundColor: Colors.white,
                   title: const Text('FAQ'),
-                  content: const Text(
-                    'Frequently Asked Questions will be here.',
+                  content: SizedBox(
+                    width: 600,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text('1. What is the FCM Transport mobile app?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text('The FCM Transport app is a convenient tool designed for passengers to track active FCM buses in real time, stay updated with important notifications, and manage their favorite routes and trips—all in one app.'),
+                          SizedBox(height: 12),
+
+                          Text('2. How do I track a vehicle?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text('Simply open the Map section, choose the route or vehicle number you want to monitor, and view its real-time location and movement along the Bauan–Lipa route.'),
+                          SizedBox(height: 12),
+
+                          Text('3. What kind of notifications will I receive?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text('You\'ll receive official updates from FCM Transport\'s admin, including:'),
+                          SizedBox(height: 6),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              _BulletLine('General Announcements'),
+                              _BulletLine('System Notifications'),
+                              _BulletLine('Route Updates'),
+                              _BulletLine('Service Maintenance Notices'),
+                            ],
+                          ),
+                          SizedBox(height: 12),
+
+                          Text('4. How can I save my favorite locations?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text('Tap the “Add Favorites” icon when selecting any location on the map. Your saved locations will appear in your Favorites list, allowing quick access to tracking or trip planning later on.'),
+                          SizedBox(height: 12),
+
+                          Text('5. What is the Trip History feature for?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text('The Trip History section allows you to view a summary of your previously tracked trips for easier reference to your past routes and travel activity.'),
+                          SizedBox(height: 12),
+
+                          Text('6. Does the app collect my personal information?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text('The app only collects location data necessary for providing accurate tracking and route-related information. Your data is handled securely and in accordance with our Privacy Policy.'),
+                          SizedBox(height: 12),
+
+                          Text('7. Can I use the app without enabling location access?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text('You can browse routes and vehicles without enabling location, but you will not have the option to set a destination or view your current position on the map.'),
+                          SizedBox(height: 12),
+
+                          Text('8. How do I install the app?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text('You can download the FCM Transport mobile app directly from the official link provided on our website. The app is currently available for Android devices only.'),
+                          SizedBox(height: 12),
+
+                          Text('9. How often is the information on the map updated?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text('Bus locations and statuses are updated in real time, but minor delays may occur depending on network stability or signal strength.'),
+                          SizedBox(height: 12),
+
+                          Text('10. What should I do if the app is not working properly?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text('Try closing and reopening the app, ensuring that your internet connection is stable. If issues persist, you may reinstall the app or contact our support team for assistance.'),
+                        ],
+                      ),
+                    ),
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('OK'),
+                      child: const Text('Close'),
                     ),
                   ],
                 ),
@@ -1586,50 +1649,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.person),
             title: const Text('Developer'),
-            subtitle: const Text('FCM App Team'),
+            subtitle: const Text('BatStateU-Lipa IT Students'),
           ),
-          ListTile(
-            leading: const Icon(Icons.star_rate),
-            title: const Text('Rate the App'),
-            onTap: () {
-              // Placeholder: Show a dialog or open store
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Rate the App'),
-                  content: const Text(
-                    'This would open the app store for rating.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.share),
-            title: const Text('Share the App'),
-            onTap: () {
-              // Placeholder: Show a dialog or share
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Share the App'),
-                  content: const Text('This would open the share dialog.'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+    
           const SizedBox(height: 32),
 
           // Exit
@@ -1693,6 +1715,24 @@ class TripHistoryScreen extends StatefulWidget {
 
   @override
   State<TripHistoryScreen> createState() => _TripHistoryScreenState();
+}
+
+class _BulletLine extends StatelessWidget {
+  final String text;
+  const _BulletLine(this.text);
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('•  '),
+          Expanded(child: Text(text)),
+        ],
+      ),
+    );
+  }
 }
 
 class _TripHistoryScreenState extends State<TripHistoryScreen> {
