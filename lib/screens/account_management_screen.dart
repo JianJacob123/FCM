@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/user_api.dart';
 
 class AccountManagementScreen extends StatefulWidget {
@@ -306,6 +307,9 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                 TextField(
                   controller: fullNameCtrl,
                   enabled: !isAdmin,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')), // Only letters and spaces
+                  ],
                   decoration: InputDecoration(
                     labelText: 'Full Name',
                     labelStyle: const TextStyle(color: Colors.black87),
@@ -322,6 +326,8 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                       borderSide: BorderSide(color: Colors.grey),
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    helperText: 'Only letters and spaces are allowed',
+                    helperStyle: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -429,7 +435,29 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             ),
             const SizedBox(width: 16),
             ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
+              onPressed: () {
+                final fullName = fullNameCtrl.text.trim();
+                // Validate full name: must not be empty and contain only letters and spaces
+                if (fullName.isEmpty) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(
+                      content: Text('Full Name is required'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(fullName)) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(
+                      content: Text('Full Name can only contain letters and spaces'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                Navigator.pop(ctx, true);
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF3E4795),
                 foregroundColor: Colors.white,
