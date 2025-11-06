@@ -53,6 +53,11 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   DateTime? _lastLoadAttempt; // For simple rate limiting
   bool _inFlight = false; // Prevent concurrent loads
   
+  // Report generation spam prevention
+  String? _lastReportHash;
+  DateTime? _lastReportTime;
+  static const Duration _reportCooldown = Duration(seconds: 30); // 30 seconds cooldown between same reports
+  
   String get _lastUpdateText {
     if (_lastLoadTime == null) return 'Never updated';
     final diff = DateTime.now().difference(_lastLoadTime!);
@@ -103,7 +108,54 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
     }
   }
 
+  // Generate a hash of the report data to detect duplicates
+  String _generateReportHash() {
+    final dateStr = _formatDateYMD(_selectedDate);
+    
+    // Include trip duration analytics in hash
+    String tripDurationHash = '';
+    if (_tripDurationAnalytics != null) {
+      final vehicles = List<Map<String, dynamic>>.from(_tripDurationAnalytics!['vehicles'] ?? const []);
+      final vehicleData = vehicles.map((v) => 
+        '${v['vehicle_id']}:${v['average_duration_minutes']}:${v['trip_count']}'
+      ).join('|');
+      tripDurationHash = vehicleData;
+    }
+    
+    final dataString = '$dateStr|$_unitsInOperation|$_fleetTotalUnits|$_dailyPassengerCount|'
+        '${_fleetHours.join(",")}|${_fleetCounts.join(",")}|'
+        '${_peakHour ?? ""}|${_peakValue ?? ""}|'
+        '${_hourlyPredictions.join(",")}|${_hours.join(",")}|'
+        '$tripDurationHash';
+    
+    // Simple hash using the data string
+    return dataString.hashCode.toString();
+  }
+
   Future<void> _generateReport() async {
+    final now = DateTime.now();
+    final reportHash = _generateReportHash();
+    
+    // Check if same report was generated recently
+    if (_lastReportHash != null && 
+        _lastReportHash == reportHash &&
+        _lastReportTime != null) {
+      final timeSinceLastReport = now.difference(_lastReportTime!);
+      if (timeSinceLastReport < _reportCooldown) {
+        final remainingSeconds = (_reportCooldown - timeSinceLastReport).inSeconds;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Please wait ${remainingSeconds} seconds before generating the same report again.'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+    }
+    
     final String dateStr = _formatDateYMD(_selectedDate);
     Future<Uint8List> buildPdf() async {
       final doc = pw.Document();
@@ -216,6 +268,12 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       bytes: bytes,
       filename: 'analytics_$dateStr.pdf',
     );
+    
+    // Update spam prevention tracking after successful generation
+    setState(() {
+      _lastReportHash = reportHash;
+      _lastReportTime = now;
+    });
   }
 
   void _showYearSelector() {
