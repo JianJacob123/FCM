@@ -194,6 +194,27 @@ Future<String> addLocation(String userId, double lat, double lng) async {
   }
 }
 
+Future<String> unfavoriteLocation(String favLocationId) async {
+  final url = Uri.parse(
+    '$baseUrl/favLocations/removeFavLocation/$favLocationId',
+  );
+
+  try {
+    final response = await http.delete(url);
+
+    if (response.statusCode == 200) {
+      return "Favorite location removed successfully!";
+    } else if (response.statusCode == 400) {
+      final data = jsonDecode(response.body);
+      return data['error'] ?? "This location is not in your favorites.";
+    } else {
+      return "Unexpected error: ${response.statusCode}";
+    }
+  } catch (e) {
+    return "Error sending request: $e";
+  }
+}
+
 Future<void> createNotification(
   String title,
   String type,
