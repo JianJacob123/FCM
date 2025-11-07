@@ -2155,20 +2155,27 @@ class _SaveRoutesScreenState extends State<SaveRoutesScreen> {
                     ),
                     onDismissed: (direction) async {
                       try {
-                        // Call your unfavorite endpoint
-                        await unfavoriteLocation(loc["favorite_location_id"]);
-
-                        // Optionally show feedback
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '${loc["location_name"]} removed from favorites',
-                            ),
-                          ),
+                        final result = await unfavoriteLocation(
+                          loc["favorite_location_id"],
                         );
 
-                        // Refresh list
-                        _refreshData();
+                        if (result.contains("successfully")) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                '${loc["location_name"]} removed from favorites',
+                              ),
+                            ),
+                          );
+                          _refreshData();
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(result),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
                       } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -2178,6 +2185,7 @@ class _SaveRoutesScreenState extends State<SaveRoutesScreen> {
                         );
                       }
                     },
+
                     child: Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
                     child: Container(
