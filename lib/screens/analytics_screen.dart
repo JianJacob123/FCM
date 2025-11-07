@@ -946,18 +946,39 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       // Fetch trips for selected date (server filters by local date)
       final date = _formatDateYMD(_selectedDate);
       final uri = Uri.parse('$baseUrl/trips/api/trips-by-date?date=$date&tz=Asia/Manila&limit=1000');
+      print('Fetching trip duration analytics for date: $date from $uri');
       final res = await http.get(uri);
-      if (res.statusCode != 200) return null;
+      
+      if (res.statusCode != 200) {
+        print('Error fetching trips: HTTP ${res.statusCode} - ${res.body}');
+        return null;
+      }
       
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final trips = List<Map<String, dynamic>>.from(body['data'] ?? []);
       
-      print('Found ${trips.length} trips for selected date $date');
+      print('=== TRIP DURATION ANALYTICS DEBUG ===');
+      print('Selected date: $date');
+      print('API returned ${trips.length} trips');
+      if (trips.isEmpty) {
+        print('WARNING: No trips returned from API for date $date');
+        print('Response body: ${res.body}');
+      } else {
+        // Log first trip for debugging
+        final firstTrip = trips[0];
+        print('Sample trip data:');
+        print('  trip_id: ${firstTrip['trip_id']}');
+        print('  vehicle_id: ${firstTrip['vehicle_id']}');
+        print('  start_time: ${firstTrip['start_time']}');
+        print('  end_time: ${firstTrip['end_time']}');
+        print('  status: ${firstTrip['status']}');
+      }
       
       // Group trips by vehicle_id and calculate average duration (use local times)
-      // Only include completed trips with valid start_time and end_time
+      // Include trips with valid start_time and end_time (prefer completed, but include others if they have end_time)
       final Map<int, List<double>> vehicleDurations = {};
       int skippedTrips = 0;
+      final Map<String, int> statusCounts = {}; // Track status distribution
       
       for (final trip in trips) {
         final vehicleId = trip['vehicle_id'] as int?;
@@ -965,8 +986,12 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
         final endTime = trip['end_time'] as String?;
         final status = trip['status'] as String?;
         
-        // Only process completed trips with both start and end times
-        if (vehicleId != null && startTime != null && endTime != null && status == 'completed') {
+        // Track status distribution
+        final statusKey = status ?? 'null';
+        statusCounts[statusKey] = (statusCounts[statusKey] ?? 0) + 1;
+        
+        // Process trips with both start and end times (include all statuses if they have end_time)
+        if (vehicleId != null && startTime != null && endTime != null) {
           try {
             final startLocal = DateTime.parse(startTime).toLocal();
             final endLocal = DateTime.parse(endTime).toLocal();
@@ -985,13 +1010,15 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
           }
         } else {
           skippedTrips++;
-          if (status != 'completed') {
-            print('Skipped trip ${trip['trip_id']}: status is "$status" (must be "completed")');
-          } else if (endTime == null) {
-            print('Skipped trip ${trip['trip_id']}: missing end_time');
+          if (endTime == null) {
+            print('Skipped trip ${trip['trip_id']}: missing end_time (status: $status)');
+          } else if (startTime == null) {
+            print('Skipped trip ${trip['trip_id']}: missing start_time');
           }
         }
       }
+      
+      print('Trip status distribution: $statusCounts');
       
       print('Processed ${trips.length} trips: ${vehicleDurations.length} vehicles with valid durations, $skippedTrips skipped');
       
@@ -1008,6 +1035,11 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       
       // Sort by vehicle_id for consistent display
       vehicleAverages.sort((a, b) => (a['vehicle_id'] as int).compareTo(b['vehicle_id'] as int));
+      
+      print('Trip Duration Analytics Result: ${vehicleAverages.length} vehicles with data');
+      if (vehicleAverages.isEmpty && trips.isNotEmpty) {
+        print('WARNING: Found ${trips.length} trips but no valid durations. Check trip status and end_time fields.');
+      }
       
       return {
         'vehicles': vehicleAverages,

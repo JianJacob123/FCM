@@ -121,11 +121,16 @@ const getTripsForLocalDate = async (dateYmd, tz = 'Asia/Manila', limit = 1000, o
             t.status,
             t.total_passenger_accumulated
         FROM trips t
-        WHERE DATE((t.start_time AT TIME ZONE 'UTC') AT TIME ZONE $2) = $1
+        WHERE t.end_time IS NOT NULL
+          AND DATE(t.end_time) = $1
         ORDER BY t.start_time DESC
-        LIMIT $3 OFFSET $4
+        LIMIT $2 OFFSET $3
     `;
-    const res = await client.query(sql, [dateYmd, tz, limit, offset]);
+    const res = await client.query(sql, [dateYmd, limit, offset]);
+    console.log(`getTripsForLocalDate: Found ${res.rows.length} trips for date ${dateYmd} (timezone param kept as ${tz})`);
+    if (res.rows.length > 0) {
+        console.log(`Sample trip: vehicle_id=${res.rows[0].vehicle_id}, start_time=${res.rows[0].start_time}, end_time=${res.rows[0].end_time}, status=${res.rows[0].status}`);
+    }
     return res.rows;
 }
 
@@ -145,8 +150,7 @@ const getTodayPassengerCount = async (startOfDay, endOfDay) => {
                 ELSE 0 
             END), 0) as midday_passengers,
             COALESCE(SUM(CASE 
-                WHEN EXTRACT(HOUR FROM end_time) >= 16 AND EXTRACT(HOUR FROM end_time) <= 20 
-                OR EXTRACT(HOUR FROM end_time) >= 21
+                WHEN EXTRACT(HOUR FROM end_time) >= 16 AND EXTRACT(HOUR FROM end_time) < 21
                 THEN total_passenger_accumulated 
                 ELSE 0 
             END), 0) as evening_passengers,
@@ -180,36 +184,47 @@ const getTodayPassengerCount = async (startOfDay, endOfDay) => {
     };
 }
 
-// Passenger count for a specific local date with timezone conversion
-const getPassengerCountForLocalDate = async (dateYmd, tz = 'Asia/Manila') => {
+// Passenger count for a specific local date (timestamps already stored in local time)
+const getPassengerCountForLocalDate = async (dateYmd) => {
     const sql = `
         SELECT 
             COALESCE(SUM(total_passenger_accumulated), 0) as total_passengers,
             COALESCE(SUM(CASE 
-                WHEN EXTRACT(HOUR FROM ((end_time AT TIME ZONE 'UTC') AT TIME ZONE $2)) >= 4 
-                 AND EXTRACT(HOUR FROM ((end_time AT TIME ZONE 'UTC') AT TIME ZONE $2)) < 12 
+                WHEN EXTRACT(HOUR FROM end_time) >= 4 AND EXTRACT(HOUR FROM end_time) < 12
                 THEN total_passenger_accumulated ELSE 0 END), 0) as morning_passengers,
             COALESCE(SUM(CASE 
-                WHEN EXTRACT(HOUR FROM ((end_time AT TIME ZONE 'UTC') AT TIME ZONE $2)) >= 12 
-                 AND EXTRACT(HOUR FROM ((end_time AT TIME ZONE 'UTC') AT TIME ZONE $2)) < 16 
+                WHEN EXTRACT(HOUR FROM end_time) >= 12 AND EXTRACT(HOUR FROM end_time) < 16
                 THEN total_passenger_accumulated ELSE 0 END), 0) as midday_passengers,
             COALESCE(SUM(CASE 
-                WHEN EXTRACT(HOUR FROM ((end_time AT TIME ZONE 'UTC') AT TIME ZONE $2)) >= 16 
-                 AND EXTRACT(HOUR FROM ((end_time AT TIME ZONE 'UTC') AT TIME ZONE $2)) <= 20 
-                 OR EXTRACT(HOUR FROM ((end_time AT TIME ZONE 'UTC') AT TIME ZONE $2)) >= 21
+                WHEN EXTRACT(HOUR FROM end_time) >= 16 AND EXTRACT(HOUR FROM end_time) < 21
                 THEN total_passenger_accumulated ELSE 0 END), 0) as evening_passengers,
+            ARRAY_AGG(DISTINCT EXTRACT(HOUR FROM end_time) ORDER BY EXTRACT(HOUR FROM end_time)) as sample_hours,
             COUNT(*) as total_trips
         FROM trips
-        WHERE DATE(((start_time AT TIME ZONE 'UTC') AT TIME ZONE $2)) = $1
+        WHERE end_time IS NOT NULL
+          AND DATE(end_time) = $1
     `;
-    const res = await client.query(sql, [dateYmd, tz]);
+    const res = await client.query(sql, [dateYmd]);
     const row = res.rows[0];
+
+    console.log('Passenger count (local date) debug:', {
+        date: dateYmd,
+        total_trips: row.total_trips,
+        sample_hours: row.sample_hours,
+        morning: row.morning_passengers,
+        midday: row.midday_passengers,
+        evening: row.evening_passengers
+    });
+
     return {
-        total_passengers: parseInt(row.total_passengers),
-        morning_passengers: parseInt(row.morning_passengers),
-        midday_passengers: parseInt(row.midday_passengers),
-        evening_passengers: parseInt(row.evening_passengers),
-        debug_info: { total_trips: row.total_trips }
+        total_passengers: parseInt(row.total_passengers ?? 0),
+        morning_passengers: parseInt(row.morning_passengers ?? 0),
+        midday_passengers: parseInt(row.midday_passengers ?? 0),
+        evening_passengers: parseInt(row.evening_passengers ?? 0),
+        debug_info: {
+            total_trips: parseInt(row.total_trips ?? 0),
+            sample_hours: row.sample_hours ?? []
+        }
     };
 }
 
