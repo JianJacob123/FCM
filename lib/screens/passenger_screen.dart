@@ -2127,7 +2127,7 @@ class _SaveRoutesScreenState extends State<SaveRoutesScreen> {
                   final loc = locations[index];
                   return Dismissible(
                     key: Key(
-                      loc["location_id"].toString(),
+                      loc["favorite_location_id"].toString(),
                     ), // unique key for each location
                     direction: DismissDirection.endToStart, // swipe left only
                     background: Container(
