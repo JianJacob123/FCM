@@ -47,10 +47,11 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   String? _tooltipText;
   DateTime _selectedDate = DateTime.now();
   
-  // Cache to prevent repeated requests (reduced for more dynamic updates)
+  // Cache to prevent repeated requests
+  // Client cache is shorter than server cache (5 min) to allow for reasonable updates
   DateTime? _lastLoadTime;
   DateTime? _cachedDate; // Track which date the cache is for
-  static const Duration _cacheTimeout = Duration(minutes: 1); // Reduced from 5 minutes to 1 minute
+  static const Duration _cacheTimeout = Duration(minutes: 2); // 2 minutes client cache, 5 minutes server cache
   DateTime? _lastLoadAttempt; // For simple rate limiting
   bool _inFlight = false; // Prevent concurrent loads
   
@@ -1898,6 +1899,15 @@ class _OperationalMetricsSection extends StatelessWidget {
   final DateTime selectedDate;
   
   const _OperationalMetricsSection({super.key, this.tripDurationAnalytics, required this.selectedDate});
+  
+  String _formatDateForDisplay(DateTime date) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1918,7 +1928,21 @@ class _OperationalMetricsSection extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: _Card(
-                title: Text('Average Trip Duration'),
+                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Average Trip Duration'),
+                    const SizedBox(height: 4),
+                    Text(
+                      _formatDateForDisplay(selectedDate),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
                 child: SizedBox(
                   height: 180,
                   child: _TripDurationChart(tripDurationAnalytics: tripDurationAnalytics),

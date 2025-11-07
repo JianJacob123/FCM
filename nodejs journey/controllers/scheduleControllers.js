@@ -1,5 +1,6 @@
 const model = require('../models/scheduleModel');
 const activityLogsModel = require('../models/activityLogsModel');
+const { clearCache } = require('../middleware/cacheMiddleware');
 
 const send = (res, status, body) => res.status(status).json(body);
 const err = (res, status, message) => send(res, status, { success: false, message });
@@ -33,6 +34,8 @@ async function create(req, res) {
     
     const created = await model.create(b);
     await activityLogsModel.logActivity('create schedule', `Created schedule with ID ${created.id}`);
+    // Clear cache for schedules endpoint
+    clearCache('/api/schedules*');
     return send(res, 201, { success: true, id: created.id });
   } catch (e) {
     console.error('create schedule error', e);
@@ -45,6 +48,8 @@ async function update(req, res) {
     const id = req.params.id;
     await model.update(id, req.body || {});
     await activityLogsModel.logActivity('Update Schedule', `Updated schedule with ID ${id}`);
+    // Clear cache for schedules endpoint
+    clearCache('/api/schedules*');
     return send(res, 200, { success: true });
   } catch (e) {
     console.error('update schedule error', e);
@@ -56,6 +61,8 @@ async function remove(req, res) {
   try {
     await model.remove(req.params.id);
     await activityLogsModel.logActivity('Delete Schedule', `Deleted schedule with ID ${req.params.id}`);
+    // Clear cache for schedules endpoint
+    clearCache('/api/schedules*');
     return send(res, 200, { success: true });
   } catch (e) {
     console.error('delete schedule error', e);

@@ -189,10 +189,52 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
     }
 
     try {
+      final plateNumber = _plateNumberController.text.trim();
+      
+      // Validate plate number is not empty
+      if (plateNumber.isEmpty) {
+        _showErrorSnackBar('Plate number is required');
+        return;
+      }
+
+      // Check for duplicate plate number (case-insensitive, excluding current assignment if editing)
+      final duplicateAssignment = _assignments.firstWhere(
+        (assignment) => 
+          assignment.plateNumber != null &&
+          assignment.plateNumber!.toLowerCase() == plateNumber.toLowerCase() &&
+          (_editingAssignment == null || assignment.assignmentId != _editingAssignment!.assignmentId),
+        orElse: () => VehicleAssignment(
+          assignmentId: -1,
+          vehicleId: 0,
+          plateNumber: null,
+          driverId: null,
+          conductorId: null,
+          driverName: null,
+          conductorName: null,
+          assignedAt: DateTime.now(),
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+
+      if (duplicateAssignment.assignmentId != -1) {
+        // Close modal first, then show error
+        setState(() {
+          _showAddForm = false;
+          _editingAssignment = null;
+        });
+        // Use a small delay to ensure modal is closed before showing snackbar
+        Future.delayed(const Duration(milliseconds: 100), () {
+          _showErrorSnackBar(
+            'Plate number "$plateNumber" already exists. Please use a different plate number.',
+          );
+        });
+        return;
+      }
+
       if (_editingAssignment != null) {
         // Update existing assignment
         final vehicleId = int.parse(_vehicleNumberController.text);
-        final plateNumber = _plateNumberController.text;
         final response = await VehicleAssignmentApiService.updateAssignment(
           assignmentId: _editingAssignment!.assignmentId,
           vehicleId: vehicleId,
@@ -217,7 +259,6 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
       } else {
         // Create new assignment
         final vehicleId = int.parse(_vehicleNumberController.text);
-        final plateNumber = _plateNumberController.text;
         final response = await VehicleAssignmentApiService.createAssignment(
           vehicleId: vehicleId,
           plateNumber: plateNumber,
