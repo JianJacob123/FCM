@@ -26,7 +26,7 @@ class _LandingScreenState extends State<LandingScreen> {
   VoidCallback? _scrollToAbout;
   VoidCallback? _scrollToTop;
   bool _aboutInView = false;
-
+  
   // Helper method to check screen size
   bool _isMobileScreen(BuildContext context) =>
       MediaQuery.of(context).size.width < 600;
@@ -123,7 +123,7 @@ class _LandingScreenState extends State<LandingScreen> {
   @override
   Widget build(BuildContext context) {
     final isMobile = _isMobileScreen(context);
-
+    
     return Scaffold(
       key: _scaffoldKey,
       drawer: isMobile ? _buildDrawer(context) : null,
@@ -136,7 +136,7 @@ class _LandingScreenState extends State<LandingScreen> {
             top: 0,
             left: 0,
             right: 0,
-            child: ClipRRect(
+              child: ClipRRect(
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(12),
                 bottomRight: Radius.circular(12),
@@ -159,7 +159,7 @@ class _LandingScreenState extends State<LandingScreen> {
 
   Widget _buildNavBarContainer() {
     final isMobile = _isMobileScreen(context);
-
+    
     return LayoutBuilder(
       builder: (context, constraints) {
         return AnimatedContainer(
@@ -170,14 +170,14 @@ class _LandingScreenState extends State<LandingScreen> {
             horizontal: isMobile ? 12 : 20,
             vertical: isMobile ? 8 : 12,
           ),
-          decoration: BoxDecoration(
+              decoration: BoxDecoration(
             color: _getNavBarColor(),
             borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(12),
               bottomRight: Radius.circular(12),
             ),
-            boxShadow: [
-              BoxShadow(
+                boxShadow: [
+                  BoxShadow(
                 color: Colors.black.withOpacity(0.25),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
@@ -186,15 +186,15 @@ class _LandingScreenState extends State<LandingScreen> {
               BoxShadow(
                 color: Colors.black.withOpacity(0.15),
                 blurRadius: 6,
-                offset: const Offset(0, 2),
+                    offset: const Offset(0, 2),
                 spreadRadius: 0,
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: SafeArea(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
+              child: SafeArea(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
                 // Logo (click to go Home and scroll to top)
                 InkWell(
                   onTap: () {
@@ -207,19 +207,19 @@ class _LandingScreenState extends State<LandingScreen> {
                     });
                   },
                   child: Image.asset(
-                    'assets/logo2.png',
-                    height: isMobile ? 45 : 70,
-                    width: isMobile ? 45 : 70,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(
-                        Icons.directions_bus,
-                        color: Colors.white,
-                        size: isMobile ? 35 : 55,
-                      );
-                    },
+                  'assets/logo2.png',
+                  height: isMobile ? 45 : 70,
+                  width: isMobile ? 45 : 70,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                              Icons.directions_bus,
+                              color: Colors.white,
+                      size: isMobile ? 35 : 55,
+                            );
+                          },
                   ),
-                ),
+                        ),
                 // Navigation Links - show hamburger on mobile, full nav on desktop
                 if (isMobile)
                   IconButton(
@@ -278,10 +278,10 @@ class _LandingScreenState extends State<LandingScreen> {
                         ),
                       ],
                     ),
-                  ),
-              ],
-            ),
-          ),
+                    ),
+                  ],
+                ),
+              ),
         );
       },
     );
@@ -343,9 +343,9 @@ class _LandingScreenState extends State<LandingScreen> {
               setState(() {
                 _currentIndex = 0;
                 _homePageScrollOffset = 0.0;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _scrollToTop?.call();
-                });
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _scrollToTop?.call();
+              });
               });
             },
           ),
@@ -405,14 +405,14 @@ class _NavLink extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Hoverable(
       builder: (hover) => InkWell(
-        onTap: onTap,
+      onTap: onTap,
         child: AnimatedDefaultTextStyle(
           duration: const Duration(milliseconds: 150),
-          style: TextStyle(
+        style: TextStyle(
             color: isActive
                 ? const Color(0xFFA0A0E0)
                 : (hover ? Colors.white : const Color(0xFFE0E0E0)),
-            fontSize: 16,
+          fontSize: 16,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
             decoration: hover && !isActive
                 ? TextDecoration.underline
@@ -532,7 +532,7 @@ class _HomePageState extends State<HomePage> {
         }
       }
     });
-
+    
     // Register scroll to about method with parent
     if (widget.onAboutScrollReady != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -823,7 +823,7 @@ class _HomePageState extends State<HomePage> {
   // Responsive helper methods
   bool _isMobile(BuildContext context) =>
       MediaQuery.of(context).size.width < 600;
-  bool _isTablet(BuildContext context) =>
+  bool _isTablet(BuildContext context) => 
       MediaQuery.of(context).size.width >= 600 &&
       MediaQuery.of(context).size.width < 1024;
 
@@ -866,7 +866,7 @@ class _HomePageState extends State<HomePage> {
               'Track FCM Units',
               style: TextStyle(
                 fontWeight: FontWeight.w500,
-                fontSize: 16,
+          fontSize: 16,
                 color: Colors.white,
               ),
             ),
@@ -910,7 +910,7 @@ class _HomePageState extends State<HomePage> {
 
   void _showDownloadAppModal(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
-
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1135,7 +1135,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final double bgOpacity = _getBackgroundOpacity();
-
+    
     return Stack(
       children: [
         // White background (shown as image fades)
@@ -1144,26 +1144,26 @@ class _HomePageState extends State<HomePage> {
         Positioned.fill(
           child: Opacity(
             opacity: bgOpacity,
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color.fromRGBO(62, 71, 149, 0.9),
-              ),
-              child: Stack(
-                children: [
-                  // Background image with error handling
-                  Positioned.fill(
-                    child: Image.asset(
-                      'assets/bg.jpeg',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: const Color.fromRGBO(62, 71, 149, 1),
-                        );
-                      },
-                    ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color.fromRGBO(62, 71, 149, 0.9),
+            ),
+            child: Stack(
+              children: [
+                // Background image with error handling
+                Positioned.fill(
+                  child: Image.asset(
+                    'assets/bg.jpeg',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: const Color.fromRGBO(62, 71, 149, 1),
+                      );
+                    },
                   ),
-                  // Gradient overlay
-                  Container(
+                ),
+                // Gradient overlay
+                Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.bottomCenter,
@@ -1194,17 +1194,17 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                     ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
+        ),
         ),
         // Scrollable Content
         SafeArea(
           child: SingleChildScrollView(
             controller: _scrollController,
-            child: Column(
+                child: Column(
               children: [
                 // Hero Content
                 SizedBox(
@@ -1219,22 +1219,22 @@ class _HomePageState extends State<HomePage> {
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
+                  children: [
                           Text(
-                            'FCM Transport Services Corporation',
+                      'FCM Transport Services Corporation',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                      style: TextStyle(
                               fontSize: _getResponsiveFontSize(
                                 context,
                                 56,
                                 42,
                                 32,
                               ),
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              height: 1.2,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        height: 1.2,
                               shadows: [
                                 Shadow(
                                   color: Colors.black.withOpacity(0.5),
@@ -1247,21 +1247,21 @@ class _HomePageState extends State<HomePage> {
                                   offset: const Offset(0, 2),
                                 ),
                               ],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                           Text(
-                            "Your reliable transport service from Bauan to Lipa",
+                      "Your reliable transport service from Bauan to Lipa",
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                      style: TextStyle(
                               fontSize: _getResponsiveFontSize(
                                 context,
                                 28,
                                 22,
                                 18,
                               ),
-                              color: Colors.white,
-                              fontWeight: FontWeight.w300,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w300,
                               shadows: [
                                 Shadow(
                                   color: Colors.grey.withOpacity(0.5),
@@ -1269,9 +1269,9 @@ class _HomePageState extends State<HomePage> {
                                   offset: const Offset(0, 2),
                                 ),
                               ],
-                            ),
-                          ),
-                          const SizedBox(height: 40),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
                           _isMobile(context)
                               ? Column(
                                   children: [
@@ -1624,10 +1624,10 @@ class _HomePageState extends State<HomePage> {
                                   curve: Curves.easeOut,
                                   transform: Matrix4.identity()
                                     ..translate(0.0, hover ? -4.0 : 0.0),
-                                  padding: const EdgeInsets.all(24),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: hover
                                           ? const Color(
@@ -1636,54 +1636,54 @@ class _HomePageState extends State<HomePage> {
                                           : Colors.transparent,
                                       width: 1.5,
                                     ),
-                                    boxShadow: [
-                                      BoxShadow(
+                                boxShadow: [
+                                  BoxShadow(
                                         color: Colors.black.withOpacity(
                                           hover ? 0.12 : 0.08,
                                         ),
                                         blurRadius: hover ? 14 : 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
+                                    offset: const Offset(0, 2),
                                   ),
-                                  child: Column(
+                                ],
+                              ),
+                              child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Our Vision',
-                                        style: TextStyle(
+                                children: [
+                                  Text(
+                                    'Our Vision',
+                                    style: TextStyle(
                                           fontSize: _getResponsiveFontSize(
                                             context,
                                             28,
                                             24,
                                             22,
                                           ),
-                                          fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.bold,
                                           color: const Color.fromRGBO(
                                             62,
                                             71,
                                             149,
                                             1,
                                           ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'To be the most trusted and modern transport service in Batangas—connecting communities with reliable, comfortable, and inclusive mobility.',
-                                        style: TextStyle(
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'To be the most trusted and modern transport service in Batangas—connecting communities with reliable, comfortable, and inclusive mobility.',
+                                    style: TextStyle(
                                           fontSize: _getResponsiveFontSize(
                                             context,
                                             16,
                                             15,
                                             14,
                                           ),
-                                          color: Colors.grey[700],
-                                          height: 1.6,
-                                        ),
-                                      ),
-                                    ],
+                                      color: Colors.grey[700],
+                                      height: 1.6,
+                                    ),
                                   ),
+                                ],
+                              ),
                                 );
                               },
                             ),
@@ -1696,10 +1696,10 @@ class _HomePageState extends State<HomePage> {
                                   curve: Curves.easeOut,
                                   transform: Matrix4.identity()
                                     ..translate(0.0, hover ? -4.0 : 0.0),
-                                  padding: const EdgeInsets.all(24),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: hover
                                           ? const Color(
@@ -1708,61 +1708,61 @@ class _HomePageState extends State<HomePage> {
                                           : Colors.transparent,
                                       width: 1.5,
                                     ),
-                                    boxShadow: [
-                                      BoxShadow(
+                                boxShadow: [
+                                  BoxShadow(
                                         color: Colors.black.withOpacity(
                                           hover ? 0.12 : 0.08,
                                         ),
                                         blurRadius: hover ? 14 : 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
+                                    offset: const Offset(0, 2),
                                   ),
-                                  child: Column(
+                                ],
+                              ),
+                              child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Our Mission',
-                                        style: TextStyle(
+                                children: [
+                                  Text(
+                                    'Our Mission',
+                                    style: TextStyle(
                                           fontSize: _getResponsiveFontSize(
                                             context,
                                             28,
                                             24,
                                             22,
                                           ),
-                                          fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.bold,
                                           color: const Color.fromRGBO(
                                             62,
                                             71,
                                             149,
                                             1,
                                           ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'Provide safe, efficient, and customer-focused public transport through well-maintained vehicles, trained personnel, and continuous innovation—delivering value to riders and supporting sustainable growth across Bauan, Lipa, and neighboring areas.',
-                                        style: TextStyle(
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Provide safe, efficient, and customer-focused public transport through well-maintained vehicles, trained personnel, and continuous innovation—delivering value to riders and supporting sustainable growth across Bauan, Lipa, and neighboring areas.',
+                                    style: TextStyle(
                                           fontSize: _getResponsiveFontSize(
                                             context,
                                             16,
                                             15,
                                             14,
                                           ),
-                                          color: Colors.grey[700],
-                                          height: 1.6,
-                                        ),
-                                      ),
-                                    ],
+                                      color: Colors.grey[700],
+                                      height: 1.6,
+                                    ),
                                   ),
+                                ],
+                              ),
                                 );
                               },
                             ),
                           ],
                         )
                       : IntrinsicHeight(
-                          child: Row(
+                      child: Row(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               // Vision Card
@@ -1776,10 +1776,10 @@ class _HomePageState extends State<HomePage> {
                                       curve: Curves.easeOut,
                                       transform: Matrix4.identity()
                                         ..translate(0.0, hover ? -4.0 : 0.0),
-                                      padding: const EdgeInsets.all(32),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
+                                  padding: const EdgeInsets.all(32),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
                                           color: hover
                                               ? const Color(
@@ -1788,55 +1788,55 @@ class _HomePageState extends State<HomePage> {
                                               : Colors.transparent,
                                           width: 1.5,
                                         ),
-                                        boxShadow: [
-                                          BoxShadow(
+                                    boxShadow: [
+                                      BoxShadow(
                                             color: Colors.black.withOpacity(
                                               hover ? 0.12 : 0.08,
                                             ),
                                             blurRadius: hover ? 14 : 8,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
+                                        offset: const Offset(0, 2),
                                       ),
-                                      child: Column(
+                                    ],
+                                  ),
+                                  child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            'Our Vision',
-                                            style: TextStyle(
+                        mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Our Vision',
+                                        style: TextStyle(
                                               fontSize: _getResponsiveFontSize(
                                                 context,
                                                 28,
                                                 24,
                                                 22,
                                               ),
-                                              fontWeight: FontWeight.bold,
+                                          fontWeight: FontWeight.bold,
                                               color: const Color.fromRGBO(
                                                 62,
                                                 71,
                                                 149,
                                                 1,
                                               ),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            'To be the most trusted and modern transport service in Batangas—connecting communities with reliable, comfortable, and inclusive mobility.',
-                                            style: TextStyle(
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'To be the most trusted and modern transport service in Batangas—connecting communities with reliable, comfortable, and inclusive mobility.',
+                                        style: TextStyle(
                                               fontSize: _getResponsiveFontSize(
                                                 context,
                                                 16,
                                                 15,
                                                 14,
                                               ),
-                                              color: Colors.grey[700],
-                                              height: 1.6,
-                                            ),
-                                          ),
-                                        ],
+                                          color: Colors.grey[700],
+                                          height: 1.6,
+                                        ),
                                       ),
+                                    ],
+                                  ),
                                     );
                                   },
                                 ),
@@ -1853,10 +1853,10 @@ class _HomePageState extends State<HomePage> {
                                       curve: Curves.easeOut,
                                       transform: Matrix4.identity()
                                         ..translate(0.0, hover ? -4.0 : 0.0),
-                                      padding: const EdgeInsets.all(32),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
+                                  padding: const EdgeInsets.all(32),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
                                         border: Border.all(
                                           color: hover
                                               ? const Color(
@@ -1865,55 +1865,55 @@ class _HomePageState extends State<HomePage> {
                                               : Colors.transparent,
                                           width: 1.5,
                                         ),
-                                        boxShadow: [
-                                          BoxShadow(
+                                    boxShadow: [
+                                      BoxShadow(
                                             color: Colors.black.withOpacity(
                                               hover ? 0.12 : 0.08,
                                             ),
                                             blurRadius: hover ? 14 : 8,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
+                                        offset: const Offset(0, 2),
                                       ),
-                                      child: Column(
+                                    ],
+                                  ),
+                                  child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            'Our Mission',
-                                            style: TextStyle(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Our Mission',
+                                        style: TextStyle(
                                               fontSize: _getResponsiveFontSize(
                                                 context,
                                                 28,
                                                 24,
                                                 22,
                                               ),
-                                              fontWeight: FontWeight.bold,
+                                          fontWeight: FontWeight.bold,
                                               color: const Color.fromRGBO(
                                                 62,
                                                 71,
                                                 149,
                                                 1,
                                               ),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            'Provide safe, efficient, and customer-focused public transport through well-maintained vehicles, trained personnel, and continuous innovation—delivering value to riders and supporting sustainable growth across Bauan, Lipa, and neighboring areas.',
-                                            style: TextStyle(
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Provide safe, efficient, and customer-focused public transport through well-maintained vehicles, trained personnel, and continuous innovation—delivering value to riders and supporting sustainable growth across Bauan, Lipa, and neighboring areas.',
+                                        style: TextStyle(
                                               fontSize: _getResponsiveFontSize(
                                                 context,
                                                 16,
                                                 15,
                                                 14,
                                               ),
-                                              color: Colors.grey[700],
-                                              height: 1.6,
-                                            ),
-                                          ),
-                                        ],
+                                          color: Colors.grey[700],
+                                          height: 1.6,
+                                        ),
                                       ),
+                                    ],
+                                  ),
                                     );
                                   },
                                 ),
@@ -2184,9 +2184,9 @@ class _HomePageState extends State<HomePage> {
                                 ElevatedButton.icon(
                                   onPressed: () =>
                                       _showDownloadAppModal(context),
-                                  style: ElevatedButton.styleFrom(
+                      style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF3E4795),
-                                    foregroundColor: Colors.white,
+                        foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 20,
                                       vertical: 14,
@@ -2250,8 +2250,8 @@ class _HomePageState extends State<HomePage> {
                                         fit: BoxFit.contain,
                                         errorBuilder:
                                             (context, error, stackTrace) {
-                                              return const SizedBox.shrink();
-                                            },
+                                          return const SizedBox.shrink();
+                                        },
                                       ),
                                     ),
                                   ),
@@ -2351,7 +2351,7 @@ class _HomePageState extends State<HomePage> {
                                               12,
                                             ),
                                           ),
-                                          elevation: 4,
+                        elevation: 4,
                                         ),
                                         icon: const Icon(
                                           Icons.android,
@@ -2579,52 +2579,52 @@ class _HomePageState extends State<HomePage> {
                                 : Row(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
-                                    children: [
-                                      // Company Information
-                                      Expanded(
-                                        child: Column(
+                              children: [
+                                // Company Information
+                                Expanded(
+                                  child: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              'FCM Transport Corporation',
-                                              style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 12),
-                                            Text(
-                                              'Committed to safe, reliable, and modern public transport services across Southern Luzon.',
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.grey[400],
-                                                height: 1.6,
-                                              ),
-                                            ),
-                                          ],
+                        children: [
+                          const Text(
+                                        'FCM Transport Corporation',
+                            style: TextStyle(
+                                          fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                                          color: Colors.white,
                                         ),
                                       ),
-                                      const SizedBox(width: 40),
-                                      // Quick Links
-                                      Expanded(
-                                        child: Column(
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'Committed to safe, reliable, and modern public transport services across Southern Luzon.',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey[400],
+                                          height: 1.6,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 40),
+                                // Quick Links
+                                Expanded(
+                                  child: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              'Quick Links',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 12),
-                                            _FooterLink(
-                                              text: 'Home',
-                                              onTap: () {
+                                    children: [
+                                      const Text(
+                                        'Quick Links',
+                                        style: TextStyle(
+                              fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      _FooterLink(
+                                        text: 'Home',
+                                        onTap: () {
                                                 if (_scrollController
                                                     .hasClients) {
                                                   _scrollController.animateTo(
@@ -2635,20 +2635,20 @@ class _HomePageState extends State<HomePage> {
                                                     curve: Curves.easeInOut,
                                                   );
                                                 }
-                                              },
-                                            ),
-                                            _FooterLink(
-                                              text: 'Map',
-                                              onTap: () {
+                                        },
+                                      ),
+                                      _FooterLink(
+                                        text: 'Map',
+                                        onTap: () {
                                                 if (widget.onNavigateToMap !=
                                                     null) {
                                                   widget.onNavigateToMap!();
                                                 }
-                                              },
-                                            ),
-                                            _FooterLink(
-                                              text: 'About',
-                                              onTap: () {
+                                        },
+                                      ),
+                                      _FooterLink(
+                                        text: 'About',
+                                        onTap: () {
                                                 final ctx = _aboutSectionKey
                                                     .currentContext;
                                                 if (ctx != null) {
@@ -2660,56 +2660,56 @@ class _HomePageState extends State<HomePage> {
                                                     curve: Curves.easeInOut,
                                                   );
                                                 }
-                                              },
-                                            ),
-                                            _FooterLink(
-                                              text: 'Download App',
-                                              onTap: () {
-                                                _showDownloadAppModal(context);
-                                              },
-                                            ),
-                                          ],
-                                        ),
+                                        },
                                       ),
-                                      const SizedBox(width: 40),
-                                      // Contact Details
-                                      Expanded(
-                                        child: Column(
+                                      _FooterLink(
+                                        text: 'Download App',
+                                        onTap: () {
+                                                _showDownloadAppModal(context);
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 40),
+                                // Contact Details
+                                Expanded(
+                                  child: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              'Contact Us',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 12),
-                                            _ContactDetail(
+                                    children: [
+                                      const Text(
+                                        'Contact Us',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      _ContactDetail(
                                               text:
                                                   'Makalintal Ave, Bauan, Batangas',
                                               icon: Icons.location_on,
-                                            ),
-                                            const SizedBox(height: 8),
-                                            _ContactDetail(
-                                              text: 'info@fcmtransport.com',
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _ContactDetail(
+                                        text: 'info@fcmtransport.com',
                                               icon: Icons.email,
-                                            ),
-                                            const SizedBox(height: 30),
-                                            // Follow Us Section
-                                            const Text(
-                                              'Follow Us',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 12),
-                                            Row(
-                                              children: [
+                                      ),
+                                      const SizedBox(height: 30),
+                                      // Follow Us Section
+                                      const Text(
+                                        'Follow Us',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
                                                 _SocialMediaButton(
                                                   icon: Icons.facebook,
                                                   onTap: () {
@@ -2718,32 +2718,32 @@ class _HomePageState extends State<HomePage> {
                                                     );
                                                   },
                                                 ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
+                                        ],
                                       ),
-                                      // QR container (desktop)
-                                      Expanded(
-                                        flex: 1,
-                                        child: Align(
-                                          alignment: Alignment.topLeft,
-                                          child: Container(
-                                            width: 260,
-                                            height: 260,
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
+                        ],
+                      ),
+                    ),
+                                // QR container (desktop)
+                                Expanded(
+                                  flex: 1,
+                                  child: Align(
+                                    alignment: Alignment.topLeft,
+                                    child: Container(
+                                      width: 260,
+                                      height: 260,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
                                               borderRadius:
                                                   BorderRadius.circular(12),
-                                              boxShadow: [
-                                                BoxShadow(
+                                        boxShadow: [
+                                          BoxShadow(
                                                   color: Colors.black
                                                       .withOpacity(0.1),
-                                                  blurRadius: 10,
-                                                  offset: const Offset(0, 4),
-                                                ),
-                                              ],
-                                            ),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                                             child: Column(
                                               mainAxisAlignment:
                                                   MainAxisAlignment.center,
@@ -2765,11 +2765,11 @@ class _HomePageState extends State<HomePage> {
                                                 ),
                                               ],
                                             ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+            ),
+          ),
+        ),
+      ],
+                ),
                           ],
                         ),
                       ),
@@ -2884,54 +2884,54 @@ class _StatCard extends StatelessWidget {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
-          margin: const EdgeInsets.symmetric(horizontal: 8.0),
+      margin: const EdgeInsets.symmetric(horizontal: 8.0),
           padding: EdgeInsets.symmetric(
             horizontal: paddingH,
             vertical: paddingV,
           ),
           transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: hover
                   ? const Color(0xFF3E4795).withOpacity(0.15)
                   : Colors.transparent,
             ),
-            boxShadow: [
-              BoxShadow(
+        boxShadow: [
+          BoxShadow(
                 color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
                 blurRadius: hover ? 14 : 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            offset: const Offset(0, 2),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                number,
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            number,
                 style: TextStyle(
                   fontSize: numSize,
-                  fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.bold,
                   color: const Color(0xFF333333),
-                  height: 1.2,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: labelSize,
                   fontWeight: FontWeight.w500,
                   color: const Color(0xFF666666),
-                ),
-              ),
-            ],
+            ),
           ),
+        ],
+      ),
         );
       },
     );
@@ -3078,12 +3078,12 @@ class _FeatureItem extends StatelessWidget {
         transform: hover
             ? (Matrix4.identity()..translate(0.0, -4.0, 0.0))
             : Matrix4.identity(),
-        padding: const EdgeInsets.all(24.0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
+      padding: const EdgeInsets.all(24.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
               color: Colors.black.withOpacity(hover ? 0.18 : 0.08),
               blurRadius: hover ? 16 : 8,
               offset: const Offset(0, 4),
@@ -3092,32 +3092,32 @@ class _FeatureItem extends StatelessWidget {
           border: hover
               ? Border.all(color: const Color(0xFF3E4795).withOpacity(0.15))
               : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
             Icon(icon, size: 48, color: const Color.fromRGBO(62, 71, 149, 1)),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color.fromRGBO(62, 71, 149, 1),
-              ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color.fromRGBO(62, 71, 149, 1),
             ),
-            const SizedBox(height: 8),
-            Text(
-              description,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
-                height: 1.5,
-              ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[700],
+              height: 1.5,
             ),
-          ],
+          ),
+        ],
         ),
       ),
     );
@@ -3144,60 +3144,60 @@ class _ServiceCard extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
         transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
-        padding: const EdgeInsets.all(24.0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+      padding: const EdgeInsets.all(24.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: hover
                 ? const Color(0xFF3E4795).withOpacity(0.15)
                 : Colors.transparent,
             width: 1.0,
           ),
-          boxShadow: [
-            BoxShadow(
+        boxShadow: [
+          BoxShadow(
               color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
               blurRadius: hover ? 14 : 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
                   child: Icon(icon, size: 20, color: iconColor),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color.fromRGBO(62, 71, 149, 1),
-                    ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color.fromRGBO(62, 71, 149, 1),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              description,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
-                height: 1.5,
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            description,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[700],
+              height: 1.5,
             ),
-          ],
+          ),
+        ],
         ),
       ),
     );
@@ -3989,10 +3989,10 @@ class _MapPageState extends State<MapPage> {
                           begin: 0.2,
                           end:
                               ((double.tryParse(
-                                            _selectedVehicle!["route_progress_percent"]
-                                                .toString(),
-                                          ) ??
-                                          0) /
+                                    _selectedVehicle!["route_progress_percent"]
+                                        .toString(),
+                                  ) ??
+                                  0) /
                                       100)
                                   .clamp(0.0, 1.0), //clamp after dividing
                         ),

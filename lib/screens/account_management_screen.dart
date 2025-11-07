@@ -308,7 +308,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   controller: fullNameCtrl,
                   enabled: !isAdmin,
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')), // Only letters and spaces
+                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s,\.]')), // Letters, spaces, commas, and periods
                   ],
                   decoration: InputDecoration(
                     labelText: 'Full Name',
@@ -326,8 +326,6 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                       borderSide: BorderSide(color: Colors.grey),
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                    helperText: 'Only letters and spaces are allowed',
-                    helperStyle: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -437,7 +435,9 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
             ElevatedButton(
               onPressed: () {
                 final fullName = fullNameCtrl.text.trim();
-                // Validate full name: must not be empty and contain only letters and spaces
+                final username = usernameCtrl.text.trim();
+                
+                // Validate full name: must not be empty and contain only letters, spaces, commas, and periods
                 if (fullName.isEmpty) {
                   ScaffoldMessenger.of(ctx).showSnackBar(
                     const SnackBar(
@@ -447,15 +447,55 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                   );
                   return;
                 }
-                if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(fullName)) {
+                if (!RegExp(r'^[a-zA-Z\s,\.]+$').hasMatch(fullName)) {
                   ScaffoldMessenger.of(ctx).showSnackBar(
                     const SnackBar(
-                      content: Text('Full Name can only contain letters and spaces'),
+                      content: Text('Full Name can only contain letters, spaces, commas, and periods'),
                       backgroundColor: Colors.red,
                     ),
                   );
                   return;
                 }
+                
+                // Validate username: must not be empty
+                if (username.isEmpty) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(
+                      content: Text('Username is required'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                
+                // Check for duplicate username (excluding current user if editing)
+                final duplicateUser = _users.firstWhere(
+                  (user) => user.username.toLowerCase() == username.toLowerCase() && 
+                           (existing == null || user.userId != existing.userId),
+                  orElse: () => UserAccount(
+                    userId: -1,
+                    fullName: '',
+                    userRole: '',
+                    username: '',
+                    active: false,
+                  ),
+                );
+                
+                if (duplicateUser.userId != -1) {
+                  // Close modal first, then show error
+                  Navigator.pop(ctx, false);
+                  // Use a small delay to ensure modal is closed before showing snackbar
+                  Future.delayed(const Duration(milliseconds: 100), () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Username already exists. Please choose a different username.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  });
+                  return;
+                }
+                
                 Navigator.pop(ctx, true);
               },
               style: ElevatedButton.styleFrom(

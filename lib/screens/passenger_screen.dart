@@ -450,13 +450,13 @@ class _ExpandableNotificationCardState
         ? widget.content
         : '${widget.content.substring(0, _maxPreviewLength)}...';
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFFF3F3F3),
-          borderRadius: BorderRadius.circular(18),
-        ),
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16.0),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF3F3F3),
+                                borderRadius: BorderRadius.circular(18),
+                              ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -468,11 +468,11 @@ class _ExpandableNotificationCardState
                   Expanded(
                     child: Text(
                       widget.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -502,9 +502,9 @@ class _ExpandableNotificationCardState
                       color: Color(0xFF3E4795),
                       fontWeight: FontWeight.w600,
                     ),
-                  ),
                 ),
               ),
+            ),
           ],
         ),
       ),
@@ -1966,14 +1966,14 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
         child: FutureBuilder<List<dynamic>>(
           // Use the class variable for the future
           future: _futureTripHistory,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError) {
-              return Center(child: Text("Error: ${snapshot.error}"));
-            } else if (snapshot.hasData) {
-              final trips = snapshot.data!;
-              if (trips.isEmpty) {
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}"));
+          } else if (snapshot.hasData) {
+            final trips = snapshot.data!;
+            if (trips.isEmpty) {
                 // Ensure the list is scrollable for RefreshIndicator to work on empty data
                 return ListView(
                   children: const [
@@ -1981,75 +1981,75 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
                     Center(child: Text("No trip history available.")),
                   ],
                 );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: trips.length,
-                itemBuilder: (context, index) {
-                  final trip = trips[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3F3F3),
-                        borderRadius: BorderRadius.circular(18),
+            }
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: trips.length,
+              itemBuilder: (context, index) {
+                final trip = trips[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F3F3),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: ListTile(
+                      leading: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFBFC6F7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.directions_bus,
+                          color: Color(0xFF3E4795),
+                          size: 28,
+                        ),
                       ),
-                      child: ListTile(
-                        leading: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFBFC6F7),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.directions_bus,
-                            color: Color(0xFF3E4795),
-                            size: 28,
-                          ),
-                        ),
-                        title: Text(
+                      title: Text(
                           'Trip Request ${trip["request_id"] ?? "--"}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 4),
-                            Text(
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          Text(
                               'From: ${trip["pickup_location_name"] ?? "Unknown"}',
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                            Text(
-                              'To: ${trip["dropoff_location_name"] ?? "Unknown"}',
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ],
-                        ),
-                        trailing: Text(
-                          timeAgo(trip["created_at"] ?? "Unknown Date"),
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey,
+                            style: const TextStyle(fontSize: 14),
                           ),
+                          Text(
+                              'To: ${trip["dropoff_location_name"] ?? "Unknown"}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      trailing: Text(
+                          timeAgo(trip["created_at"] ?? "Unknown Date"),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
                     ),
-                  );
-                },
-              );
-            } else {
+                  ),
+                );
+              },
+            );
+          } else {
               // Handle the case where snapshot.hasData is false but no error occurred (e.g., initial null data)
-              return const Center(child: Text("No trip history available."));
-            }
-          },
+            return const Center(child: Text("No trip history available."));
+          }
+        },
         ),
       ),
     );
