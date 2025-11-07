@@ -380,6 +380,34 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     final otpController = TextEditingController();
     final newPasswordController = TextEditingController();
     bool isVerifying = false;
+    bool obscureNewPassword = true;
+    String? passwordError;
+
+    // Password strength validation
+    String? validatePassword(String password) {
+      if (password.isEmpty) {
+        return null; // Don't show error for empty field
+      }
+      if (password.length < 8) {
+        return 'Password must be at least 8 characters';
+      }
+      if (password.length > 128) {
+        return 'Password must be at most 128 characters';
+      }
+      if (!password.contains(RegExp(r'[A-Z]'))) {
+        return 'Password must contain at least one uppercase letter';
+      }
+      if (!password.contains(RegExp(r'[a-z]'))) {
+        return 'Password must contain at least one lowercase letter';
+      }
+      if (!password.contains(RegExp(r'[0-9]'))) {
+        return 'Password must contain at least one number';
+      }
+      if (!password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
+        return 'Password must contain at least one symbol (!@#\$%^&*...)';
+      }
+      return null; // Valid password
+    }
 
     showDialog(
       context: context,
@@ -395,38 +423,61 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 'Reset Password',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Enter the OTP sent to your email and set a new password.',
-                    style: TextStyle(fontSize: 14, color: Colors.black54),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: otpController,
-                    keyboardType: TextInputType.number,
-                    maxLength: 6,
-                    decoration: InputDecoration(
-                      hintText: '6-digit OTP',
-                      counterText: '',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Enter the OTP sent to your email and set a new password.',
+                      style: TextStyle(fontSize: 14, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: otpController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      decoration: InputDecoration(
+                        hintText: '6-digit OTP',
+                        counterText: '',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: newPasswordController,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      hintText: 'New Password',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: newPasswordController,
+                      obscureText: obscureNewPassword,
+                      maxLength: 128,
+                      onChanged: (value) {
+                        setModalState(() {
+                          passwordError = validatePassword(value);
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'New Password',
+                        counterText: '',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscureNewPassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () {
+                            setModalState(() {
+                              obscureNewPassword = !obscureNewPassword;
+                            });
+                          },
+                        ),
+                        errorText: passwordError,
+                        errorMaxLines: 3,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -440,7 +491,30 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                           final otp = otpController.text.trim();
                           final newPassword = newPasswordController.text.trim();
 
-                          if (otp.isEmpty || newPassword.isEmpty) return;
+                          if (otp.isEmpty || newPassword.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please fill in all fields'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          // Validate password strength
+                          final validationError = validatePassword(newPassword);
+                          if (validationError != null) {
+                            setModalState(() {
+                              passwordError = validationError;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(validationError),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
 
                           setModalState(() => isVerifying = true);
 
