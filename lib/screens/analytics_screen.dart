@@ -49,6 +49,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   
   // Cache to prevent repeated requests (reduced for more dynamic updates)
   DateTime? _lastLoadTime;
+  DateTime? _cachedDate; // Track which date the cache is for
   static const Duration _cacheTimeout = Duration(minutes: 1); // Reduced from 5 minutes to 1 minute
   DateTime? _lastLoadAttempt; // For simple rate limiting
   bool _inFlight = false; // Prevent concurrent loads
@@ -104,6 +105,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
         _selectedDate = DateTime(picked.year, picked.month, picked.day);
       });
       _lastLoadTime = null; // force refresh
+      _cachedDate = null; // clear cached date to ensure fresh data
       _load();
     }
   }
@@ -768,11 +770,14 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
     }
     _lastLoadAttempt = now;
     if (_inFlight) return;
-    // Check cache first
+    // Check cache first - also verify the cached date matches the selected date
+    final selectedDateStr = _formatDateYMD(_selectedDate);
+    final cachedDateStr = _cachedDate != null ? _formatDateYMD(_cachedDate!) : null;
     if (_lastLoadTime != null && 
         DateTime.now().difference(_lastLoadTime!) < _cacheTimeout &&
-        _hourlyPredictions.isNotEmpty) {
-      print('Using cached data (${DateTime.now().difference(_lastLoadTime!).inSeconds}s old)');
+        _hourlyPredictions.isNotEmpty &&
+        cachedDateStr == selectedDateStr) {
+      print('Using cached data for date $selectedDateStr (${DateTime.now().difference(_lastLoadTime!).inSeconds}s old)');
       return;
     }
     
@@ -830,6 +835,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
           _dailyPassengerCount = dailyPassengerData.total;
           _dailyPassengerBreakdown = dailyPassengerData.breakdown;
           _lastLoadTime = DateTime.now(); // Update cache time
+          _cachedDate = _selectedDate; // Store the date this cache is for
           print('Yearly grid set: ${_yearlyGrid.length} months, first month has ${_yearlyGrid.isNotEmpty ? _yearlyGrid[0].length : 0} days');
         });
       }
@@ -949,27 +955,45 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       print('Found ${trips.length} trips for selected date $date');
       
       // Group trips by vehicle_id and calculate average duration (use local times)
+      // Only include completed trips with valid start_time and end_time
       final Map<int, List<double>> vehicleDurations = {};
+      int skippedTrips = 0;
       
       for (final trip in trips) {
         final vehicleId = trip['vehicle_id'] as int?;
         final startTime = trip['start_time'] as String?;
         final endTime = trip['end_time'] as String?;
+        final status = trip['status'] as String?;
         
-        if (vehicleId != null && startTime != null && endTime != null) {
+        // Only process completed trips with both start and end times
+        if (vehicleId != null && startTime != null && endTime != null && status == 'completed') {
           try {
             final startLocal = DateTime.parse(startTime).toLocal();
             final endLocal = DateTime.parse(endTime).toLocal();
             final durationMinutes = endLocal.difference(startLocal).inMinutes;
             
+            // Include trips with positive duration (at least 1 minute)
             if (durationMinutes > 0) {
               vehicleDurations.putIfAbsent(vehicleId, () => []).add(durationMinutes.toDouble());
+            } else {
+              skippedTrips++;
+              print('Skipped trip ${trip['trip_id']}: duration is $durationMinutes minutes (must be > 0)');
             }
           } catch (e) {
-            print('Error parsing trip times: $e');
+            skippedTrips++;
+            print('Error parsing trip times for trip ${trip['trip_id']}: $e');
+          }
+        } else {
+          skippedTrips++;
+          if (status != 'completed') {
+            print('Skipped trip ${trip['trip_id']}: status is "$status" (must be "completed")');
+          } else if (endTime == null) {
+            print('Skipped trip ${trip['trip_id']}: missing end_time');
           }
         }
       }
+      
+      print('Processed ${trips.length} trips: ${vehicleDurations.length} vehicles with valid durations, $skippedTrips skipped');
       
       // Calculate average duration for each vehicle
       final List<Map<String, dynamic>> vehicleAverages = [];
