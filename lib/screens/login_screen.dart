@@ -69,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final data = responseData['data'];
 
         //Only drivers or conductors allowed
-        if (data['user_role'].toString().toLowerCase() != 'conductor' ||
+        if (data['user_role'].toString().toLowerCase() != 'conductor' &&
             data['user_role'].toString().toLowerCase() != 'driver') {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
