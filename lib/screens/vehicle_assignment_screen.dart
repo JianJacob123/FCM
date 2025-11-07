@@ -278,6 +278,12 @@ class _VehicleAssignmentScreenState extends State<VehicleAssignmentScreen> {
 
     if (confirmed == true) {
       try {
+        // Validate assignment ID before deletion
+        if (assignment.assignmentId <= 0) {
+          _showErrorSnackBar('Invalid assignment ID');
+          return;
+        }
+        
         final response = await VehicleAssignmentApiService.deleteAssignment(assignment.assignmentId);
         if (response.success) {
           _showSuccessSnackBar('Assignment deleted successfully');

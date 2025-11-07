@@ -299,9 +299,24 @@ class VehicleAssignmentApiService {
           message: 'Assignment not found',
         );
       } else {
+        // Try to parse error message from response
+        String errorMessage = 'Failed to delete assignment: ${response.statusCode}';
+        try {
+          final errorData = json.decode(response.body);
+          if (errorData['message'] != null) {
+            errorMessage = errorData['message'];
+          } else if (errorData['error'] != null) {
+            errorMessage = errorData['error'];
+          }
+        } catch (e) {
+          // If response body is not JSON, use the raw body if available
+          if (response.body.isNotEmpty) {
+            errorMessage = 'Failed to delete assignment: ${response.statusCode}\n${response.body}';
+          }
+        }
         return VehicleAssignmentResponse(
           success: false,
-          message: 'Failed to delete assignment: ${response.statusCode}',
+          message: errorMessage,
         );
       }
     } catch (e) {

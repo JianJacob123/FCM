@@ -218,9 +218,18 @@ class VehicleAssignment {
     try {
       console.log('Model: Attempting to delete assignment with ID:', assignmentId);
       
-      // Try to delete directly without checking existence first
-      const query = 'DELETE FROM vehicle_assignment WHERE assignment_id = $1';
-      const result = await db.query(query, [assignmentId]);
+      // First, clear the reference from users table to avoid foreign key constraint violation
+      const clearUsersQuery = `
+        UPDATE users 
+        SET current_vehicle_assignment_id = NULL, updated_at = NOW()
+        WHERE current_vehicle_assignment_id = $1
+      `;
+      const clearResult = await db.query(clearUsersQuery, [assignmentId]);
+      console.log('Model: Cleared references from users table, affected rows:', clearResult.rowCount);
+      
+      // Now delete the assignment
+      const deleteQuery = 'DELETE FROM vehicle_assignment WHERE assignment_id = $1';
+      const result = await db.query(deleteQuery, [assignmentId]);
       
       console.log('Model: Delete query executed, affected rows:', result.rowCount);
       
