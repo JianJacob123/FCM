@@ -4358,6 +4358,12 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
   Future<void> _saveSchedule() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Validate vehicle selection
+    if (_selectedVehicleId == null) {
+      _showErrorSnackBar('Please select a unit number');
+      return;
+    }
+
     // Format time from time picker - only if status is Active
     String? timeString;
     if (_statusController.text == 'Active') {
@@ -4370,8 +4376,41 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
       timeString = null; // Send null to backend for non-active statuses
     }
 
+    final scheduleDate = _formatDate(_selectedDate);
+
+    // Check for duplicate schedule (same time and unit number on the same date)
+    // Only check if status is Active (since non-active schedules may have null time)
+    if (_statusController.text == 'Active' && timeString != null) {
+      final duplicateSchedule = _schedules.firstWhere(
+        (schedule) {
+          final scheduleTime = schedule['time_start']?.toString();
+          final scheduleVehicleId = schedule['vehicle_id'];
+          final scheduleDateStr = schedule['schedule_date']?.toString();
+          
+          // Check if time, vehicle_id, and date match (excluding current schedule if editing)
+          return scheduleTime == timeString &&
+                 scheduleVehicleId == _selectedVehicleId &&
+                 scheduleDateStr == scheduleDate &&
+                 (_editingSchedule == null || schedule['id'] != _editingSchedule!['id']);
+        },
+        orElse: () => <String, dynamic>{},
+      );
+
+      if (duplicateSchedule.isNotEmpty) {
+        // Close modal first, then show error
+        _closeForm();
+        // Use a small delay to ensure modal is closed before showing snackbar
+        Future.delayed(const Duration(milliseconds: 100), () {
+          _showErrorSnackBar(
+            'A schedule with the same time and unit number already exists for this date.',
+          );
+        });
+        return;
+      }
+    }
+
     final scheduleData = {
-      'schedule_date': _formatDate(_selectedDate),
+      'schedule_date': scheduleDate,
       'time_start': timeString,
       // Send null unless the user actually selected a vehicle to avoid FK errors
       'vehicle_id': _selectedVehicleId,
