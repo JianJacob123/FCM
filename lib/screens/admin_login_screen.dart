@@ -23,7 +23,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   bool _obscurePassword = true;
   String? _error;
 
-  Future<void> _login() async {
+  //OLD CODE WITHOUT OTP REMOVE IF FINAL
+  /*Future<void> _login() async {
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -92,10 +93,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         ),
       );
     }
-  }
+  }*/
 
   //THIS IS CODE WITH OTP, CHANGE
-  /*Future<void> _login() async {
+  Future<void> _login() async {
     final username = _usernameController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -283,7 +284,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         );
       },
     );
-  }*/
+  }
 
   void _showForgotPasswordDialog() {
     final emailController = TextEditingController();

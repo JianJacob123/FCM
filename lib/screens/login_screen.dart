@@ -68,11 +68,12 @@ class _LoginScreenState extends State<LoginScreen> {
         final responseData = jsonDecode(response.body);
         final data = responseData['data'];
 
-        if (data['user_role'].toString().toLowerCase() != 'conductor') {
-          // only conductors allowed
+        //Only drivers or conductors allowed
+        if (data['user_role'].toString().toLowerCase() != 'conductor' ||
+            data['user_role'].toString().toLowerCase() != 'driver') {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Access denied. Not a conductor.'),
+              content: Text('Access denied. Not a conductor or driver.'),
               backgroundColor: Colors.red,
             ),
           );
@@ -80,10 +81,11 @@ class _LoginScreenState extends State<LoginScreen> {
         }
 
         // 3. Build user from backend response
+        final role = data['user_role'].toString().toLowerCase();
         final user = UserModel(
           id: data['user_id'].toString(),
           name: data['full_name'],
-          role: data['user_role'].toString().toLowerCase() == 'conductor'
+          role: (role == 'conductor' || role == 'driver')
               ? UserRole.conductor
               : UserRole.passenger,
         );

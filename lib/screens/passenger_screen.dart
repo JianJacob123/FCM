@@ -101,7 +101,8 @@ class _SearchFieldState extends State<SearchField> {
   List<Map<String, dynamic>> _suggestions = [];
 
   Future<void> _searchPlace(String query) async {
-    final accessToken = ''; // Replace with your Mapbox access token
+    final accessToken =
+        'pk.eyJ1Ijoia3lsbHVoaGgiLCJhIjoiY21jNzFrbjhnMWEzdTJqb21razJzMnNzZSJ9.mTR_W24uzbK1y3Z1Y4OjTA'; // Replace with your Mapbox access token
     final encodedQuery = Uri.encodeComponent(query);
 
     final url = Uri.parse(
