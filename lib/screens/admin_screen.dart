@@ -4165,6 +4165,10 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
   List<Map<String, dynamic>> _vehicles = [];
   int? _selectedVehicleId;
 
+  // Rate limiting for Save as Image
+  DateTime? _lastImageSaveTime;
+  static const Duration _imageSaveCooldown = Duration(seconds: 30); // 30 seconds cooldown
+
   @override
   void initState() {
     super.initState();
@@ -4182,6 +4186,25 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
   }
 
   Future<void> _saveScheduleAsImage() async {
+    // Rate limiting check
+    final now = DateTime.now();
+    if (_lastImageSaveTime != null) {
+      final timeSinceLastSave = now.difference(_lastImageSaveTime!);
+      if (timeSinceLastSave < _imageSaveCooldown) {
+        final remainingSeconds = (_imageSaveCooldown - timeSinceLastSave).inSeconds;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Please wait ${remainingSeconds} seconds before saving another image.'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+    }
+
     try {
       // Ensure the boundary is laid out
       await WidgetsBinding.instance.endOfFrame;
@@ -4207,6 +4230,10 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
 
       if (kIsWeb) {
         downloadBytes(bytes, filename);
+        // Update timestamp after successful save
+        setState(() {
+          _lastImageSaveTime = now;
+        });
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
