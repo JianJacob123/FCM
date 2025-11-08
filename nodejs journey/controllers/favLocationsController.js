@@ -26,7 +26,27 @@ const addFavoriteLocation = async (req, res) => {
     }
 }
 
+const removeFavoriteLocation = async (req, res) => {
+    const { favoriteLocationId } = req.params;
+    try {
+        const deleted = await favLocationModel.removeFavoriteLocation(favoriteLocationId);
+        if (deleted) {
+            res.status(200).json({ 
+                success: true, 
+                message: 'Favorite location removed successfully!',
+                data: deleted 
+            });
+        } else {
+            res.status(404).json({ error: 'Favorite location not found' });
+        }
+    } catch (error) {
+        console.error('Error removing favorite location:', error);
+        res.status(500).json({ error: 'Failed to remove favorite location' });
+    }
+}
+
 module.exports = {
     getFavoriteLocations,
-    addFavoriteLocation
+    addFavoriteLocation,
+    removeFavoriteLocation
 };

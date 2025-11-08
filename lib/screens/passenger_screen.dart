@@ -2154,35 +2154,52 @@ class _SaveRoutesScreenState extends State<SaveRoutesScreen> {
                       ),
                     ),
                     onDismissed: (direction) async {
+                      // Store the location name for success message
+                      final locationName = loc["location_name"];
+                      
                       try {
                         final result = await unfavoriteLocation(
-                          loc["favorite_location_id"],
+                          loc["favorite_location_id"].toString(),
                         );
 
-                        if (result.contains("successfully")) {
+                        // Check if the result indicates success
+                        if (result.toLowerCase().contains("successfully") || 
+                            result.toLowerCase().contains("success")) {
+                          // Show success message
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                '${loc["location_name"]} removed from favorites',
+                                '$locationName removed from favorites',
                               ),
+                              backgroundColor: Colors.green,
+                              duration: const Duration(seconds: 2),
                             ),
                           );
+                          // Refresh the list
                           _refreshData();
                         } else {
+                          // Show error message from API
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(result),
                               backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 3),
                             ),
                           );
+                          // Re-add the item since removal failed
+                          _refreshData();
                         }
                       } catch (e) {
+                        // Only show error if it's actually an error
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Failed to remove location'),
+                          SnackBar(
+                            content: Text('Failed to remove location: ${e.toString().replaceAll("Exception: ", "")}'),
                             backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 3),
                           ),
                         );
+                        // Re-add the item since removal failed
+                        _refreshData();
                       }
                     },
 

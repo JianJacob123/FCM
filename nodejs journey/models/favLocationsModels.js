@@ -13,7 +13,14 @@ const addFavoriteLocation = async (userId, locationName, lat, lng) => {
     return res.rows[0];
 }
 
+const removeFavoriteLocation = async (favoriteLocationId) => {
+    const sql = `DELETE FROM favorite_locations WHERE favorite_location_id = $1 RETURNING *`;
+    const res = await client.query(sql, [favoriteLocationId]);
+    return res.rows[0];
+}
+
 module.exports = {
     getFavoriteLocationsByUserId,
-    addFavoriteLocation
+    addFavoriteLocation,
+    removeFavoriteLocation
 };

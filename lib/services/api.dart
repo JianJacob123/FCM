@@ -203,15 +203,33 @@ Future<String> unfavoriteLocation(String favLocationId) async {
     final response = await http.delete(url);
 
     if (response.statusCode == 200) {
-      return "Favorite location removed successfully!";
+      try {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return data['message'] ?? "Favorite location removed successfully!";
+      } catch (e) {
+        // If response is not JSON, assume success
+        return "Favorite location removed successfully!";
+      }
+    } else if (response.statusCode == 404) {
+      try {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return data['error'] ?? "This location is not in your favorites.";
+      } catch (e) {
+        return "This location is not in your favorites.";
+      }
     } else if (response.statusCode == 400) {
-      final data = jsonDecode(response.body);
-      return data['error'] ?? "This location is not in your favorites.";
+      try {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return data['error'] ?? "This location is not in your favorites.";
+      } catch (e) {
+        return "This location is not in your favorites.";
+      }
     } else {
       return "Unexpected error: ${response.statusCode}";
     }
   } catch (e) {
-    return "Error sending request: $e";
+    // Re-throw the exception so the UI can handle it properly
+    throw Exception("Error sending request: $e");
   }
 }
 
