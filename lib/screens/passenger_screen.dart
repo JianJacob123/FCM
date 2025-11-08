@@ -1123,7 +1123,7 @@ class _MapScreenState extends State<MapScreen> {
               child: Container(
                 constraints: const BoxConstraints(
                   minHeight: 100,
-                  maxHeight: 260,
+                  maxHeight: 280,
                 ),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -1140,9 +1140,11 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -1350,6 +1352,7 @@ class _MapScreenState extends State<MapScreen> {
                       ],
                     ),
                   ],
+                  ),
                 ),
               ),
             ),
