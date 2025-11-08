@@ -32,11 +32,13 @@ class PassengerScreen extends StatefulWidget {
 
 class _PassengerScreenState extends State<PassengerScreen> {
   int _currentIndex = 2; // Default to MapScreen
-  
+
   // GlobalKeys to access screen states for refresh
-  final GlobalKey<_NotificationsScreenState> _notificationsKey = GlobalKey<_NotificationsScreenState>();
-  final GlobalKey<_SaveRoutesScreenState> _saveRoutesKey = GlobalKey<_SaveRoutesScreenState>();
-  
+  final GlobalKey<_NotificationsScreenState> _notificationsKey =
+      GlobalKey<_NotificationsScreenState>();
+  final GlobalKey<_SaveRoutesScreenState> _saveRoutesKey =
+      GlobalKey<_SaveRoutesScreenState>();
+
   late final List<Widget> _screens;
 
   @override
@@ -359,23 +361,34 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  late Future<List<dynamic>> notifications;
+  List<dynamic> _notifications = [];
   final SocketService _socketService = SocketService();
 
   @override
   void initState() {
     super.initState();
-    notifications = fetchNotifications('All Commuters');
-    
-    // Register callback to refresh notifications when a new one arrives
-    _socketService.onNewNotification(_refreshNotifications);
+    _loadLocalNotifications();
+
+    // Listen for new notifications via socket
+    _socketService.onNewNotification(_loadLocalNotifications);
   }
 
   @override
   void dispose() {
-    // Remove callback when screen is disposed
-    _socketService.removeNotificationCallback(_refreshNotifications);
+    _socketService.removeNotificationCallback(_loadLocalNotifications);
     super.dispose();
+  }
+
+  /// Load notifications from SharedPreferences
+  Future<void> _loadLocalNotifications() async {
+    final stored = await SocketService.getStoredNotifications();
+    setState(() {
+      _notifications = stored;
+    });
+  }
+
+  Future<void> refreshNotifications() async {
+    await _loadLocalNotifications();
   }
 
   /// Format time ago
@@ -390,19 +403,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return DateFormat('MMM dd').format(date);
   }
 
-  /// Refresh notifications (public for external access)
-  Future<void> refreshNotifications() async {
-    final updatedNotifications = await fetchNotifications('All Commuters');
-    setState(() {
-      notifications = Future.value(updatedNotifications);
-    });
-  }
-
-  /// Private refresh method for internal use
-  Future<void> _refreshNotifications() async {
-    await refreshNotifications();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -413,7 +413,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 24,
-            color: Color(0xFF3E4795), //Change the color here
+            color: Color(0xFF3E4795),
           ),
         ),
         backgroundColor: Colors.white,
@@ -421,41 +421,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _refreshNotifications,
-                child: FutureBuilder<List<dynamic>>(
-                  future: notifications,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    } else if (snapshot.hasError) {
-                      return Center(child: Text("Error: ${snapshot.error}"));
-                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return const Center(child: Text("No notifications"));
-                    } else {
-                      final notifList = snapshot.data!;
-                      return ListView.builder(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        itemCount: notifList.length,
-                        itemBuilder: (context, index) {
-                          final notif = notifList[index];
-                          return _ExpandableNotificationCard(
-                            title: notif["notif_title"],
-                            content: notif["content"],
-                            timeAgo: timeAgo(notif["notif_date"]),
-                          );
-                        },
-                      );
-                    }
+        child: RefreshIndicator(
+          onRefresh: _loadLocalNotifications,
+          child: _notifications.isEmpty
+              ? const Center(child: Text("No notifications yet"))
+              : ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: _notifications.length,
+                  itemBuilder: (context, index) {
+                    final notif = _notifications[index];
+                    return _ExpandableNotificationCard(
+                      title: notif["notif_title"],
+                      content: notif["content"],
+                      timeAgo: timeAgo(notif["notif_date"]),
+                    );
                   },
                 ),
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -490,13 +471,13 @@ class _ExpandableNotificationCardState
         ? widget.content
         : '${widget.content.substring(0, _maxPreviewLength)}...';
 
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16.0),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF3F3F3),
-                                borderRadius: BorderRadius.circular(18),
-                              ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F3F3),
+          borderRadius: BorderRadius.circular(18),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -508,11 +489,11 @@ class _ExpandableNotificationCardState
                   Expanded(
                     child: Text(
                       widget.title,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -542,9 +523,9 @@ class _ExpandableNotificationCardState
                       color: Color(0xFF3E4795),
                       fontWeight: FontWeight.w600,
                     ),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -1185,213 +1166,213 @@ class _MapScreenState extends State<MapScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'FCM No. ${_selectedVehicle?["vehicle_id"] ?? "Unknown"}',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'FCM No. ${_selectedVehicle?["vehicle_id"] ?? "Unknown"}',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF3E4795),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.grey),
+                            onPressed: () {
+                              setState(() {
+                                _showVehicleInfo = false;
+                                _selectedVehicle = null;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${_selectedVehicle?["route_name"] ?? "Unknown"}',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Progress',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                          Text(
+                            _selectedVehicle?["is_off_route"] == true
+                                ? 'Off Route'
+                                : 'On Route',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: _selectedVehicle?["is_off_route"] == true
+                                  ? Colors.red
+                                  : Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      //Animated progress bar
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(
+                          begin: 0.2,
+                          end:
+                              ((double.tryParse(
+                                            _selectedVehicle!["route_progress_percent"]
+                                                .toString(),
+                                          ) ??
+                                          0) /
+                                      100)
+                                  .clamp(0.0, 1.0), //clamp after dividing
+                        ),
+                        duration: const Duration(
+                          milliseconds: 800,
+                        ), // animation duration
+                        curve: Curves.easeOut, // makes it smooth
+                        builder: (context, value, _) => ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: value,
+                            minHeight: 8,
+                            backgroundColor: Colors.grey[300],
                             color: Color(0xFF3E4795),
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Colors.grey),
-                          onPressed: () {
-                            setState(() {
-                              _showVehicleInfo = false;
-                              _selectedVehicle = null;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${_selectedVehicle?["route_name"] ?? "Unknown"}',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Progress',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                        Text(
-                          _selectedVehicle?["is_off_route"] == true
-                              ? 'Off Route'
-                              : 'On Route',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: _selectedVehicle?["is_off_route"] == true
-                                ? Colors.red
-                                : Colors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    //Animated progress bar
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(
-                        begin: 0.2,
-                        end:
-                            ((double.tryParse(
-                                          _selectedVehicle!["route_progress_percent"]
-                                              .toString(),
-                                        ) ??
-                                        0) /
-                                    100)
-                                .clamp(0.0, 1.0), //clamp after dividing
                       ),
-                      duration: const Duration(
-                        milliseconds: 800,
-                      ), // animation duration
-                      curve: Curves.easeOut, // makes it smooth
-                      builder: (context, value, _) => ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: value,
-                          minHeight: 8,
-                          backgroundColor: Colors.grey[300],
-                          color: Color(0xFF3E4795),
-                        ),
+
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Estimated Time of Arrival',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                          Text(
+                            _selectedVehicle != null &&
+                                    _selectedVehicle!['eta'] != null
+                                ? DateFormat.jm().format(
+                                    DateTime.parse(
+                                      _selectedVehicle!['eta'],
+                                    ).toLocal(),
+                                  )
+                                : '--:--',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Estimated Time of Arrival',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                        Text(
-                          _selectedVehicle != null &&
-                                  _selectedVehicle!['eta'] != null
-                              ? DateFormat.jm().format(
-                                  DateTime.parse(
-                                    _selectedVehicle!['eta'],
-                                  ).toLocal(),
-                                )
-                              : '--:--',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Current Capacity',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Current Capacity',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                        Text(
-                          '${_selectedVehicle?["current_passenger_count"] ?? "--"}/20',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                          Text(
+                            '${_selectedVehicle?["current_passenger_count"] ?? "--"}/20',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              "Plate Number",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'DAL 1234',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            final remainingRoute =
-                                _selectedVehicle?["remaining_route_polyline"];
-
-                            if (remainingRoute == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("No route data available."),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                "Plate Number",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
                                 ),
-                              );
-                              return;
-                            }
-
-                            // Decode JSON string into a Map
-                            final routeJson = remainingRoute is String
-                                ? jsonDecode(remainingRoute)
-                                : remainingRoute;
-
-                            final coords =
-                                (routeJson["coordinates"] as List?)
-                                    ?.map(
-                                      (c) => LatLng(
-                                        (c[1] as num).toDouble(),
-                                        (c[0] as num).toDouble(),
-                                      ),
-                                    )
-                                    .toList() ??
-                                [];
-
-                            if (coords.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("No route data available."),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'DAL 1234',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                              );
-                              return;
-                            }
+                              ),
+                            ],
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              final remainingRoute =
+                                  _selectedVehicle?["remaining_route_polyline"];
 
-                            setState(() {
-                              _routePolyline = coords;
-                            });
-                          },
-                          icon: const Icon(Icons.navigation, size: 16),
-                          label: const Text(
-                            'Track Trip',
-                            style: TextStyle(fontSize: 14),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3E4795),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                              if (remainingRoute == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("No route data available."),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              // Decode JSON string into a Map
+                              final routeJson = remainingRoute is String
+                                  ? jsonDecode(remainingRoute)
+                                  : remainingRoute;
+
+                              final coords =
+                                  (routeJson["coordinates"] as List?)
+                                      ?.map(
+                                        (c) => LatLng(
+                                          (c[1] as num).toDouble(),
+                                          (c[0] as num).toDouble(),
+                                        ),
+                                      )
+                                      .toList() ??
+                                  [];
+
+                              if (coords.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("No route data available."),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              setState(() {
+                                _routePolyline = coords;
+                              });
+                            },
+                            icon: const Icon(Icons.navigation, size: 16),
+                            label: const Text(
+                              'Track Trip',
+                              style: TextStyle(fontSize: 14),
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3E4795),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              elevation: 0,
                             ),
-                            elevation: 0,
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1489,14 +1470,17 @@ class _MapScreenState extends State<MapScreen> {
                               );
 
                               // Show status snackbar with appropriate color
-                              final isSuccess = message.toLowerCase().contains("successfully") || 
-                                               message.toLowerCase().contains("success");
-                              ScaffoldMessenger.of(
-                                context,
-                              ).showSnackBar(
+                              final isSuccess =
+                                  message.toLowerCase().contains(
+                                    "successfully",
+                                  ) ||
+                                  message.toLowerCase().contains("success");
+                              ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(message),
-                                  backgroundColor: isSuccess ? Colors.green : Colors.red,
+                                  backgroundColor: isSuccess
+                                      ? Colors.green
+                                      : Colors.red,
                                   duration: const Duration(seconds: 2),
                                 ),
                               );
@@ -2017,14 +2001,14 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
         child: FutureBuilder<List<dynamic>>(
           // Use the class variable for the future
           future: _futureTripHistory,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          } else if (snapshot.hasData) {
-            final trips = snapshot.data!;
-            if (trips.isEmpty) {
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text("Error: ${snapshot.error}"));
+            } else if (snapshot.hasData) {
+              final trips = snapshot.data!;
+              if (trips.isEmpty) {
                 // Ensure the list is scrollable for RefreshIndicator to work on empty data
                 return ListView(
                   children: const [
@@ -2032,75 +2016,75 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
                     Center(child: Text("No trip history available.")),
                   ],
                 );
-            }
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: trips.length,
-              itemBuilder: (context, index) {
-                final trip = trips[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF3F3F3),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: ListTile(
-                      leading: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFBFC6F7),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.directions_bus,
-                          color: Color(0xFF3E4795),
-                          size: 28,
-                        ),
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: trips.length,
+                itemBuilder: (context, index) {
+                  final trip = trips[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F3F3),
+                        borderRadius: BorderRadius.circular(18),
                       ),
-                      title: Text(
+                      child: ListTile(
+                        leading: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFBFC6F7),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.directions_bus,
+                            color: Color(0xFF3E4795),
+                            size: 28,
+                          ),
+                        ),
+                        title: Text(
                           'Trip Request ${trip["request_id"] ?? "--"}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 4),
-                          Text(
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            Text(
                               'From: ${trip["pickup_location_name"] ?? "Unknown"}',
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                          Text(
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            Text(
                               'To: ${trip["dropoff_location_name"] ?? "Unknown"}',
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ],
-                      ),
-                      trailing: Text(
-                          timeAgo(trip["created_at"] ?? "Unknown Date"),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
                         ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                        trailing: Text(
+                          timeAgo(trip["created_at"] ?? "Unknown Date"),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-            );
-          } else {
+                  );
+                },
+              );
+            } else {
               // Handle the case where snapshot.hasData is false but no error occurred (e.g., initial null data)
-            return const Center(child: Text("No trip history available."));
-          }
-        },
+              return const Center(child: Text("No trip history available."));
+            }
+          },
         ),
       ),
     );
@@ -2213,14 +2197,14 @@ class _SaveRoutesScreenState extends State<SaveRoutesScreen> {
                     onDismissed: (direction) async {
                       // Store the location name for success message
                       final locationName = loc["location_name"];
-                      
+
                       try {
                         final result = await unfavoriteLocation(
                           loc["favorite_location_id"].toString(),
                         );
 
                         // Check if the result indicates success
-                        if (result.toLowerCase().contains("successfully") || 
+                        if (result.toLowerCase().contains("successfully") ||
                             result.toLowerCase().contains("success")) {
                           // Show success message
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -2250,7 +2234,9 @@ class _SaveRoutesScreenState extends State<SaveRoutesScreen> {
                         // Only show error if it's actually an error
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Failed to remove location: ${e.toString().replaceAll("Exception: ", "")}'),
+                            content: Text(
+                              'Failed to remove location: ${e.toString().replaceAll("Exception: ", "")}',
+                            ),
                             backgroundColor: Colors.red,
                             duration: const Duration(seconds: 3),
                           ),
@@ -2261,30 +2247,30 @@ class _SaveRoutesScreenState extends State<SaveRoutesScreen> {
                     },
 
                     child: Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3F3F3),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.location_on, color: Colors.blue),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                loc["location_name"] ?? "Unnamed Location",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F3F3),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.location_on, color: Colors.blue),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  loc["location_name"] ?? "Unnamed Location",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                          ],
+                            ],
                           ),
                         ),
                       ),

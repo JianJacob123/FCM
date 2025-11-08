@@ -16,6 +16,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import '../services/notif_socket.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../providers/user_provider.dart';
+import 'package:provider/provider.dart';
 
 final baseUrl = dotenv.env['API_BASE_URL'];
 
@@ -570,7 +573,22 @@ class _AdminScreenState extends State<AdminScreen> {
                                       child: const Text('Cancel'),
                                     ),
                                     ElevatedButton(
-                                      onPressed: () {
+                                      onPressed: () async {
+                                        // 1️⃣ Clear SharedPreferences
+                                        final prefs =
+                                            await SharedPreferences.getInstance();
+                                        await prefs.remove('admin_user_id');
+                                        await prefs.remove('admin_user_name');
+                                        await prefs.remove(
+                                          'admin_user_role',
+                                        ); // optional if saved
+
+                                        // 2️⃣ Update provider
+                                        await context
+                                            .read<UserProvider>()
+                                            .logout();
+
+                                        // 3️⃣ Close dialog and navigate to login
                                         Navigator.pop(context);
                                         Navigator.of(context).pushReplacement(
                                           MaterialPageRoute(
@@ -1161,213 +1179,213 @@ class _MapScreenState extends State<MapScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'FCM No. ${_selectedVehicle?["vehicle_id"] ?? "Unknown"}',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'FCM No. ${_selectedVehicle?["vehicle_id"] ?? "Unknown"}',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF3E4795),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.grey),
+                            onPressed: () {
+                              setState(() {
+                                _showVehicleInfo = false;
+                                _selectedVehicle = null;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${_selectedVehicle?["route_name"] ?? "Unknown"}',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Progress',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                          Text(
+                            _selectedVehicle?["is_off_route"] == true
+                                ? 'Off Route'
+                                : 'On Route',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: _selectedVehicle?["is_off_route"] == true
+                                  ? Colors.red
+                                  : Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      //Animated progress bar
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(
+                          begin: 0.2,
+                          end:
+                              ((double.tryParse(
+                                            _selectedVehicle!["route_progress_percent"]
+                                                .toString(),
+                                          ) ??
+                                          0) /
+                                      100)
+                                  .clamp(0.0, 1.0), //clamp after dividing
+                        ),
+                        duration: const Duration(
+                          milliseconds: 800,
+                        ), // animation duration
+                        curve: Curves.easeOut, // makes it smooth
+                        builder: (context, value, _) => ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: value,
+                            minHeight: 8,
+                            backgroundColor: Colors.grey[300],
                             color: Color(0xFF3E4795),
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Colors.grey),
-                          onPressed: () {
-                            setState(() {
-                              _showVehicleInfo = false;
-                              _selectedVehicle = null;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${_selectedVehicle?["route_name"] ?? "Unknown"}',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Progress',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                        Text(
-                          _selectedVehicle?["is_off_route"] == true
-                              ? 'Off Route'
-                              : 'On Route',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: _selectedVehicle?["is_off_route"] == true
-                                ? Colors.red
-                                : Colors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    //Animated progress bar
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(
-                        begin: 0.2,
-                        end:
-                            ((double.tryParse(
-                                          _selectedVehicle!["route_progress_percent"]
-                                              .toString(),
-                                        ) ??
-                                        0) /
-                                    100)
-                                .clamp(0.0, 1.0), //clamp after dividing
                       ),
-                      duration: const Duration(
-                        milliseconds: 800,
-                      ), // animation duration
-                      curve: Curves.easeOut, // makes it smooth
-                      builder: (context, value, _) => ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: value,
-                          minHeight: 8,
-                          backgroundColor: Colors.grey[300],
-                          color: Color(0xFF3E4795),
-                        ),
+
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Estimated Time of Arrival',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                          Text(
+                            _selectedVehicle != null &&
+                                    _selectedVehicle!['eta'] != null
+                                ? DateFormat.jm().format(
+                                    DateTime.parse(
+                                      _selectedVehicle!['eta'],
+                                    ).toLocal(),
+                                  )
+                                : '--:--',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Estimated Time of Arrival',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                        Text(
-                          _selectedVehicle != null &&
-                                  _selectedVehicle!['eta'] != null
-                              ? DateFormat.jm().format(
-                                  DateTime.parse(
-                                    _selectedVehicle!['eta'],
-                                  ).toLocal(),
-                                )
-                              : '--:--',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Current Capacity',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Current Capacity',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                        Text(
-                          '${_selectedVehicle?["current_passenger_count"] ?? "--"}/20',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                          Text(
+                            '${_selectedVehicle?["current_passenger_count"] ?? "--"}/20',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              "Plate Number",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'DAL 1234',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            final remainingRoute =
-                                _selectedVehicle?["remaining_route_polyline"];
-
-                            if (remainingRoute == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("No route data available."),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                "Plate Number",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
                                 ),
-                              );
-                              return;
-                            }
-
-                            // Decode JSON string into a Map
-                            final routeJson = remainingRoute is String
-                                ? jsonDecode(remainingRoute)
-                                : remainingRoute;
-
-                            final coords =
-                                (routeJson["coordinates"] as List?)
-                                    ?.map(
-                                      (c) => LatLng(
-                                        (c[1] as num).toDouble(),
-                                        (c[0] as num).toDouble(),
-                                      ),
-                                    )
-                                    .toList() ??
-                                [];
-
-                            if (coords.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("No route data available."),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'DAL 1234',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                              );
-                              return;
-                            }
+                              ),
+                            ],
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              final remainingRoute =
+                                  _selectedVehicle?["remaining_route_polyline"];
 
-                            setState(() {
-                              _routePolyline = coords;
-                            });
-                          },
-                          icon: const Icon(Icons.navigation, size: 16),
-                          label: const Text(
-                            'Track Trip',
-                            style: TextStyle(fontSize: 14),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3E4795),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                              if (remainingRoute == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("No route data available."),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              // Decode JSON string into a Map
+                              final routeJson = remainingRoute is String
+                                  ? jsonDecode(remainingRoute)
+                                  : remainingRoute;
+
+                              final coords =
+                                  (routeJson["coordinates"] as List?)
+                                      ?.map(
+                                        (c) => LatLng(
+                                          (c[1] as num).toDouble(),
+                                          (c[0] as num).toDouble(),
+                                        ),
+                                      )
+                                      .toList() ??
+                                  [];
+
+                              if (coords.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("No route data available."),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              setState(() {
+                                _routePolyline = coords;
+                              });
+                            },
+                            icon: const Icon(Icons.navigation, size: 16),
+                            label: const Text(
+                              'Track Trip',
+                              style: TextStyle(fontSize: 14),
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3E4795),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              elevation: 0,
                             ),
-                            elevation: 0,
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1824,9 +1842,10 @@ class NotificationList extends StatefulWidget {
 
   @override
   State<NotificationList> createState() => _NotificationListState();
-  
+
   // Method to refresh from parent
-  static final GlobalKey<_NotificationListState> refreshKey = GlobalKey<_NotificationListState>();
+  static final GlobalKey<_NotificationListState> refreshKey =
+      GlobalKey<_NotificationListState>();
 }
 
 class _NotificationListState extends State<NotificationList> {
@@ -1862,7 +1881,7 @@ class _NotificationListState extends State<NotificationList> {
   void initState() {
     super.initState();
     notifications = fetchNotifications('all');
-    
+
     // Register callback to refresh notifications when a new one arrives
     _socketService.onNewNotification(_refreshNotifications);
   }
@@ -2985,7 +3004,9 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                Expanded(child: NotificationList(key: NotificationList.refreshKey)),
+                Expanded(
+                  child: NotificationList(key: NotificationList.refreshKey),
+                ),
               ],
             ),
           ),
@@ -4213,7 +4234,9 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
 
   // Rate limiting for Save as Image
   DateTime? _lastImageSaveTime;
-  static const Duration _imageSaveCooldown = Duration(seconds: 30); // 30 seconds cooldown
+  static const Duration _imageSaveCooldown = Duration(
+    seconds: 30,
+  ); // 30 seconds cooldown
 
   @override
   void initState() {
@@ -4237,11 +4260,14 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
     if (_lastImageSaveTime != null) {
       final timeSinceLastSave = now.difference(_lastImageSaveTime!);
       if (timeSinceLastSave < _imageSaveCooldown) {
-        final remainingSeconds = (_imageSaveCooldown - timeSinceLastSave).inSeconds;
+        final remainingSeconds =
+            (_imageSaveCooldown - timeSinceLastSave).inSeconds;
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Please wait ${remainingSeconds} seconds before saving another image.'),
+              content: Text(
+                'Please wait ${remainingSeconds} seconds before saving another image.',
+              ),
               backgroundColor: Colors.red,
               duration: const Duration(seconds: 3),
             ),
@@ -4454,20 +4480,18 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
     // Check for duplicate schedule (same time and unit number on the same date)
     // Only check if status is Active (since non-active schedules may have null time)
     if (_statusController.text == 'Active' && timeString != null) {
-      final duplicateSchedule = _schedules.firstWhere(
-        (schedule) {
-          final scheduleTime = schedule['time_start']?.toString();
-          final scheduleVehicleId = schedule['vehicle_id'];
-          final scheduleDateStr = schedule['schedule_date']?.toString();
-          
-          // Check if time, vehicle_id, and date match (excluding current schedule if editing)
-          return scheduleTime == timeString &&
-                 scheduleVehicleId == _selectedVehicleId &&
-                 scheduleDateStr == scheduleDate &&
-                 (_editingSchedule == null || schedule['id'] != _editingSchedule!['id']);
-        },
-        orElse: () => <String, dynamic>{},
-      );
+      final duplicateSchedule = _schedules.firstWhere((schedule) {
+        final scheduleTime = schedule['time_start']?.toString();
+        final scheduleVehicleId = schedule['vehicle_id'];
+        final scheduleDateStr = schedule['schedule_date']?.toString();
+
+        // Check if time, vehicle_id, and date match (excluding current schedule if editing)
+        return scheduleTime == timeString &&
+            scheduleVehicleId == _selectedVehicleId &&
+            scheduleDateStr == scheduleDate &&
+            (_editingSchedule == null ||
+                schedule['id'] != _editingSchedule!['id']);
+      }, orElse: () => <String, dynamic>{});
 
       if (duplicateSchedule.isNotEmpty) {
         // Close modal first, then show error

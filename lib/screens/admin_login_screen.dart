@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'admin_screen.dart';
-import 'landing_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/user_role.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final baseUrl = dotenv.env['API_BASE_URL'];
 
@@ -23,78 +23,6 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   bool _obscurePassword = true;
   String? _error;
 
-  //OLD CODE WITHOUT OTP REMOVE IF FINAL
-  /*Future<void> _login() async {
-    final username = _usernameController.text.trim();
-    final password = _passwordController.text.trim();
-
-    if (username.isEmpty || password.isEmpty) {
-      setState(() {
-        _error = 'Please enter both username and password.';
-      });
-      return;
-    }
-
-    try {
-      // 1. Call your backend
-      final response = await http.post(
-        Uri.parse('$baseUrl/users/login'), // change to your endpoint
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"username": username, "password": password}),
-      );
-
-      // 2. Check if successful
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-
-        if (responseData['data']['user_role'] != 'admin') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Access denied. Not an admin user.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          return;
-        }
-
-        // 3. Build user from backend response
-        final user = UserModel(
-          id: responseData['data']['user_id'].toString(),
-          name: responseData['data']['full_name'],
-          role: responseData['data']['user_role'] == 'admin'
-              ? UserRole.admin
-              : responseData['data']['user_role'] == 'conductor'
-              ? UserRole.conductor
-              : UserRole.passenger,
-        );
-
-        // 4. Store in provider
-        context.read<UserProvider>().loginUser(user);
-
-        // 5. Navigate to appropriate screen based on role
-        Navigator.of(
-          context,
-        ).pushReplacement(MaterialPageRoute(builder: (_) => AdminScreen()));
-      } else {
-        final errorData = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorData['error'] ?? 'Login failed.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (err) {
-      print("Login error: $err");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Something went wrong. Please try again.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }*/
-
   //THIS IS CODE WITH OTP, CHANGE
   Future<void> _login() async {
     final username = _usernameController.text.trim();
@@ -108,17 +36,14 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     }
 
     try {
-      // 1. Call your backend
       final response = await http.post(
-        Uri.parse('$baseUrl/users/login'), // change to your endpoint
+        Uri.parse('$baseUrl/users/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({"username": username, "password": password}),
       );
 
-      // 2. Check if successful
       if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        final data = responseData['data'];
+        final data = jsonDecode(response.body)['data'];
 
         if (data['user_role'] != 'admin') {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -130,25 +55,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           return;
         }
 
-        final userId = data['userid'].toString();
-        final fullName = data['full_name'];
-
-        //Show OTP dialog
-        _showOtpDialog(userId, fullName);
-
-        // 3. Build user from backend response
-        final user = UserModel(
-          id: userId,
-          name: fullName,
-          role: data['user_role'] == 'admin'
-              ? UserRole.admin
-              : data['user_role'] == 'conductor'
-              ? UserRole.conductor
-              : UserRole.passenger,
-        );
-
-        // 4. Store in provider
-        context.read<UserProvider>().loginUser(user);
+        // Show OTP dialog
+        _showOtpDialog(data['userid'].toString(), data['full_name']);
       } else {
         final errorData = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -169,120 +77,129 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     }
   }
 
-  void _showOtpDialog(String userId, String username) {
+  void _showOtpDialog(String userId, String fullName) {
     final otpController = TextEditingController();
     bool isVerifying = false;
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Two-Factor Authentication',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Enter the 6-digit OTP sent to your email.',
+                style: TextStyle(fontSize: 14, color: Colors.black54),
               ),
-              title: const Text(
-                'Two-Factor Authentication',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Enter the 6-digit OTP sent to your email.',
-                    style: TextStyle(fontSize: 14, color: Colors.black54),
+              const SizedBox(height: 12),
+              TextField(
+                controller: otpController,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                decoration: InputDecoration(
+                  hintText: 'Enter OTP',
+                  counterText: '',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: otpController,
-                    keyboardType: TextInputType.number,
-                    maxLength: 6,
-                    decoration: InputDecoration(
-                      hintText: 'Enter OTP',
-                      counterText: '',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
                 ),
-                ElevatedButton(
-                  onPressed: isVerifying
-                      ? null
-                      : () async {
-                          setModalState(() => isVerifying = true);
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isVerifying
+                  ? null
+                  : () async {
+                      setModalState(() => isVerifying = true);
 
-                          final otpCode = otpController.text.trim();
+                      final otpCode = otpController.text.trim();
 
-                          final verifyRes = await http.post(
-                            Uri.parse('$baseUrl/users/verify-otp'),
-                            headers: {'Content-Type': 'application/json'},
-                            body: jsonEncode({
-                              "userId": userId,
-                              "otpCode": otpCode,
-                            }),
+                      final verifyRes = await http.post(
+                        Uri.parse('$baseUrl/users/verify-otp'),
+                        headers: {'Content-Type': 'application/json'},
+                        body: jsonEncode({
+                          "userId": userId,
+                          "otpCode": otpCode,
+                        }),
+                      );
+
+                      setModalState(() => isVerifying = false);
+
+                      if (verifyRes.statusCode == 200) {
+                        final verifyData = jsonDecode(verifyRes.body);
+
+                        if (verifyData['status'] == 'success') {
+                          // Save user in SharedPreferences
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setString('admin_user_id', userId);
+                          await prefs.setString('admin_user_name', fullName);
+                          await prefs.setString('admin_user_role', 'admin');
+
+                          // Update Provider
+                          final user = UserModel(
+                            id: userId,
+                            name: fullName,
+                            role: UserRole.admin,
+                          );
+                          context.read<UserProvider>().loginUser(user);
+
+                          // Navigate to AdminScreen
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => const AdminScreen(),
+                            ),
                           );
 
-                          setModalState(() => isVerifying = false);
-
-                          if (verifyRes.statusCode == 200) {
-                            final verifyData = jsonDecode(verifyRes.body);
-                            if (verifyData['status'] == 'success') {
-                              Navigator.of(context).pop(); // close OTP modal
-
-                              // Proceed to Admin Screen
-                              Navigator.of(context).pushReplacement(
-                                MaterialPageRoute(
-                                  builder: (_) => const AdminScreen(),
-                                ),
-                              );
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Login successful!'),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    verifyData['message'] ?? 'Invalid OTP',
-                                  ),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('OTP verification failed.'),
-                                backgroundColor: Colors.red,
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Login successful!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                verifyData['message'] ?? 'Invalid OTP',
                               ),
-                            );
-                          }
-                        },
-                  child: isVerifying
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Verify'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('OTP verification failed.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+              child: isVerifying
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Verify'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -635,25 +552,6 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Back button in upper left
-        Align(
-          alignment: Alignment.topLeft,
-          child: IconButton(
-            icon: const Icon(
-              Icons.arrow_back,
-              color: Color(0xFF3E4795),
-              size: 24,
-            ),
-            onPressed: () {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const LandingScreen()),
-              );
-            },
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-        ),
-        const SizedBox(height: 8),
         // Header with purple line
         Container(
           width: 60,

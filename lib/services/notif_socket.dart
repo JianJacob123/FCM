@@ -1,6 +1,8 @@
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'notif_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 final baseUrl = dotenv.env['API_BASE_URL'];
 
@@ -35,6 +37,28 @@ class SocketService {
     }
   }
 
+  //save notification locally
+  Future<void> _saveNotification(dynamic notif) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> stored = prefs.getStringList('notifications') ?? [];
+
+    stored.insert(0, jsonEncode(notif));
+    await prefs.setStringList('notifications', stored);
+  }
+
+  // Get saved notifications
+  static Future<List<dynamic>> getStoredNotifications() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getStringList('notifications') ?? [];
+    return stored.map((e) => jsonDecode(e)).toList();
+  }
+
+  //optional: clear all notifications
+  static Future<void> clearStoredNotifications() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('notifications');
+  }
+
   void initSocket(String userId, {bool isAdmin = false}) {
     // 1. Connect to backend notifications namespace
     socket = IO.io(
@@ -66,6 +90,9 @@ class SocketService {
     // 4. Listen for new notifications
     socket.on("newNotification", (data) async {
       print("📩 New notification: $data");
+
+      // Save notification locally
+      await _saveNotification(data);
 
       // show local notification popup
       await _notifService.showNotification(
