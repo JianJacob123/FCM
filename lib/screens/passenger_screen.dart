@@ -32,18 +32,41 @@ class PassengerScreen extends StatefulWidget {
 
 class _PassengerScreenState extends State<PassengerScreen> {
   int _currentIndex = 2; // Default to MapScreen
-  final List<Widget> _screens = [
-    const NotificationsScreen(),
-    const SaveRoutesScreen(),
-    const MapScreen(),
-    const TripHistoryScreen(),
-    const SettingsScreen(),
-  ];
+  
+  // GlobalKeys to access screen states for refresh
+  final GlobalKey<_NotificationsScreenState> _notificationsKey = GlobalKey<_NotificationsScreenState>();
+  final GlobalKey<_SaveRoutesScreenState> _saveRoutesKey = GlobalKey<_SaveRoutesScreenState>();
+  
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      NotificationsScreen(key: _notificationsKey),
+      SaveRoutesScreen(key: _saveRoutesKey),
+      const MapScreen(),
+      const TripHistoryScreen(),
+      const SettingsScreen(),
+    ];
+  }
 
   void _onTabChanged(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
+    // If clicking the same tab that's already selected, refresh it
+    if (_currentIndex == index) {
+      if (index == 0) {
+        // Refresh notifications screen
+        _notificationsKey.currentState?.refreshNotifications();
+      } else if (index == 1) {
+        // Refresh favorites screen
+        _saveRoutesKey.currentState?.refreshData();
+      }
+    } else {
+      // Switch to the new tab
+      setState(() {
+        _currentIndex = index;
+      });
+    }
   }
 
   @override
@@ -367,12 +390,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return DateFormat('MMM dd').format(date);
   }
 
-  /// Refresh notifications
-  Future<void> _refreshNotifications() async {
+  /// Refresh notifications (public for external access)
+  Future<void> refreshNotifications() async {
     final updatedNotifications = await fetchNotifications('All Commuters');
     setState(() {
       notifications = Future.value(updatedNotifications);
     });
+  }
+
+  /// Private refresh method for internal use
+  Future<void> _refreshNotifications() async {
+    await refreshNotifications();
   }
 
   @override
@@ -1460,10 +1488,18 @@ class _MapScreenState extends State<MapScreen> {
                                 _pickedLocation!.longitude,
                               );
 
-                              // Show status snackbar
+                              // Show status snackbar with appropriate color
+                              final isSuccess = message.toLowerCase().contains("successfully") || 
+                                               message.toLowerCase().contains("success");
                               ScaffoldMessenger.of(
                                 context,
-                              ).showSnackBar(SnackBar(content: Text(message)));
+                              ).showSnackBar(
+                                SnackBar(
+                                  content: Text(message),
+                                  backgroundColor: isSuccess ? Colors.green : Colors.red,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
                             },
                             icon: const Icon(Icons.favorite_border),
                             label: const Text(
@@ -2092,7 +2128,8 @@ class _SaveRoutesScreenState extends State<SaveRoutesScreen> {
     _futureLocations = fetchFavoriteLocations(userId ?? "");
   }
 
-  Future<void> _refreshData() async {
+  /// Refresh data (public for external access)
+  Future<void> refreshData() async {
     final userProvider = context.read<UserProvider>();
     final userId = userProvider.isLoggedIn
         ? userProvider.currentUser!.id
@@ -2101,6 +2138,11 @@ class _SaveRoutesScreenState extends State<SaveRoutesScreen> {
     setState(() {
       _futureLocations = fetchFavoriteLocations(userId ?? "");
     });
+  }
+
+  /// Private refresh method for internal use
+  Future<void> _refreshData() async {
+    await refreshData();
   }
 
   @override
