@@ -13,6 +13,7 @@ import 'dart:async';
 import 'package:intl/intl.dart';
 import '../providers/capacity_notifier.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../services/notif_socket.dart';
 
 final baseUrl = dotenv.env['API_BASE_URL'];
 
@@ -884,6 +885,7 @@ class NotificationsTab extends StatefulWidget {
 
 class _NotificationsTabState extends State<NotificationsTab> {
   late Future<List<dynamic>> notifications;
+  final SocketService _socketService = SocketService();
 
   String timeAgo(String isoDate) {
     final date = DateTime.parse(isoDate).toLocal();
@@ -896,10 +898,28 @@ class _NotificationsTabState extends State<NotificationsTab> {
     return DateFormat('MMM dd').format(date);
   }
 
+  /// Refresh notifications
+  Future<void> _refreshNotifications() async {
+    final updatedNotifications = await fetchNotifications('All FCM Unit');
+    setState(() {
+      notifications = Future.value(updatedNotifications);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     notifications = fetchNotifications('All FCM Unit');
+    
+    // Register callback to refresh notifications when a new one arrives
+    _socketService.onNewNotification(_refreshNotifications);
+  }
+
+  @override
+  void dispose() {
+    // Remove callback when screen is disposed
+    _socketService.removeNotificationCallback(_refreshNotifications);
+    super.dispose();
   }
 
   IconData mapIcon(String iconName) {

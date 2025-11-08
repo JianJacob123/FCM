@@ -12,8 +12,28 @@ class SocketService {
   factory SocketService() => _instance;
   SocketService._internal();
 
-  // ✅ Add this
+  //  Add this
   final NotifService _notifService = NotifService();
+
+  // Callback list for notification updates
+  final List<Function()> _notificationCallbacks = [];
+
+  // Register a callback to be called when a new notification arrives
+  void onNewNotification(Function() callback) {
+    _notificationCallbacks.add(callback);
+  }
+
+  // Remove a callback
+  void removeNotificationCallback(Function() callback) {
+    _notificationCallbacks.remove(callback);
+  }
+
+  // Notify all registered callbacks
+  void _notifyCallbacks() {
+    for (var callback in _notificationCallbacks) {
+      callback();
+    }
+  }
 
   void initSocket(String userId, {bool isAdmin = false}) {
     // 1. Connect to backend notifications namespace
@@ -52,6 +72,9 @@ class SocketService {
         title: data["notif_title"] ?? "New Notification",
         body: data["content"] ?? "",
       );
+
+      // Notify all registered callbacks to refresh their notification lists
+      _notifyCallbacks();
     });
 
     // 5. Connect
@@ -60,5 +83,6 @@ class SocketService {
 
   void dispose() {
     socket.dispose();
+    _notificationCallbacks.clear();
   }
 }

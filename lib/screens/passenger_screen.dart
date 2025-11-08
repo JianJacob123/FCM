@@ -19,6 +19,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'login_screen.dart';
+import '../services/notif_socket.dart';
 
 final baseUrl = dotenv.env['API_BASE_URL'];
 
@@ -336,11 +337,22 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   late Future<List<dynamic>> notifications;
+  final SocketService _socketService = SocketService();
 
   @override
   void initState() {
     super.initState();
     notifications = fetchNotifications('All Commuters');
+    
+    // Register callback to refresh notifications when a new one arrives
+    _socketService.onNewNotification(_refreshNotifications);
+  }
+
+  @override
+  void dispose() {
+    // Remove callback when screen is disposed
+    _socketService.removeNotificationCallback(_refreshNotifications);
+    super.dispose();
   }
 
   /// Format time ago

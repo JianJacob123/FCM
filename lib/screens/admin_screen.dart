@@ -15,6 +15,7 @@ import '../services/api.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import '../services/notif_socket.dart';
 
 final baseUrl = dotenv.env['API_BASE_URL'];
 
@@ -1818,11 +1819,21 @@ class _ExpandableSidebarItem extends StatelessWidget {
   }
 }
 
-class NotificationList extends StatelessWidget {
+class NotificationList extends StatefulWidget {
   const NotificationList({super.key});
 
-  // The corrected timeAgo function
+  @override
+  State<NotificationList> createState() => _NotificationListState();
+  
+  // Method to refresh from parent
+  static final GlobalKey<_NotificationListState> refreshKey = GlobalKey<_NotificationListState>();
+}
 
+class _NotificationListState extends State<NotificationList> {
+  late Future<List<dynamic>> notifications;
+  final SocketService _socketService = SocketService();
+
+  // The corrected timeAgo function
   String timeAgo(String isoDate) {
     final date = DateTime.parse(isoDate).toLocal();
     final diff = DateTime.now().difference(date);
@@ -1834,10 +1845,39 @@ class NotificationList extends StatelessWidget {
     return DateFormat('MMM dd').format(date);
   }
 
+  /// Refresh notifications (public for external access)
+  Future<void> refreshNotifications() async {
+    final updatedNotifications = await fetchNotifications('all');
+    setState(() {
+      notifications = Future.value(updatedNotifications);
+    });
+  }
+
+  /// Private refresh method for socket callbacks
+  Future<void> _refreshNotifications() async {
+    await refreshNotifications();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    notifications = fetchNotifications('all');
+    
+    // Register callback to refresh notifications when a new one arrives
+    _socketService.onNewNotification(_refreshNotifications);
+  }
+
+  @override
+  void dispose() {
+    // Remove callback when screen is disposed
+    _socketService.removeNotificationCallback(_refreshNotifications);
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<dynamic>>(
-      future: fetchNotifications('all'),
+      future: notifications,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -2945,7 +2985,7 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                const Expanded(child: NotificationList()),
+                Expanded(child: NotificationList(key: NotificationList.refreshKey)),
               ],
             ),
           ),
@@ -3027,6 +3067,9 @@ class _NotificationsWithComposeState extends State<_NotificationsWithCompose> {
                 _lastNotificationContent = content;
                 _lastNotificationTime = now;
               });
+
+              // Refresh notification list immediately after sending
+              NotificationList.refreshKey.currentState?.refreshNotifications();
 
               _showSuccessDialog();
               // No scheduled storage
