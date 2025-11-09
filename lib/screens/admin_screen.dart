@@ -19,6 +19,7 @@ import '../services/notif_socket.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/user_provider.dart';
 import 'package:provider/provider.dart';
+import '../services/user_api.dart';
 
 final baseUrl = dotenv.env['API_BASE_URL'];
 
@@ -43,6 +44,7 @@ enum AdminSection {
 
   tripHistory,
   accountManagement,
+  archive,
   activityLogs,
 }
 
@@ -503,6 +505,21 @@ class _AdminScreenState extends State<AdminScreen> {
                                   });
                                 },
                               ),
+                              _SidebarItem(
+                                icon: Icons.archive,
+                                label: 'Archive',
+                                selected:
+                                    _selectedSection ==
+                                    AdminSection.archive,
+                                isSubItem: true,
+                                onTap: () {
+                                  setState(() {
+                                    _selectedSection =
+                                        AdminSection.archive;
+                                    if (isMobile) _isSidebarOpen = false;
+                                  });
+                                },
+                              ),
 
                               _SidebarItem(
                                 icon: Icons.history,
@@ -677,6 +694,11 @@ class _AdminScreenState extends State<AdminScreen> {
         return Container(
           color: Colors.grey[100],
           child: const AccountManagementScreen(),
+        );
+      case AdminSection.archive:
+        return Container(
+          color: Colors.grey[100],
+          child: const _ArchivePage(),
         );
       case AdminSection.activityLogs:
         return Container(
@@ -6943,6 +6965,224 @@ class _AccountManagementPage extends StatelessWidget {
             style: TextStyle(fontSize: 16, color: Colors.grey),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ArchivePage extends StatefulWidget {
+  const _ArchivePage();
+
+  @override
+  State<_ArchivePage> createState() => _ArchivePageState();
+}
+
+class _ArchivePageState extends State<_ArchivePage> {
+  bool _loading = true;
+  List<UserAccount> _archivedUsers = [];
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+    _searchController.addListener(() {
+      setState(() => _searchQuery = _searchController.text.trim().toLowerCase());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final users = await UserApiService.listArchivedUsers();
+      setState(() {
+        _archivedUsers = users;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() => _loading = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load archived users: $e')),
+      );
+    }
+  }
+
+  Future<void> _restore(UserAccount u) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Restore Account'),
+        content: Text('Are you sure you want to restore ${u.fullName}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Restore'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await UserApiService.restoreUser(u.userId);
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${u.fullName} has been restored'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Restore failed: $e')),
+      );
+    }
+  }
+
+  List<UserAccount> get _filteredUsers {
+    if (_searchQuery.isEmpty) return _archivedUsers;
+    return _archivedUsers.where((u) {
+      return u.fullName.toLowerCase().contains(_searchQuery) ||
+          u.username.toLowerCase().contains(_searchQuery) ||
+          u.userRole.toLowerCase().contains(_searchQuery);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      body: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.archive, size: 32, color: Color(0xFF3E4795)),
+                const SizedBox(width: 12),
+                const Text(
+                  'Archived Employees',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF3E4795),
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _load,
+                  tooltip: 'Refresh',
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search archived employees...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _filteredUsers.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.archive_outlined,
+                                  size: 64, color: Colors.grey[400]),
+                              const SizedBox(height: 16),
+                              Text(
+                                _searchQuery.isEmpty
+                                    ? 'No archived employees'
+                                    : 'No results found',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _filteredUsers.length,
+                          itemBuilder: (context, index) {
+                            final u = _filteredUsers[index];
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: Colors.orange[100],
+                                  child: Icon(Icons.archive,
+                                      color: Colors.orange[700]),
+                                ),
+                                title: Text(
+                                  u.fullName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Username: ${u.username}'),
+                                    Text('Role: ${u.userRole}'),
+                                  ],
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.restore,
+                                        color: Colors.green,
+                                        size: 20,
+                                      ),
+                                      onPressed: () => _restore(u),
+                                      tooltip: 'Restore',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+            ),
+          ],
+        ),
       ),
     );
   }

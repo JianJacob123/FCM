@@ -12,9 +12,16 @@ const getUserById = async (userId) => {
     return res.rows[0];
 }
 
-// List all users (basic fields)
+// List all users (basic fields) - excludes archived
 const listUsers = async () => {
-    const sql = `SELECT user_id, full_name, user_role, username, active, created_at, updated_at FROM users ORDER BY user_id`;
+    const sql = `SELECT user_id, full_name, user_role, username, active, created_at, updated_at FROM users WHERE archived IS NOT TRUE ORDER BY user_id`;
+    const res = await client.query(sql);
+    return res.rows;
+}
+
+// List archived users
+const listArchivedUsers = async () => {
+    const sql = `SELECT user_id, full_name, user_role, username, active, created_at, updated_at FROM users WHERE archived = true ORDER BY user_id`;
     const res = await client.query(sql);
     return res.rows;
 }
@@ -62,6 +69,20 @@ const deleteUser = async (userId) => {
     await client.query(sql, [userId]);
 }
 
+// Archive user
+const archiveUser = async (userId) => {
+    const sql = `UPDATE users SET archived = true, updated_at = NOW() WHERE user_id = $1`;
+    const res = await client.query(sql, [userId]);
+    return res.rowCount > 0;
+}
+
+// Restore archived user
+const restoreUser = async (userId) => {
+    const sql = `UPDATE users SET archived = false, updated_at = NOW() WHERE user_id = $1`;
+    const res = await client.query(sql, [userId]);
+    return res.rowCount > 0;
+}
+
 // Reveal a user's password after verifying admin credentials
 const revealPasswordWithAdminAuth = async (userId, adminUsername, adminPassword) => {
     // Verify admin user exists and password matches
@@ -99,9 +120,12 @@ module.exports = {
     getUserById,
     authLogin,
     listUsers,
+    listArchivedUsers,
     createUser,
     updateUser,
     deleteUser,
+    archiveUser,
+    restoreUser,
     revealPasswordWithAdminAuth,
     getUserPasswordPlain,
 };

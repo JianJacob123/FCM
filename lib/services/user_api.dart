@@ -98,6 +98,38 @@ class UserApiService {
     }
   }
 
+  static Future<void> archiveUser(int id) async {
+    final res = await http.patch(
+      Uri.parse('$base/$id/archive'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'archived': true}),
+    );
+    if (res.statusCode != 200) {
+      throw Exception('Archive failed: ${res.statusCode} ${res.body}');
+    }
+  }
+
+  static Future<List<UserAccount>> listArchivedUsers() async {
+    final res = await http.get(Uri.parse('$base/archived'));
+    if (res.statusCode != 200) {
+      throw Exception('Failed to load archived users: ${res.statusCode}');
+    }
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    final list = (data['data'] as List).cast<Map<String, dynamic>>();
+    return list.map(UserAccount.fromJson).toList();
+  }
+
+  static Future<void> restoreUser(int id) async {
+    final res = await http.patch(
+      Uri.parse('$base/$id/restore'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'archived': false}),
+    );
+    if (res.statusCode != 200) {
+      throw Exception('Restore failed: ${res.statusCode} ${res.body}');
+    }
+  }
+
   static Future<String> revealPassword({
     required int userId,
     required String adminUsername,

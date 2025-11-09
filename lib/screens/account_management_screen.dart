@@ -580,6 +580,44 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
     }
   }
 
+  Future<void> _archive(UserAccount u) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Archive Account'),
+        content: Text('Are you sure you want to archive ${u.fullName}? This will move the account to the archive page.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Archive'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await UserApiService.archiveUser(u.userId);
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${u.fullName} has been archived'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Archive failed: $e')));
+    }
+  }
+
   Future<void> _reveal(UserAccount u) async {
     try {
       final pwd = await UserApiService.revealPassword(
@@ -1173,12 +1211,12 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                                             ),
                                             IconButton(
                                               icon: const Icon(
-                                                Icons.delete,
-                                                color: Colors.red,
+                                                Icons.archive,
+                                                color: Colors.orange,
                                                 size: 18,
                                               ),
-                                              onPressed: () => _delete(u),
-                                              tooltip: 'Delete',
+                                              onPressed: () => _archive(u),
+                                              tooltip: 'Archive',
                                             ),
                                           ],
                                         ),

@@ -92,12 +92,58 @@ const revealPassword = async (req, res) => {
     }
 }
 
+// Archive user
+const archiveUser = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const archived = await userModel.archiveUser(userId);
+        if (!archived) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+        await activityLogsModel.logActivity('User Archived', `Archived user with ID ${userId}`);
+        res.json({ success: true, message: 'User archived successfully' });
+    } catch (err) {
+        console.error('Error archiving user:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+}
+
+// List archived users
+const listArchivedUsers = async (_req, res) => {
+    try {
+        const users = await userModel.listArchivedUsers();
+        res.json({ success: true, data: users });
+    } catch (err) {
+        console.error('Error listing archived users:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+}
+
+// Restore archived user
+const restoreUser = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const restored = await userModel.restoreUser(userId);
+        if (!restored) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+        await activityLogsModel.logActivity('User Restored', `Restored user with ID ${userId}`);
+        res.json({ success: true, message: 'User restored successfully' });
+    } catch (err) {
+        console.error('Error restoring user:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+}
+
 module.exports = {
     getUserById,
     verifyLogin,
     listUsers,
+    listArchivedUsers,
     createUser,
     updateUser,
     deleteUser,
+    archiveUser,
+    restoreUser,
     revealPassword
 };
