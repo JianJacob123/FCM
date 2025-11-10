@@ -10,6 +10,7 @@ class UserAccount {
   final String userRole;
   final String username;
   final bool active;
+  final String? archivedAt; // ISO timestamp string
 
   UserAccount({
     required this.userId,
@@ -17,6 +18,7 @@ class UserAccount {
     required this.userRole,
     required this.username,
     required this.active,
+    this.archivedAt,
   });
 
   factory UserAccount.fromJson(Map<String, dynamic> j) => UserAccount(
@@ -25,6 +27,7 @@ class UserAccount {
     userRole: j['user_role'] as String,
     username: j['username'] as String,
     active: (j['active'] as bool?) ?? true,
+    archivedAt: j['archived_at'] as String?,
   );
 
   Map<String, dynamic> toCreateBody({required String password}) => {
@@ -58,6 +61,14 @@ class UserApiService {
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     final list = (data['data'] as List).cast<Map<String, dynamic>>();
     return list.map(UserAccount.fromJson).toList();
+  }
+
+  static Future<Map<String, dynamic>> getUserById(int id) async {
+    final res = await http.get(Uri.parse('$base/$id'));
+    if (res.statusCode != 200) {
+      throw Exception('Failed to load user: ${res.statusCode}');
+    }
+    return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
   static Future<int> createUser(

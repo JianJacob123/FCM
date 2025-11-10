@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/user_provider.dart';
-import 'providers/theme_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/passenger_screen.dart';
 import 'screens/conductor_screen.dart';
@@ -37,23 +36,25 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => UserProvider()),
-        ChangeNotifierProvider(create: (context) => ThemeProvider()),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, _) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: 'FCM Transport',
-            theme: ThemeData(
-              primarySwatch: Colors.blue,
-              primaryColor: const Color.fromRGBO(62, 71, 149, 1),
-              brightness: Brightness.light,
-            ),
-            home: kIsWeb
-                ? const AdminScreen()
-                : const SplashScreen(), //kIsWeb ? const SplashScreen() : const SplashScreen(), //const AdminLoginScreen(),
-          );
-        },
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'FCM Transport',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          primaryColor: const Color.fromRGBO(62, 71, 149, 1),
+          brightness: Brightness.light,
+          scaffoldBackgroundColor: Colors.white,
+          cardColor: Colors.white,
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color.fromRGBO(62, 71, 149, 1),
+            foregroundColor: Colors.white,
+            elevation: 0,
+          ),
+        ),
+        home: kIsWeb
+            ? const AdminScreen()
+            : const SplashScreen(), //kIsWeb ? const SplashScreen() : const SplashScreen(), //const AdminLoginScreen(),
       ),
     );
   }

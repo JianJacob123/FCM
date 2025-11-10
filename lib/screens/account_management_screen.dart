@@ -225,7 +225,7 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                     ),
                     const SizedBox(height: 12),
                     SizedBox(
-                      height: 260,
+                      height: 150,
                       child: ListView.builder(
                         itemCount: roles.length,
                         itemBuilder: (context, index) {
@@ -584,19 +584,50 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Archive Account'),
-        content: Text('Are you sure you want to archive ${u.fullName}? This will move the account to the archive page.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+        backgroundColor: Colors.white,
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        content: SizedBox(
+          width: 300,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Archive Account',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Are you sure you want to archive ${u.fullName}? This will move the account to the archive page.',
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF3E4795),
+                    ),
+                    child: const Text('Archive'),
+                  ),
+                ],
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Archive'),
-          ),
-        ],
+        ),
       ),
     );
     if (ok != true) return;
@@ -1022,17 +1053,18 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                                   ),
                                 ),
                               ),
-                              const Expanded(
-                                flex: 2,
-                                child: Text(
-                                  'Password',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
+                              if (_showActions)
+                                const Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    'Password',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
                                   ),
                                 ),
-                              ),
                               if (_showActions)
                                 const Expanded(
                                   flex: 1,
@@ -1093,16 +1125,17 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                                   ),
                                 ),
                               ),
-                              const Expanded(
-                                flex: 2,
-                                child: Text(
-                                  'Password',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
+                              if (_showActions)
+                                const Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    'Password',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
-                              ),
                               if (_showActions)
                                 const Expanded(
                                   flex: 1,
@@ -1176,12 +1209,12 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                                         ),
                                       ),
                                     ),
-                                    Expanded(
-                                      flex: 2,
-                                      child: Row(
-                                        children: [
-                                          const Text('••••••••'),
-                                          if (_showActions) ...[
+                                    if (_showActions)
+                                      Expanded(
+                                        flex: 2,
+                                        child: Row(
+                                          children: [
+                                            const Text('••••••••'),
                                             const SizedBox(width: 8),
                                             IconButton(
                                               icon: const Icon(
@@ -1191,9 +1224,8 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                                               tooltip: 'Reveal password',
                                             ),
                                           ],
-                                        ],
+                                        ),
                                       ),
-                                    ),
                                     if (_showActions)
                                       Expanded(
                                         flex: 1,

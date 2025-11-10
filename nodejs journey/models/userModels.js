@@ -21,7 +21,7 @@ const listUsers = async () => {
 
 // List archived users
 const listArchivedUsers = async () => {
-    const sql = `SELECT user_id, full_name, user_role, username, active, created_at, updated_at FROM users WHERE archived = true ORDER BY user_id`;
+    const sql = `SELECT user_id, full_name, user_role, username, active, created_at, updated_at, archived_at FROM users WHERE archived = true ORDER BY archived_at DESC, user_id`;
     const res = await client.query(sql);
     return res.rows;
 }
@@ -71,16 +71,23 @@ const deleteUser = async (userId) => {
 
 // Archive user
 const archiveUser = async (userId) => {
-    const sql = `UPDATE users SET archived = true, updated_at = NOW() WHERE user_id = $1`;
+    const sql = `UPDATE users SET archived = true, archived_at = NOW(), updated_at = NOW() WHERE user_id = $1`;
     const res = await client.query(sql, [userId]);
     return res.rowCount > 0;
 }
 
 // Restore archived user
 const restoreUser = async (userId) => {
-    const sql = `UPDATE users SET archived = false, updated_at = NOW() WHERE user_id = $1`;
+    const sql = `UPDATE users SET archived = false, archived_at = NULL, updated_at = NOW() WHERE user_id = $1`;
     const res = await client.query(sql, [userId]);
     return res.rowCount > 0;
+}
+
+// Permanently delete users archived more than 30 days ago
+const deleteExpiredArchivedUsers = async () => {
+    const sql = `DELETE FROM users WHERE archived = true AND archived_at < NOW() - INTERVAL '30 days'`;
+    const res = await client.query(sql);
+    return res.rowCount;
 }
 
 // Reveal a user's password after verifying admin credentials
@@ -126,6 +133,7 @@ module.exports = {
     deleteUser,
     archiveUser,
     restoreUser,
+    deleteExpiredArchivedUsers,
     revealPasswordWithAdminAuth,
     getUserPasswordPlain,
 };

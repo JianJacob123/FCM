@@ -135,6 +135,18 @@ const restoreUser = async (req, res) => {
     }
 }
 
+// Cleanup expired archived users (permanently delete users archived >30 days)
+const cleanupExpiredArchivedUsers = async (_req, res) => {
+    try {
+        const deletedCount = await userModel.deleteExpiredArchivedUsers();
+        await activityLogsModel.logActivity('Cleanup', `Permanently deleted ${deletedCount} expired archived users`);
+        res.json({ success: true, message: `Deleted ${deletedCount} expired archived users`, deletedCount });
+    } catch (err) {
+        console.error('Error cleaning up expired archived users:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+}
+
 module.exports = {
     getUserById,
     verifyLogin,
@@ -145,5 +157,6 @@ module.exports = {
     deleteUser,
     archiveUser,
     restoreUser,
+    cleanupExpiredArchivedUsers,
     revealPassword
 };

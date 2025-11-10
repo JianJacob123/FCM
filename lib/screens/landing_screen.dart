@@ -1362,6 +1362,157 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
+                // About Our Services Section
+                Container(
+                  width: double.infinity,
+                  padding: _getResponsivePadding(context),
+                  color: Colors.white,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'What we offer?',
+                        style: TextStyle(
+                          fontSize: _getResponsiveFontSize(context, 36, 28, 24),
+                          fontWeight: FontWeight.bold,
+                          color: const Color.fromRGBO(62, 71, 149, 1),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Quick facts about the services we provide every day.',
+                        style: TextStyle(
+                          fontSize: _getResponsiveFontSize(context, 18, 16, 14),
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      _isMobile(context)
+                          ? Column(
+                              children: [
+                                _ServiceCard(
+                                  icon: Icons.directions_bus,
+                                  iconColor: const Color(0xFF5C5C8A),
+                                  title: 'Fleet Size',
+                                  description:
+                                      'A total of 15 modern air-conditioned buses operate daily between Bauan and Lipa.',
+                                ),
+                                const SizedBox(height: 20),
+                                _ServiceCard(
+                                  icon: Icons.access_time,
+                                  iconColor: const Color(0xFF9C27B0),
+                                  title: 'Service Hours',
+                                  description:
+                                      'Bauan → Lipa: 4:30 AM – 7:00 PM\nLipa → Bauan: 6:00 AM – 8:00 PM',
+                                ),
+                                const SizedBox(height: 20),
+                                _ServiceCard(
+                                  icon: Icons.verified_user,
+                                  iconColor: const Color(0xFF2196F3),
+                                  title: 'Safety First',
+                                  description:
+                                      'Operated by certified professional drivers trained in safety and passenger care.',
+                                ),
+                                const SizedBox(height: 20),
+                                _ServiceCard(
+                                  icon: Icons.accessible,
+                                  iconColor: const Color(0xFF2196F3),
+                                  title: 'Accessibility',
+                                  description:
+                                      'Spacious seating and well-maintained interiors ensure a comfortable ride throughout your journey.',
+                                ),
+                                const SizedBox(height: 20),
+                                _ServiceCard(
+                                  icon: Icons.local_offer,
+                                  iconColor: const Color(0xFF5C5C8A),
+                                  title: 'Affordable Fares',
+                                  description:
+                                      'Budget-friendly rates with discounts for students, seniors, and PWD.',
+                                ),
+                                const SizedBox(height: 20),
+                                _ServiceCard(
+                                  icon: Icons.air,
+                                  iconColor: const Color(0xFF2196F3),
+                                  title: 'On-board Amenities',
+                                  description:
+                                      'Air-conditioned buses on all trips for a cool and convenient travel experience.',
+                                ),
+                              ],
+                            )
+                          : Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _ServiceCard(
+                                        icon: Icons.directions_bus,
+                                        iconColor: const Color(0xFF5C5C8A),
+                                        title: 'Fleet Size',
+                                        description:
+                                            'A total of 15 modern air-conditioned buses operate daily between Bauan and Lipa.',
+                                      ),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    Expanded(
+                                      child: _ServiceCard(
+                                        icon: Icons.access_time,
+                                        iconColor: const Color(0xFF9C27B0),
+                                        title: 'Service Hours',
+                                        description:
+                                            'Bauan → Lipa: 4:30 AM – 7:00 PM\nLipa → Bauan: 6:00 AM – 8:00 PM',
+                                      ),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    Expanded(
+                                      child: _ServiceCard(
+                                        icon: Icons.verified_user,
+                                        iconColor: const Color(0xFF2196F3),
+                                        title: 'Safety First',
+                                        description:
+                                            'Operated by certified professional drivers trained in safety and passenger care.',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 20),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _ServiceCard(
+                                        icon: Icons.accessible,
+                                        iconColor: const Color(0xFF2196F3),
+                                        title: 'Accessibility',
+                                        description:
+                                            'Spacious seating and well-maintained interiors ensure a comfortable ride throughout your journey.',
+                                      ),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    Expanded(
+                                      child: _ServiceCard(
+                                        icon: Icons.local_offer,
+                                        iconColor: const Color(0xFF5C5C8A),
+                                        title: 'Affordable Fares',
+                                        description:
+                                            'Budget-friendly rates with discounts for students, seniors, and PWD.',
+                                      ),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    Expanded(
+                                      child: _ServiceCard(
+                                        icon: Icons.air,
+                                        iconColor: const Color(0xFF2196F3),
+                                        title: 'On-board Amenities',
+                                        description:
+                                            'Air-conditioned buses on all trips for a cool and convenient travel experience.',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                    ],
+                  ),
+                ),
                 // Why Choose Us Section
                 Container(
                   width: double.infinity,
@@ -1921,157 +2072,6 @@ class _HomePageState extends State<HomePage> {
                             ],
                           ),
                         ),
-                ),
-                // About Our Services Section
-                Container(
-                  width: double.infinity,
-                  padding: _getResponsivePadding(context),
-                  color: Colors.white,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'What we offer?',
-                        style: TextStyle(
-                          fontSize: _getResponsiveFontSize(context, 36, 28, 24),
-                          fontWeight: FontWeight.bold,
-                          color: const Color.fromRGBO(62, 71, 149, 1),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Quick facts about the services we provide every day.',
-                        style: TextStyle(
-                          fontSize: _getResponsiveFontSize(context, 18, 16, 14),
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      _isMobile(context)
-                          ? Column(
-                              children: [
-                                _ServiceCard(
-                                  icon: Icons.directions_bus,
-                                  iconColor: const Color(0xFF5C5C8A),
-                                  title: 'Fleet Size',
-                                  description:
-                                      'A total of 15 modern air-conditioned buses operate daily between Bauan and Lipa.',
-                                ),
-                                const SizedBox(height: 20),
-                                _ServiceCard(
-                                  icon: Icons.access_time,
-                                  iconColor: const Color(0xFF9C27B0),
-                                  title: 'Service Hours',
-                                  description:
-                                      'Bauan → Lipa: 4:30 AM – 7:00 PM\nLipa → Bauan: 6:00 AM – 8:00 PM',
-                                ),
-                                const SizedBox(height: 20),
-                                _ServiceCard(
-                                  icon: Icons.verified_user,
-                                  iconColor: const Color(0xFF2196F3),
-                                  title: 'Safety First',
-                                  description:
-                                      'Operated by certified professional drivers trained in safety and passenger care.',
-                                ),
-                                const SizedBox(height: 20),
-                                _ServiceCard(
-                                  icon: Icons.accessible,
-                                  iconColor: const Color(0xFF2196F3),
-                                  title: 'Accessibility',
-                                  description:
-                                      'Spacious seating and well-maintained interiors ensure a comfortable ride throughout your journey.',
-                                ),
-                                const SizedBox(height: 20),
-                                _ServiceCard(
-                                  icon: Icons.local_offer,
-                                  iconColor: const Color(0xFF5C5C8A),
-                                  title: 'Affordable Fares',
-                                  description:
-                                      'Budget-friendly rates with discounts for students, seniors, and PWD.',
-                                ),
-                                const SizedBox(height: 20),
-                                _ServiceCard(
-                                  icon: Icons.air,
-                                  iconColor: const Color(0xFF2196F3),
-                                  title: 'On-board Amenities',
-                                  description:
-                                      'Air-conditioned buses on all trips for a cool and convenient travel experience.',
-                                ),
-                              ],
-                            )
-                          : Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _ServiceCard(
-                                        icon: Icons.directions_bus,
-                                        iconColor: const Color(0xFF5C5C8A),
-                                        title: 'Fleet Size',
-                                        description:
-                                            'A total of 15 modern air-conditioned buses operate daily between Bauan and Lipa.',
-                                      ),
-                                    ),
-                                    const SizedBox(width: 20),
-                                    Expanded(
-                                      child: _ServiceCard(
-                                        icon: Icons.access_time,
-                                        iconColor: const Color(0xFF9C27B0),
-                                        title: 'Service Hours',
-                                        description:
-                                            'Bauan → Lipa: 4:30 AM – 7:00 PM\nLipa → Bauan: 6:00 AM – 8:00 PM',
-                                      ),
-                                    ),
-                                    const SizedBox(width: 20),
-                                    Expanded(
-                                      child: _ServiceCard(
-                                        icon: Icons.verified_user,
-                                        iconColor: const Color(0xFF2196F3),
-                                        title: 'Safety First',
-                                        description:
-                                            'Operated by certified professional drivers trained in safety and passenger care.',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 20),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _ServiceCard(
-                                        icon: Icons.accessible,
-                                        iconColor: const Color(0xFF2196F3),
-                                        title: 'Accessibility',
-                                        description:
-                                            'Spacious seating and well-maintained interiors ensure a comfortable ride throughout your journey.',
-                                      ),
-                                    ),
-                                    const SizedBox(width: 20),
-                                    Expanded(
-                                      child: _ServiceCard(
-                                        icon: Icons.local_offer,
-                                        iconColor: const Color(0xFF5C5C8A),
-                                        title: 'Affordable Fares',
-                                        description:
-                                            'Budget-friendly rates with discounts for students, seniors, and PWD.',
-                                      ),
-                                    ),
-                                    const SizedBox(width: 20),
-                                    Expanded(
-                                      child: _ServiceCard(
-                                        icon: Icons.air,
-                                        iconColor: const Color(0xFF2196F3),
-                                        title: 'On-board Amenities',
-                                        description:
-                                            'Air-conditioned buses on all trips for a cool and convenient travel experience.',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                    ],
-                  ),
                 ),
                 // Download App Section
                 Container(
