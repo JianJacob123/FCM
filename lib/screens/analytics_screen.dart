@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
@@ -7,7 +8,6 @@ import 'package:printing/printing.dart';
 import 'package:http/http.dart' as http;
 import '../widgets/donut_chart_painter.dart';
 import '../widgets/interactive_donut_chart.dart';
-import 'package:provider/provider.dart';
 import '../services/forecasting_api.dart' as fapi;
 import '../services/api.dart' show baseUrl;
 
@@ -20,7 +20,9 @@ class ForecastAnalyticsScreen extends StatefulWidget {
 
 class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   bool _loading = true;
+  bool _secondaryLoading = true;
   String? _error;
+  String? _secondaryError;
   int? _peakHour;
   double? _peakValue;
   List<int> _hours = const [];
@@ -54,6 +56,8 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
   static const Duration _cacheTimeout = Duration(minutes: 2); // 2 minutes client cache, 5 minutes server cache
   DateTime? _lastLoadAttempt; // For simple rate limiting
   bool _inFlight = false; // Prevent concurrent loads
+  bool _yearlyLoading = false;
+  String? _yearlyError;
   
   // Report generation spam prevention
   String? _lastReportHash;
@@ -317,7 +321,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
                     setState(() {
                       _yearlyYear = year;
                     });
-                    _loadYearlyForecast();
+                    _ensureYearlyForecast(force: true);
                     Navigator.of(context).pop();
                   },
                 );
@@ -339,45 +343,6 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
         );
       },
     );
-  }
-
-  Future<void> _loadYearlyForecast() async {
-    try {
-      if (mounted) {
-        setState(() {
-          _loading = true;
-        });
-      }
-      
-      final yearlyF = fapi.forecastYearlyDaily(_yearlyYear);
-      final yearly = await yearlyF;
-      
-      if (mounted) {
-        setState(() {
-          _yearlyYear = yearly.year;
-          _yearlyGrid = yearly.grid;
-          _loading = false;
-        });
-      }
-      
-      print('Yearly forecast loaded for ${_yearlyYear}: grid length=${yearly.grid.length}');
-    } catch (e) {
-      if (mounted) {
-        String errorMessage = 'Failed to load forecast for $_yearlyYear';
-        if (e.toString().contains('TimeoutException')) {
-          errorMessage = 'Request timed out while loading yearly forecast. The service may be slow. Please try again.';
-        } else if (e.toString().contains('SocketException') || e.toString().contains('Connection')) {
-          errorMessage = 'Cannot connect to forecasting service. Please check your connection.';
-        } else {
-          errorMessage = 'Failed to load forecast for $_yearlyYear: ${e.toString()}';
-        }
-        setState(() {
-          _error = errorMessage;
-          _loading = false;
-        });
-      }
-      print('Error loading yearly forecast for $_yearlyYear: $e');
-    }
   }
 
   Widget _buildPeakTimeCard() {
@@ -757,6 +722,67 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
     );
   }
 
+  Widget _buildYearlyHeatmapContent() {
+    if (_yearlyLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_yearlyError != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.warning_amber_rounded, size: 32, color: Colors.orange),
+            const SizedBox(height: 8),
+            const Text(
+              'Unable to load yearly forecast',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _yearlyError!,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.red.shade700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: () => _ensureYearlyForecast(force: true),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+    if (_yearlyGrid.isNotEmpty) {
+      return _YearlyHeatmap(grid: _yearlyGrid, year: _yearlyYear);
+    }
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.calendar_today_outlined, size: 28, color: Colors.grey),
+          const SizedBox(height: 8),
+          const Text(
+            'No yearly forecast data yet',
+            style: TextStyle(color: Colors.black54),
+          ),
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: () => _ensureYearlyForecast(force: true),
+            icon: const Icon(Icons.refresh),
+            label: const Text('Load yearly forecast'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -785,37 +811,21 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
     if (mounted) {
       setState(() {
         _loading = true;
+        _secondaryLoading = true;
         _error = null;
+        _secondaryError = null;
       });
     }
     try {
       _inFlight = true;
-      // Fetch in parallel (removed redundant network test)
+      // Fetch core analytics in parallel
       final hourlyF = fapi.forecastHourly();
       final dailyF = fapi.forecastDaily();
       final schedulesF = _fetchTodaySchedules();
-      final tripsPerUnitF = _fetchTripsPerUnit();
-      final fleetActivityF = _fetchFleetActivity();
-      final tripDurationF = _fetchTripDurationAnalytics();
       final dailyPassengerCountF = _fetchDailyPassengerCount();
       final hourly = await hourlyF;
       final daily = await dailyF;
-      late final yearly;
-      try {
-        final yearlyF = fapi.forecastYearlyDaily(_yearlyYear);
-        yearly = await yearlyF;
-        print('Yearly forecast loaded: year=${yearly.year}, grid length=${yearly.grid.length}');
-        if (yearly.grid.isEmpty) {
-          print('WARNING: Yearly grid is empty!');
-        }
-      } catch (e) {
-        print('Error loading yearly forecast: $e');
-        yearly = (year: _yearlyYear, grid: <List<double?>>[]);
-      }
       final schedules = await schedulesF;
-      final tripsPU = await tripsPerUnitF;
-      final fleet = await fleetActivityF;
-      final tripDuration = await tripDurationF;
       final dailyPassengerData = await dailyPassengerCountF;
 
       if (mounted) {
@@ -827,19 +837,16 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
           _dates = daily.dates;
           _dailyPredictions = daily.predictions;
           _unitsInOperation = schedules.deployedUnits;
-          _tripsPerUnit = tripsPU;
-          _fleetHours = fleet['hours'] ?? const [];
-          _fleetCounts = fleet['counts'] ?? const [];
-          _yearlyYear = yearly.year;
-          _yearlyGrid = yearly.grid;
-          _tripDurationAnalytics = tripDuration;
           _dailyPassengerCount = dailyPassengerData.total;
           _dailyPassengerBreakdown = dailyPassengerData.breakdown;
           _lastLoadTime = DateTime.now(); // Update cache time
           _cachedDate = _selectedDate; // Store the date this cache is for
-          print('Yearly grid set: ${_yearlyGrid.length} months, first month has ${_yearlyGrid.isNotEmpty ? _yearlyGrid[0].length : 0} days');
+          _loading = false;
         });
       }
+      // Kick off secondary loads without blocking the UI
+      unawaited(_startSecondaryLoads(force: true));
+      unawaited(_ensureYearlyForecast());
     } catch (e) {
       if (mounted) {
         String errorMessage = 'Failed to load analytics data';
@@ -850,7 +857,10 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
         } else {
           errorMessage = 'Error: ${e.toString()}';
         }
-        setState(() => _error = errorMessage);
+        setState(() {
+          _error = errorMessage;
+          _secondaryLoading = false;
+        });
       }
       print('Error in _load: $e');
     } finally {
@@ -858,6 +868,77 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
         setState(() => _loading = false);
       }
       _inFlight = false;
+    }
+  }
+
+  Future<void> _startSecondaryLoads({bool force = false}) async {
+    if (_secondaryLoading && !force) return;
+    if (mounted) {
+      setState(() {
+        _secondaryLoading = true;
+        if (force) {
+          _secondaryError = null;
+        }
+      });
+    }
+    try {
+      final tripsPerUnitF = _fetchTripsPerUnit();
+      final fleetActivityF = _fetchFleetActivity();
+      final tripDurationF = _fetchTripDurationAnalytics();
+      final tripsPU = await tripsPerUnitF;
+      final fleet = await fleetActivityF;
+      final tripDuration = await tripDurationF;
+
+      if (!mounted) return;
+      setState(() {
+        _tripsPerUnit = tripsPU;
+        _fleetHours = fleet['hours'] ?? const [];
+        _fleetCounts = fleet['counts'] ?? const [];
+        _tripDurationAnalytics = tripDuration;
+        _secondaryLoading = false;
+        _secondaryError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _secondaryLoading = false;
+        _secondaryError = 'Failed to load operational metrics: ${e.toString()}';
+      });
+      print('Error loading secondary analytics: $e');
+    }
+  }
+
+  Future<void> _ensureYearlyForecast({bool force = false}) async {
+    if (_yearlyLoading) return;
+    final needsRefresh = _yearlyGrid.isEmpty || force;
+    if (!needsRefresh) return;
+
+    if (mounted) {
+      setState(() {
+        _yearlyLoading = true;
+        if (force) {
+          _yearlyError = null;
+        }
+      });
+    }
+
+    try {
+      final yearly = await fapi.forecastYearlyDaily(_yearlyYear);
+      if (!mounted) return;
+      setState(() {
+        _yearlyYear = yearly.year;
+        _yearlyGrid = yearly.grid;
+        _yearlyLoading = false;
+        _yearlyError = null;
+        print('Yearly grid set: ${_yearlyGrid.length} months, first month has ${_yearlyGrid.isNotEmpty ? _yearlyGrid[0].length : 0} days');
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _yearlyLoading = false;
+        _yearlyError = 'Failed to load yearly forecast: ${e.toString()}';
+      });
+      print('Error loading yearly forecast: $e');
     }
   }
 
@@ -1281,6 +1362,9 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
             _OperationalMetricsSection(
               tripDurationAnalytics: _tripDurationAnalytics,
               selectedDate: _selectedDate,
+              isLoading: _secondaryLoading,
+              error: _secondaryError,
+              onRetry: () => _startSecondaryLoads(force: true),
             ),
             const SizedBox(height: 16),
             // Charts in a row (Daily + Hourly) directly below Fleet Activity
@@ -1361,21 +1445,7 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
               child: SizedBox(
                 height: 200,
                 width: double.infinity,
-                child: _yearlyGrid.isNotEmpty 
-                  ? _YearlyHeatmap(grid: _yearlyGrid, year: _yearlyYear)
-                  : Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.refresh, size: 32, color: Colors.grey),
-                          const SizedBox(height: 8),
-                          Text(
-                            _loading ? 'Loading yearly forecast...' : 'No yearly data available',
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
+                child: _buildYearlyHeatmapContent(),
               ),
             ),
             const SizedBox(height: 24),
@@ -1897,8 +1967,18 @@ class _AreaChartPainter extends CustomPainter {
 class _OperationalMetricsSection extends StatelessWidget {
   final Map<String, dynamic>? tripDurationAnalytics;
   final DateTime selectedDate;
+  final bool isLoading;
+  final String? error;
+  final VoidCallback? onRetry;
   
-  const _OperationalMetricsSection({super.key, this.tripDurationAnalytics, required this.selectedDate});
+  const _OperationalMetricsSection({
+    super.key,
+    this.tripDurationAnalytics,
+    required this.selectedDate,
+    required this.isLoading,
+    this.error,
+    this.onRetry,
+  });
   
   String _formatDateForDisplay(DateTime date) {
     const months = [
@@ -1910,6 +1990,107 @@ class _OperationalMetricsSection extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _Card(
+                  title: const Text('Fleet Activity by Hour'),
+                  child: SizedBox(
+                    height: 180,
+                    width: double.infinity,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _Card(
+                  title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Average Trip Duration'),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatDateForDisplay(selectedDate),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                  child: SizedBox(
+                    height: 180,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    if (error != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Operational metrics are temporarily unavailable.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  error!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.red.shade700,
+                  ),
+                ),
+                if (onRetry != null) ...[
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: onRetry,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
