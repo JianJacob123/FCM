@@ -959,18 +959,20 @@ class _ForecastAnalyticsScreenState extends State<ForecastAnalyticsScreen> {
       }
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final list = List<Map<String, dynamic>>.from(body['data'] ?? []);
-      // Count unique vehicles and active entries
+      // Count unique vehicles and only those with 'Active' status
       final vehicleIds = <int>{};
       int active = 0;
       for (final s in list) {
         final vid = s['vehicle_id'];
         if (vid is int) vehicleIds.add(vid);
         final status = (s['status'] ?? '').toString().toLowerCase();
-        if (status.isEmpty || status == 'active' || status == 'scheduled')
+        // Only count units with status 'active' (case-insensitive)
+        if (status == 'active') {
           active++;
+        }
       }
       final total = vehicleIds.isNotEmpty ? vehicleIds.length : list.length;
-      final deployed = active > 0 ? active : list.length;
+      final deployed = active; // Only count active units
       return (
         deployedUnits: deployed,
         totalUnits: total == 0 ? deployed : total,
