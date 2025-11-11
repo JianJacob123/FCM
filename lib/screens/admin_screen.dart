@@ -7995,16 +7995,6 @@ class _SettingsPageState extends State<_SettingsPage> {
                               ),
                               const SizedBox(height: 8),
                               _buildSettingCard(
-                                icon: Icons.notifications,
-                                title: 'Notification Settings',
-                                subtitle: 'Configure notification preferences',
-                                isSelected: _selectedSetting == 'notifications',
-                                onTap: () => setState(
-                                  () => _selectedSetting = 'notifications',
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              _buildSettingCard(
                                 icon: Icons.security,
                                 title: 'Security',
                                 subtitle: 'Password and security options',
@@ -8190,11 +8180,6 @@ class _SettingsPageState extends State<_SettingsPage> {
     switch (_selectedSetting) {
       case 'account':
         return _buildAccountSettings();
-      case 'notifications':
-        return _buildPlaceholder(
-          'Notification Settings',
-          'Configure notification preferences',
-        );
       case 'security':
         return _buildSecuritySettings();
       case 'about':
@@ -9192,13 +9177,16 @@ class _SettingsPageState extends State<_SettingsPage> {
                         prefixIcon: const Icon(Icons.email_outlined),
                         errorText: emailError,
                       ),
-                      onChanged: (_) {
-                        if (emailError != null || generalError != null) {
-                          setDialogState(() {
-                            emailError = null;
-                            generalError = null;
-                          });
-                        }
+                      onChanged: (value) {
+                        setDialogState(() {
+                          emailError = null;
+                          generalError = null;
+                          // Real-time validation: check if same as current email
+                          if (value.trim().isNotEmpty && 
+                              value.trim().toLowerCase() == _username.toLowerCase()) {
+                            emailError = 'New email must be different from your current email';
+                          }
+                        });
                       },
                     ),
                     const SizedBox(height: 16),
@@ -9279,6 +9267,14 @@ class _SettingsPageState extends State<_SettingsPage> {
                           ).hasMatch(newEmail)) {
                             setDialogState(() {
                               emailError = 'Please enter a valid email address';
+                            });
+                            return;
+                          }
+
+                          // Check if new email is the same as current email
+                          if (newEmail.toLowerCase() == _username.toLowerCase()) {
+                            setDialogState(() {
+                              emailError = 'New email must be different from your current email';
                             });
                             return;
                           }
@@ -9379,7 +9375,7 @@ class _SettingsPageState extends State<_SettingsPage> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text(
-                                        'Email updated successfully.',
+                                        'Change email successfully',
                                       ),
                                       backgroundColor: Colors.green,
                                     ),
@@ -9667,11 +9663,13 @@ class _SettingsPageState extends State<_SettingsPage> {
   }
 
   void _showResetPasswordDialogSettings(String email, String otp) {
-    final otpController = TextEditingController();
     final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
     bool isVerifying = false;
     bool obscureNewPassword = true;
+    bool obscureConfirmPassword = true;
     String? passwordError;
+    String? confirmPasswordError;
 
     String? validatePassword(String password) {
       if (password.isEmpty) return null;
@@ -9708,21 +9706,8 @@ class _SettingsPageState extends State<_SettingsPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text(
-                      'Enter the OTP sent to your email and set a new password.',
+                      'Enter your new password below.',
                       style: TextStyle(fontSize: 14, color: Colors.black54),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: otpController..text = otp,
-                      keyboardType: TextInputType.number,
-                      maxLength: 6,
-                      decoration: InputDecoration(
-                        hintText: '6-digit OTP',
-                        counterText: '',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
                     ),
                     const SizedBox(height: 8),
                     TextField(
@@ -9732,6 +9717,11 @@ class _SettingsPageState extends State<_SettingsPage> {
                       onChanged: (value) {
                         setModalState(() {
                           passwordError = validatePassword(value);
+                          // live check confirm match if already typed
+                          if (confirmPasswordController.text.isNotEmpty) {
+                            confirmPasswordError =
+                                value == confirmPasswordController.text ? null : 'Passwords do not match';
+                          }
                         });
                       },
                       decoration: InputDecoration(
@@ -9756,6 +9746,37 @@ class _SettingsPageState extends State<_SettingsPage> {
                         errorMaxLines: 3,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: confirmPasswordController,
+                      obscureText: obscureConfirmPassword,
+                      maxLength: 128,
+                      onChanged: (value) {
+                        setModalState(() {
+                          confirmPasswordError =
+                              value == newPasswordController.text ? null : 'Passwords do not match';
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Confirm New Password',
+                        counterText: '',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                          ),
+                          onPressed: () {
+                            setModalState(() {
+                              obscureConfirmPassword = !obscureConfirmPassword;
+                            });
+                          },
+                        ),
+                        errorText: confirmPasswordError,
+                        errorMaxLines: 2,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -9768,10 +9789,10 @@ class _SettingsPageState extends State<_SettingsPage> {
                   onPressed: isVerifying
                       ? null
                       : () async {
-                          final enteredOtp = otpController.text.trim();
                           final newPassword = newPasswordController.text.trim();
+                          final confirmPassword = confirmPasswordController.text.trim();
 
-                          if (enteredOtp.isEmpty || newPassword.isEmpty) {
+                          if (newPassword.isEmpty || confirmPassword.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Please fill in all fields'),
@@ -9794,6 +9815,18 @@ class _SettingsPageState extends State<_SettingsPage> {
                             );
                             return;
                           }
+                          if (newPassword != confirmPassword) {
+                            setModalState(() {
+                              confirmPasswordError = 'Passwords do not match';
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Passwords do not match'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
 
                           setModalState(() => isVerifying = true);
 
@@ -9802,7 +9835,7 @@ class _SettingsPageState extends State<_SettingsPage> {
                             headers: {'Content-Type': 'application/json'},
                             body: jsonEncode({
                               'username': email,
-                              'otp': enteredOtp,
+                              'otp': otp,
                               'newPassword': newPassword,
                             }),
                           );
@@ -9847,7 +9880,7 @@ class _SettingsPageState extends State<_SettingsPage> {
                             ),
                           ),
                         )
-                      : const Text('Verify & Reset'),
+                      : const Text('Reset Password'),
                 ),
               ],
             );

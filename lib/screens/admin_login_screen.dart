@@ -90,33 +90,33 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           fullName: fullName,
           onVerified: () {
             Navigator.of(context).pop(); // close OTP modal
-            // Save user in SharedPreferences
+                          // Save user in SharedPreferences
             SharedPreferences.getInstance().then((prefs) async {
-              await prefs.setString('admin_user_id', userId);
-              await prefs.setString('admin_user_name', fullName);
-              await prefs.setString('admin_user_role', 'admin');
+                          await prefs.setString('admin_user_id', userId);
+                          await prefs.setString('admin_user_name', fullName);
+                          await prefs.setString('admin_user_role', 'admin');
 
-              // Update Provider
-              final user = UserModel(
-                id: userId,
-                name: fullName,
-                role: UserRole.admin,
-              );
-              context.read<UserProvider>().loginUser(user);
+                          // Update Provider
+                          final user = UserModel(
+                            id: userId,
+                            name: fullName,
+                            role: UserRole.admin,
+                          );
+                          context.read<UserProvider>().loginUser(user);
 
-              // Navigate to AdminScreen
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (_) => const AdminScreen(),
-                ),
-              );
+                          // Navigate to AdminScreen
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => const AdminScreen(),
+                            ),
+                          );
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Login successful!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Login successful!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
             });
           },
         );
@@ -179,21 +179,21 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                           try {
                             print('Sending OTP request to: $baseUrl/users/forgot-password');
                             print('Request body: ${jsonEncode({'username': email})}');
-                            
-                            final res = await http.post(
-                              Uri.parse('$baseUrl/users/forgot-password'),
-                              headers: {'Content-Type': 'application/json'},
-                              body: jsonEncode({'username': email}),
-                            );
+
+                          final res = await http.post(
+                            Uri.parse('$baseUrl/users/forgot-password'),
+                            headers: {'Content-Type': 'application/json'},
+                            body: jsonEncode({'username': email}),
+                          );
 
                             print('Response status: ${res.statusCode}');
                             print('Response body: ${res.body}');
 
-                            setModalState(() => isSending = false);
+                          setModalState(() => isSending = false);
 
-                            if (res.statusCode == 200) {
+                          if (res.statusCode == 200) {
                               final responseData = jsonDecode(res.body);
-                              Navigator.of(context).pop(); // close current modal
+                            Navigator.of(context).pop(); // close current modal
                               _showOtpVerificationDialog(email);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -203,7 +203,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                   backgroundColor: Colors.green,
                                 ),
                               );
-                            } else {
+                          } else {
                               final responseBody = res.body;
                               Map<String, dynamic> err;
                               try {
@@ -211,9 +211,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                               } catch (e) {
                                 err = {'error': responseBody};
                               }
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
                                     err['error'] ?? err['message'] ?? 'Failed to send OTP. Status: ${res.statusCode}',
                                   ),
                                   backgroundColor: Colors.red,
@@ -870,24 +870,24 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         clipBehavior: Clip.none,
         children: [
           Container(
-            width: double.infinity,
+        width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 80, 16, 16),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 30,
-                    offset: const Offset(0, 15),
-                  ),
-                ],
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 30,
+                offset: const Offset(0, 15),
               ),
-              child: _buildLoginForm(),
-            ),
+            ],
+          ),
+          child: _buildLoginForm(),
+        ),
           ),
           // Arc logo at the top
           Positioned(
@@ -910,22 +910,22 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           clipBehavior: Clip.none,
           children: [
             Container(
-              width: 400,
+          width: 400,
               margin: const EdgeInsets.fromLTRB(32, 80, 32, 32),
-              padding: const EdgeInsets.all(40),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 30,
-                    offset: const Offset(0, 15),
-                  ),
-                ],
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 30,
+                offset: const Offset(0, 15),
               ),
-              child: _buildLoginForm(),
-            ),
+            ],
+          ),
+          child: _buildLoginForm(),
+        ),
             // Arc logo at the top
             Positioned(
               top: 0,
@@ -1188,7 +1188,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               ),
               const Text(
                 '. ',
-                style: TextStyle(fontSize: 12, color: Color(0xFF999999)),
+            style: TextStyle(fontSize: 12, color: Color(0xFF999999)),
               ),
               TextButton(
                 onPressed: _showPrivacyPolicy,
@@ -2083,7 +2083,7 @@ class _LoginOtpDialogState extends State<_LoginOtpDialog> {
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
-                ),
+          ),
         ),
       ],
     );
