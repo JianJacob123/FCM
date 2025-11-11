@@ -158,4 +158,20 @@ class UserApiService {
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     return data['password'] as String;
   }
+
+  static Future<bool> verifyPassword({
+    required int userId,
+    required String password,
+  }) async {
+    final res = await http.post(
+      Uri.parse('$base/$userId/verify-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'password': password}),
+    );
+    if (res.statusCode != 200) {
+      throw Exception('Verify password failed: ${res.statusCode} ${res.body}');
+    }
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    return data['valid'] as bool? ?? false;
+  }
 }

@@ -1,9 +1,34 @@
 const client = require('../config/db'); //db connection file
+const bcrypt = require('bcryptjs');
+
+// Helpers for password hashing/verification with backward compatibility
+const isBcryptHash = (value) => typeof value === 'string' && value.startsWith('$2');
+const hashPassword = async (plain) => {
+  const salt = await bcrypt.genSalt(10);
+  return await bcrypt.hash(plain, salt);
+};
+const verifyAgainstStored = async (plain, stored) => {
+  if (!stored) return false;
+  if (isBcryptHash(stored)) {
+    try {
+      return await bcrypt.compare(plain, stored);
+    } catch {
+      return false;
+    }
+  }
+  // Backward-compat: plaintext match
+  return plain === stored;
+};
 
 const authLogin = async (username, password) => {
-    const sql = `SELECT user_id, full_name, user_role FROM users WHERE username = $1 AND user_pass = $2`;
-    const res = await client.query(sql, [username, password]);
-    return res.rows[0];
+    // Fetch by username, then verify with bcrypt/compat
+    const sql = `SELECT user_id, full_name, user_role, user_pass FROM users WHERE username = $1 LIMIT 1`;
+    const res = await client.query(sql, [username]);
+    const row = res.rows[0];
+    if (!row) return undefined;
+    const ok = await verifyAgainstStored(password, row.user_pass);
+    if (!ok) return undefined;
+    return { user_id: row.user_id, full_name: row.full_name, user_role: row.user_role };
 }
 
 const getUserById = async (userId) => {
@@ -33,11 +58,15 @@ const createUser = async (data) => {
         VALUES ($1, $2, $3, $4, COALESCE($5, true), NOW(), NOW())
         RETURNING user_id
     `;
+    // Ensure password is hashed on create
+    const hashed = isBcryptHash(data.user_pass)
+      ? data.user_pass
+      : await hashPassword(data.user_pass);
     const params = [
         data.full_name,
         data.user_role,
         data.username,
-        data.user_pass,
+        hashed,
         data.active,
     ];
     const res = await client.query(sql, params);
@@ -52,8 +81,16 @@ const updateUser = async (userId, data) => {
     const updatable = ['full_name', 'user_role', 'username', 'user_pass', 'active'];
     for (const key of updatable) {
         if (Object.prototype.hasOwnProperty.call(data, key)) {
-            fields.push(`${key} = $${i++}`);
-            params.push(data[key]);
+            if (key === 'user_pass' && data[key]) {
+                const hashed = isBcryptHash(data[key])
+                  ? data[key]
+                  : await hashPassword(data[key]);
+                fields.push(`${key} = $${i++}`);
+                params.push(hashed);
+            } else {
+                fields.push(`${key} = $${i++}`);
+                params.push(data[key]);
+            }
         }
     }
     if (!fields.length) return;
@@ -99,14 +136,21 @@ const revealPasswordWithAdminAuth = async (userId, adminUsername, adminPassword)
         // authorized via master password
     } else {
         let adminRes;
-    if (adminUsername && adminUsername.length > 0) {
-        const adminSql = `SELECT user_id FROM users WHERE username = $1 AND user_pass = $2 AND user_role = 'admin'`;
-            adminRes = await client.query(adminSql, [adminUsername, adminPassword]);
-    } else {
-        // Password-only check: any admin with this password
-        const adminSql = `SELECT user_id FROM users WHERE user_pass = $1 AND user_role = 'admin' LIMIT 1`;
-            adminRes = await client.query(adminSql, [adminPassword]);
-    }
+        if (adminUsername && adminUsername.length > 0) {
+            const adminSql = `SELECT user_id, user_pass FROM users WHERE username = $1 AND user_role = 'admin' LIMIT 1`;
+            const r = await client.query(adminSql, [adminUsername]);
+            const ok = r.rows[0] ? await verifyAgainstStored(adminPassword, r.rows[0].user_pass) : false;
+            adminRes = { rows: ok ? [r.rows[0]] : [] };
+        } else {
+            // Password-only check: any admin with this password (scan limited set)
+            const adminSql = `SELECT user_id, user_pass FROM users WHERE user_role = 'admin' LIMIT 10`;
+            const r = await client.query(adminSql, []);
+            let okRow = null;
+            for (const row of r.rows) {
+                if (await verifyAgainstStored(adminPassword, row.user_pass)) { okRow = row; break; }
+            }
+            adminRes = { rows: okRow ? [okRow] : [] };
+        }
         if (adminRes.rows.length === 0) {
             return null; // unauthorized
         }
@@ -123,6 +167,17 @@ const getUserPasswordPlain = async (userId) => {
     return res.rows[0] ? res.rows[0].user_pass : undefined;
 }
 
+// Verify if the provided password matches the user's stored password
+const verifyPassword = async (userId, password) => {
+    const sql = `SELECT user_pass FROM users WHERE user_id = $1`;
+    const res = await client.query(sql, [userId]);
+    if (!res.rows[0]) {
+        return false; // User not found
+    }
+    const storedPassword = res.rows[0].user_pass;
+    return await verifyAgainstStored(password, storedPassword);
+}
+
 module.exports = {
     getUserById,
     authLogin,
@@ -136,4 +191,5 @@ module.exports = {
     deleteExpiredArchivedUsers,
     revealPasswordWithAdminAuth,
     getUserPasswordPlain,
+    verifyPassword,
 };

@@ -147,6 +147,24 @@ const cleanupExpiredArchivedUsers = async (_req, res) => {
     }
 }
 
+// Verify password for a user
+const verifyPassword = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const { password } = req.body;
+        
+        if (!password) {
+            return res.status(400).json({ success: false, error: 'Password is required' });
+        }
+        
+        const isValid = await userModel.verifyPassword(userId, password);
+        res.json({ success: true, valid: isValid });
+    } catch (err) {
+        console.error('Error verifying password:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+}
+
 module.exports = {
     getUserById,
     verifyLogin,
@@ -158,5 +176,6 @@ module.exports = {
     archiveUser,
     restoreUser,
     cleanupExpiredArchivedUsers,
-    revealPassword
+    revealPassword,
+    verifyPassword
 };

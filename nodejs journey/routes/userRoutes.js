@@ -16,6 +16,7 @@ router.delete('/:id', userController.deleteUser);
 router.patch('/:id/archive', userController.archiveUser);
 router.patch('/:id/restore', userController.restoreUser);
 router.post('/:id/reveal-password', userController.revealPassword);
+router.post('/:id/verify-password', userController.verifyPassword);
 router.post('/cleanup-expired', userController.cleanupExpiredArchivedUsers);
 
 

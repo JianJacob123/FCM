@@ -8570,6 +8570,7 @@ class _SettingsPageState extends State<_SettingsPage> {
     bool isUpdatingPassword = false;
     bool isVerifyingCurrentPassword = false;
     Timer? currentPasswordDebounce;
+    bool dialogClosed = false; // prevent setState after dialog is closed
 
     String? validateNewPassword(String value) {
       if (value.isEmpty) {
@@ -8617,11 +8618,13 @@ class _SettingsPageState extends State<_SettingsPage> {
                     obscureText: obscureCurrentPassword,
                     onChanged: (value) {
                       currentPasswordDebounce?.cancel();
-                      setDialogState(() {
-                        currentPasswordError = null;
-                        generalError = null;
-                        isVerifyingCurrentPassword = false;
-                      });
+                      if (!dialogClosed) {
+                        setDialogState(() {
+                          currentPasswordError = null;
+                          generalError = null;
+                          isVerifyingCurrentPassword = false;
+                        });
+                      }
 
                       if (value.isEmpty || _adminId == null) {
                         return;
@@ -8631,31 +8634,37 @@ class _SettingsPageState extends State<_SettingsPage> {
                         const Duration(milliseconds: 600),
                         () async {
                           if (currentPasswordController.text != value) return;
-                          setDialogState(() {
-                            isVerifyingCurrentPassword = true;
-                            currentPasswordError = null;
-                          });
+                          if (!dialogClosed) {
+                            setDialogState(() {
+                              isVerifyingCurrentPassword = true;
+                              currentPasswordError = null;
+                            });
+                          }
                           try {
                             final adminUserId = int.parse(_adminId!);
-                            final storedPassword = await UserApiService.revealPassword(
+                            final isValid = await UserApiService.verifyPassword(
                               userId: adminUserId,
-                              adminUsername: '',
-                              adminPassword: '',
+                              password: value,
                             );
                             if (currentPasswordController.text != value) return;
-                            setDialogState(() {
-                              if (storedPassword != value) {
-                                currentPasswordError = 'Current password is incorrect';
-                              }
-                              isVerifyingCurrentPassword = false;
-                            });
+                            if (!dialogClosed) {
+                              setDialogState(() {
+                                if (!isValid) {
+                                  currentPasswordError = 'Current password is incorrect';
+                                } else {
+                                  currentPasswordError = null;
+                                }
+                                isVerifyingCurrentPassword = false;
+                              });
+                            }
                           } catch (e) {
                             if (currentPasswordController.text != value) return;
-                            setDialogState(() {
-                              isVerifyingCurrentPassword = false;
-                              generalError =
-                                  'Unable to verify current password. Please try again.';
-                            });
+                            if (!dialogClosed) {
+                              setDialogState(() {
+                                isVerifyingCurrentPassword = false;
+                                currentPasswordError = 'Unable to verify current password. Please try again.';
+                              });
+                            }
                           }
                         },
                       );
@@ -8811,10 +8820,16 @@ class _SettingsPageState extends State<_SettingsPage> {
               TextButton(
                 onPressed: () {
                   currentPasswordDebounce?.cancel();
-                  currentPasswordController.dispose();
-                  newPasswordController.dispose();
-                  confirmPasswordController.dispose();
+                  dialogClosed = true;
+                  // Pop first, then dispose controllers safely after frame
                   Navigator.pop(dialogContext);
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    try {
+                      currentPasswordController.dispose();
+                      newPasswordController.dispose();
+                      confirmPasswordController.dispose();
+                    } catch (_) {}
+                  });
                 },
                 child: const Text('Cancel'),
               ),
@@ -8829,12 +8844,14 @@ class _SettingsPageState extends State<_SettingsPage> {
 
                         currentPasswordDebounce?.cancel();
 
+                      if (!dialogClosed) {
                         setDialogState(() {
                           currentPasswordError = null;
                           newPasswordError = null;
                           confirmPasswordError = null;
                           generalError = null;
                         });
+                      }
 
                         bool hasError = false;
                         if (currentPassword.isEmpty) {
@@ -8857,47 +8874,55 @@ class _SettingsPageState extends State<_SettingsPage> {
                           hasError = true;
                         }
 
-                        if (hasError) {
+                      if (hasError) {
+                        if (!dialogClosed) {
                           setDialogState(() {});
+                        }
                           return;
                         }
 
                         try {
                           if (_adminId == null) {
+                          if (!dialogClosed) {
                             setDialogState(() {
                               generalError = 'Admin user ID not found';
                             });
+                          }
                             return;
                           }
 
                           final adminUserId = int.parse(_adminId!);
 
+                        if (!dialogClosed) {
                           setDialogState(() {
                             isUpdatingPassword = true;
                           });
+                        }
 
                           try {
-                            final storedPassword =
-                                await UserApiService.revealPassword(
+                            final isValid = await UserApiService.verifyPassword(
                               userId: adminUserId,
-                              adminUsername: '',
-                              adminPassword: '',
+                              password: currentPassword,
                             );
 
-                            if (storedPassword != currentPassword) {
+                            if (!isValid) {
+                            if (!dialogClosed) {
                               setDialogState(() {
                                 currentPasswordError =
                                     'Current password is incorrect';
                                 isUpdatingPassword = false;
                               });
+                            }
                               return;
                             }
                           } catch (e) {
+                          if (!dialogClosed) {
                             setDialogState(() {
                               generalError =
                                   'Unable to verify current password. Please try again.';
                               isUpdatingPassword = false;
                             });
+                          }
                             return;
                           }
 
@@ -8915,22 +8940,50 @@ class _SettingsPageState extends State<_SettingsPage> {
                             password: newPassword,
                           );
 
+                        if (!dialogClosed) {
                           setDialogState(() {
                             isUpdatingPassword = false;
                           });
+                        }
 
-                          currentPasswordController.dispose();
-                          newPasswordController.dispose();
-                          confirmPasswordController.dispose();
-                          Navigator.pop(dialogContext);
+                        dialogClosed = true;
+                        currentPasswordDebounce?.cancel();
+                        // Pop dialog first, then dispose controllers after frame to avoid rebuilds
+                        Navigator.pop(dialogContext);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          try {
+                            currentPasswordController.dispose();
+                            newPasswordController.dispose();
+                            confirmPasswordController.dispose();
+                          } catch (_) {}
+                        });
 
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Password changed successfully'),
-                              backgroundColor: Colors.green,
+                        if (!mounted) return;
+                        // Show success modal
+                        await showDialog(
+                          context: context,
+                          barrierDismissible: true,
+                          builder: (ctx) => AlertDialog(
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          );
+                            title: const Row(
+                              children: [
+                                Icon(Icons.check_circle, color: Colors.green),
+                                SizedBox(width: 8),
+                                Text('Success'),
+                              ],
+                            ),
+                            content: const Text('Password changed successfully.'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(),
+                                child: const Text('OK'),
+                              ),
+                            ],
+                          ),
+                        );
                         } catch (e) {
                           setDialogState(() {
                             generalError = 'Failed to change password. Please try again.';
