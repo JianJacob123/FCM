@@ -34,9 +34,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (context) => UserProvider()),
-      ],
+      providers: [ChangeNotifierProvider(create: (context) => UserProvider())],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'FCM Transport',
@@ -53,7 +51,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
         home: kIsWeb
-            ? const AdminScreen()
+            ? const AdminLoginScreen()
             : const SplashScreen(), //kIsWeb ? const SplashScreen() : const SplashScreen(), //const AdminLoginScreen(),
       ),
     );

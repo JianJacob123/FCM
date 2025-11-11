@@ -20,6 +20,7 @@ import '../providers/user_provider.dart';
 import 'package:provider/provider.dart';
 import '../services/user_api.dart';
 import 'dart:async';
+import 'admin_login_screen.dart';
 
 final baseUrl = dotenv.env['API_BASE_URL'];
 
@@ -95,7 +96,6 @@ class _AdminScreenState extends State<AdminScreen> {
     LatLng(13.951033283494375, 121.15975747814403),
     LatLng(13.952865846616918, 121.16308555449044),
   ];
-
 
   @override
   void initState() {
@@ -361,13 +361,11 @@ class _AdminScreenState extends State<AdminScreen> {
                                 icon: Icons.archive,
                                 label: 'Archive',
                                 selected:
-                                    _selectedSection ==
-                                    AdminSection.archive,
+                                    _selectedSection == AdminSection.archive,
                                 isSubItem: true,
                                 onTap: () {
                                   setState(() {
-                                    _selectedSection =
-                                        AdminSection.archive;
+                                    _selectedSection = AdminSection.archive;
                                     if (isMobile) _isSidebarOpen = false;
                                   });
                                 },
@@ -401,9 +399,9 @@ class _AdminScreenState extends State<AdminScreen> {
                                 if (isMobile) _isSidebarOpen = false;
                               });
                             },
-                                    ),
-                                  ],
-                                ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -443,10 +441,7 @@ class _AdminScreenState extends State<AdminScreen> {
           child: _NotificationsWithCompose(),
         );
       case AdminSection.schedule:
-        return Container(
-          color: Colors.grey[100],
-          child: _DailyScheduleView(),
-        );
+        return Container(color: Colors.grey[100], child: _DailyScheduleView());
       case AdminSection.vehicleAssignment:
         return Container(
           color: Colors.grey[100],
@@ -464,15 +459,9 @@ class _AdminScreenState extends State<AdminScreen> {
           child: const AccountManagementScreen(),
         );
       case AdminSection.archive:
-        return Container(
-          color: Colors.grey[100],
-          child: const _ArchivePage(),
-        );
+        return Container(color: Colors.grey[100], child: const _ArchivePage());
       case AdminSection.settings:
-        return Container(
-          color: Colors.grey[100],
-          child: const _SettingsPage(),
-        );
+        return Container(color: Colors.grey[100], child: const _SettingsPage());
       default:
         return const Center(
           child: Text('Section coming soon...', style: TextStyle(fontSize: 24)),
@@ -965,217 +954,217 @@ class _MapScreenState extends State<MapScreen> {
                   ],
                 ),
                 child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'FCM No. ${_selectedVehicle?["vehicle_id"] ?? "Unknown"}',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'FCM No. ${_selectedVehicle?["vehicle_id"] ?? "Unknown"}',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF3E4795),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.grey),
+                            onPressed: () {
+                              setState(() {
+                                _showVehicleInfo = false;
+                                _selectedVehicle = null;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${_selectedVehicle?["route_name"] ?? "Unknown"}',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Progress',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                          Text(
+                            _selectedVehicle?["is_off_route"] == true
+                                ? 'Off Route'
+                                : 'On Route',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: _selectedVehicle?["is_off_route"] == true
+                                  ? Colors.red
+                                  : Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      //Animated progress bar
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(
+                          begin: 0.2,
+                          end:
+                              ((double.tryParse(
+                                            _selectedVehicle!["route_progress_percent"]
+                                                .toString(),
+                                          ) ??
+                                          0) /
+                                      100)
+                                  .clamp(0.0, 1.0), //clamp after dividing
+                        ),
+                        duration: const Duration(
+                          milliseconds: 800,
+                        ), // animation duration
+                        curve: Curves.easeOut, // makes it smooth
+                        builder: (context, value, _) => ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: value,
+                            minHeight: 8,
+                            backgroundColor: Colors.grey[300],
                             color: Color(0xFF3E4795),
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Colors.grey),
-                          onPressed: () {
-                            setState(() {
-                              _showVehicleInfo = false;
-                              _selectedVehicle = null;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${_selectedVehicle?["route_name"] ?? "Unknown"}',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Progress',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                        Text(
-                          _selectedVehicle?["is_off_route"] == true
-                              ? 'Off Route'
-                              : 'On Route',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: _selectedVehicle?["is_off_route"] == true
-                                ? Colors.red
-                                : Colors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    //Animated progress bar
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(
-                        begin: 0.2,
-                        end:
-                            ((double.tryParse(
-                                          _selectedVehicle!["route_progress_percent"]
-                                              .toString(),
-                                        ) ??
-                                        0) /
-                                    100)
-                                .clamp(0.0, 1.0), //clamp after dividing
                       ),
-                      duration: const Duration(
-                        milliseconds: 800,
-                      ), // animation duration
-                      curve: Curves.easeOut, // makes it smooth
-                      builder: (context, value, _) => ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: value,
-                          minHeight: 8,
-                          backgroundColor: Colors.grey[300],
-                          color: Color(0xFF3E4795),
-                        ),
+
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Estimated Time of Arrival',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                          Text(
+                            _selectedVehicle != null &&
+                                    _selectedVehicle!['eta'] != null
+                                ? DateFormat.jm().format(
+                                    DateTime.parse(
+                                      _selectedVehicle!['eta'],
+                                    ).toLocal(),
+                                  )
+                                : '--:--',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Estimated Time of Arrival',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                        Text(
-                          _selectedVehicle != null &&
-                                  _selectedVehicle!['eta'] != null
-                              ? DateFormat.jm().format(
-                                  DateTime.parse(
-                                    _selectedVehicle!['eta'],
-                                  ).toLocal(),
-                                )
-                              : '--:--',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Current Capacity',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Current Capacity',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                        Text(
-                          '${_selectedVehicle?["current_passenger_count"] ?? "--"}/20',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                          Text(
+                            '${_selectedVehicle?["current_passenger_count"] ?? "--"}/20',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              "Plate Number",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'DAL 1234',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            final remainingRoute =
-                                _selectedVehicle?["remaining_route_polyline"];
-
-                            if (remainingRoute == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("No route data available."),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                "Plate Number",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
                                 ),
-                              );
-                              return;
-                            }
-
-                            // Decode JSON string into a Map
-                            final routeJson = remainingRoute is String
-                                ? jsonDecode(remainingRoute)
-                                : remainingRoute;
-
-                            final coords =
-                                (routeJson["coordinates"] as List?)
-                                    ?.map(
-                                      (c) => LatLng(
-                                        (c[1] as num).toDouble(),
-                                        (c[0] as num).toDouble(),
-                                      ),
-                                    )
-                                    .toList() ??
-                                [];
-
-                            if (coords.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("No route data available."),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'DAL 1234',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                              );
-                              return;
-                            }
+                              ),
+                            ],
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              final remainingRoute =
+                                  _selectedVehicle?["remaining_route_polyline"];
 
-                            setState(() {
-                              _routePolyline = coords;
-                            });
-                          },
-                          icon: const Icon(Icons.navigation, size: 16),
-                          label: const Text(
-                            'Track Trip',
-                            style: TextStyle(fontSize: 14),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF3E4795),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                              if (remainingRoute == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("No route data available."),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              // Decode JSON string into a Map
+                              final routeJson = remainingRoute is String
+                                  ? jsonDecode(remainingRoute)
+                                  : remainingRoute;
+
+                              final coords =
+                                  (routeJson["coordinates"] as List?)
+                                      ?.map(
+                                        (c) => LatLng(
+                                          (c[1] as num).toDouble(),
+                                          (c[0] as num).toDouble(),
+                                        ),
+                                      )
+                                      .toList() ??
+                                  [];
+
+                              if (coords.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("No route data available."),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              setState(() {
+                                _routePolyline = coords;
+                              });
+                            },
+                            icon: const Icon(Icons.navigation, size: 16),
+                            label: const Text(
+                              'Track Trip',
+                              style: TextStyle(fontSize: 14),
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3E4795),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              elevation: 0,
                             ),
-                            elevation: 0,
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1276,13 +1265,8 @@ class _AdminSearchFieldState extends State<AdminSearchField> {
                 style: const TextStyle(color: Colors.black),
                 decoration: InputDecoration(
                   hintText: 'Search for vehicles, routes, or locations...',
-                  hintStyle: const TextStyle(
-                    color: Colors.black54,
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    color: Colors.black54,
-                  ),
+                  hintStyle: const TextStyle(color: Colors.black54),
+                  prefixIcon: const Icon(Icons.search, color: Colors.black54),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 17),
                 ),
@@ -1320,9 +1304,7 @@ class _AdminSearchFieldState extends State<AdminSearchField> {
                     leading: const Icon(Icons.location_on_outlined),
                     title: Text(
                       name,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                      ),
+                      style: const TextStyle(color: Colors.black87),
                     ),
                     onTap: () => _selectSuggestion(feature),
                   );
@@ -2971,9 +2953,7 @@ class _ActivityLogsDialogState extends State<_ActivityLogsDialog> {
               topLeft: Radius.circular(12),
               topRight: Radius.circular(12),
             ),
-            border: Border(
-              bottom: BorderSide(color: Colors.grey[300]!),
-            ),
+            border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -3006,9 +2986,7 @@ class _ActivityLogsDialogState extends State<_ActivityLogsDialog> {
         // Table header
         Container(
           padding: const EdgeInsets.all(12),
-          decoration: const BoxDecoration(
-            color: Color(0xFF3E4795),
-          ),
+          decoration: const BoxDecoration(color: Color(0xFF3E4795)),
           child: Row(
             children: [
               Expanded(
@@ -3026,12 +3004,15 @@ class _ActivityLogsDialogState extends State<_ActivityLogsDialog> {
                     GestureDetector(
                       onTap: () async {
                         final logs = await fetchActivityLogs();
-                        final types = logs
-                            .map((e) => (e['activity_type'] ?? '').toString())
-                            .where((e) => e.isNotEmpty)
-                            .toSet()
-                            .toList()
-                          ..sort();
+                        final types =
+                            logs
+                                .map(
+                                  (e) => (e['activity_type'] ?? '').toString(),
+                                )
+                                .where((e) => e.isNotEmpty)
+                                .toSet()
+                                .toList()
+                              ..sort();
                         _showActivityTypeFilterModal(types);
                       },
                       child: Icon(
@@ -3106,18 +3087,11 @@ class _ActivityLogsDialogState extends State<_ActivityLogsDialog> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.history,
-                        size: 64,
-                        color: Colors.grey,
-                      ),
+                      Icon(Icons.history, size: 64, color: Colors.grey),
                       SizedBox(height: 16),
                       Text(
                         "No activity logs found.",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey,
-                        ),
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
                     ],
                   ),
@@ -3147,9 +3121,7 @@ class _ActivityLogsDialogState extends State<_ActivityLogsDialog> {
                         border: isLast
                             ? null
                             : Border(
-                                bottom: BorderSide(
-                                  color: Colors.grey[200]!,
-                                ),
+                                bottom: BorderSide(color: Colors.grey[200]!),
                               ),
                       ),
                       padding: const EdgeInsets.symmetric(
@@ -4951,14 +4923,14 @@ class _DailyScheduleCrudState extends State<DailyScheduleCrud> {
     // Only check if status is Active (since non-active schedules may have null time)
     if (_statusController.text == 'Active' && timeString != null) {
       final duplicateSchedule = _schedules.firstWhere((schedule) {
-          final scheduleTime = schedule['time_start']?.toString();
-          final scheduleVehicleId = schedule['vehicle_id'];
-          final scheduleDateStr = schedule['schedule_date']?.toString();
-          
-          // Check if time, vehicle_id, and date match (excluding current schedule if editing)
-          return scheduleTime == timeString &&
-                 scheduleVehicleId == _selectedVehicleId &&
-                 scheduleDateStr == scheduleDate &&
+        final scheduleTime = schedule['time_start']?.toString();
+        final scheduleVehicleId = schedule['vehicle_id'];
+        final scheduleDateStr = schedule['schedule_date']?.toString();
+
+        // Check if time, vehicle_id, and date match (excluding current schedule if editing)
+        return scheduleTime == timeString &&
+            scheduleVehicleId == _selectedVehicleId &&
+            scheduleDateStr == scheduleDate &&
             (_editingSchedule == null ||
                 schedule['id'] != _editingSchedule!['id']);
       }, orElse: () => <String, dynamic>{});
@@ -7437,7 +7409,9 @@ class _ArchivePageState extends State<_ArchivePage> {
     super.initState();
     _load();
     _searchController.addListener(() {
-      setState(() => _searchQuery = _searchController.text.trim().toLowerCase());
+      setState(
+        () => _searchQuery = _searchController.text.trim().toLowerCase(),
+      );
     });
   }
 
@@ -7496,9 +7470,9 @@ class _ArchivePageState extends State<_ArchivePage> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Restore failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Restore failed: $e')));
     }
   }
 
@@ -7555,10 +7529,7 @@ class _ArchivePageState extends State<_ArchivePage> {
       if (archivedAt == null) {
         return const Text(
           'Date archived: —',
-          style: TextStyle(
-            color: Color(0xFF6B7280),
-            fontSize: 12,
-          ),
+          style: TextStyle(color: Color(0xFF6B7280), fontSize: 12),
         );
       }
       final archivedDate = DateTime.parse(archivedAt);
@@ -7587,10 +7558,7 @@ class _ArchivePageState extends State<_ArchivePage> {
       } else {
         return Text(
           'Expires in $daysRemaining days',
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 12,
-          ),
+          style: TextStyle(color: Colors.grey[600], fontSize: 12),
         );
       }
     } catch (e) {
@@ -7643,7 +7611,9 @@ class _ArchivePageState extends State<_ArchivePage> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Deleted $count archived ${count == 1 ? 'account' : 'accounts'}'),
+          content: Text(
+            'Deleted $count archived ${count == 1 ? 'account' : 'accounts'}',
+          ),
           backgroundColor: Colors.green,
         ),
       );
@@ -7758,107 +7728,114 @@ class _ArchivePageState extends State<_ArchivePage> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _filteredUsers.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.archive_outlined,
-                                  size: 64, color: Colors.grey[400]),
-                              const SizedBox(height: 16),
-                              Text(
-                                _searchQuery.isEmpty
-                                    ? 'No archived employees'
-                                    : 'No results found',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.archive_outlined,
+                            size: 64,
+                            color: Colors.grey[400],
                           ),
-                        )
-                      : ListView.builder(
-                          itemCount: _filteredUsers.length,
-                          itemBuilder: (context, index) {
-                            final u = _filteredUsers[index];
-                            return MouseRegion(
-                              onEnter: (_) => setState(() => _hoveredIndex = index),
-                              onExit: (_) => setState(() => _hoveredIndex = null),
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                // Right-click context action removed per request
-                                child: Card(
-                                  color: _hoveredIndex == index
-                                      ? const Color(0xFFF4F6FF)
-                                      : Colors.white,
-                                  elevation: _hoveredIndex == index ? 2 : 0,
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  child: ListTile(
-                                    leading: _selectionMode
-                                        ? Checkbox(
-                                            value: _selectedUserIds.contains(u.userId),
-                                            onChanged: (v) {
-                                              setState(() {
-                                                if (v == true) {
-                                                  _selectedUserIds.add(u.userId);
-                                                } else {
-                                                  _selectedUserIds.remove(u.userId);
-                                                }
-                                              });
-                                            },
-                                          )
-                                        : CircleAvatar(
-                                            backgroundColor: Colors.orange[100],
-                                            child: Icon(Icons.archive,
-                                                color: Colors.orange[700]),
-                                          ),
-                                    title: Text(
-                                      u.fullName,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('Username: ${u.username}'),
-                                        Text('Role: ${u.userRole}'),
-                                        const SizedBox(height: 4),
-                                        _buildExpirationInfo(u.archivedAt),
-                                      ],
-                                    ),
-                                    onTap: _selectionMode
-                                        ? () {
-                                            setState(() {
-                                              final id = u.userId;
-                                              if (_selectedUserIds.contains(id)) {
-                                                _selectedUserIds.remove(id);
-                                              } else {
-                                                _selectedUserIds.add(id);
-                                              }
-                                            });
-                                          }
-                                        : null,
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.restore,
-                                            color: Colors.green,
-                                            size: 20,
-                                          ),
-                                          onPressed: () => _restore(u),
-                                          tooltip: 'Restore',
+                          const SizedBox(height: 16),
+                          Text(
+                            _searchQuery.isEmpty
+                                ? 'No archived employees'
+                                : 'No results found',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _filteredUsers.length,
+                      itemBuilder: (context, index) {
+                        final u = _filteredUsers[index];
+                        return MouseRegion(
+                          onEnter: (_) => setState(() => _hoveredIndex = index),
+                          onExit: (_) => setState(() => _hoveredIndex = null),
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            // Right-click context action removed per request
+                            child: Card(
+                              color: _hoveredIndex == index
+                                  ? const Color(0xFFF4F6FF)
+                                  : Colors.white,
+                              elevation: _hoveredIndex == index ? 2 : 0,
+                              margin: const EdgeInsets.only(bottom: 12),
+                              child: ListTile(
+                                leading: _selectionMode
+                                    ? Checkbox(
+                                        value: _selectedUserIds.contains(
+                                          u.userId,
                                         ),
-                                      ],
-                                    ),
+                                        onChanged: (v) {
+                                          setState(() {
+                                            if (v == true) {
+                                              _selectedUserIds.add(u.userId);
+                                            } else {
+                                              _selectedUserIds.remove(u.userId);
+                                            }
+                                          });
+                                        },
+                                      )
+                                    : CircleAvatar(
+                                        backgroundColor: Colors.orange[100],
+                                        child: Icon(
+                                          Icons.archive,
+                                          color: Colors.orange[700],
+                                        ),
+                                      ),
+                                title: Text(
+                                  u.fullName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Username: ${u.username}'),
+                                    Text('Role: ${u.userRole}'),
+                                    const SizedBox(height: 4),
+                                    _buildExpirationInfo(u.archivedAt),
+                                  ],
+                                ),
+                                onTap: _selectionMode
+                                    ? () {
+                                        setState(() {
+                                          final id = u.userId;
+                                          if (_selectedUserIds.contains(id)) {
+                                            _selectedUserIds.remove(id);
+                                          } else {
+                                            _selectedUserIds.add(id);
+                                          }
+                                        });
+                                      }
+                                    : null,
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.restore,
+                                        color: Colors.green,
+                                        size: 20,
+                                      ),
+                                      onPressed: () => _restore(u),
+                                      tooltip: 'Restore',
+                                    ),
+                                  ],
+                                ),
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -7866,7 +7843,6 @@ class _ArchivePageState extends State<_ArchivePage> {
     );
   }
 }
-
 
 class _SettingsPage extends StatefulWidget {
   const _SettingsPage();
@@ -7907,7 +7883,7 @@ class _SettingsPageState extends State<_SettingsPage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       String? adminId = prefs.getString('admin_user_id');
-      
+
       // Fallback: Try to get user ID from UserProvider if available
       if (adminId == null) {
         final userProvider = context.read<UserProvider>();
@@ -7915,7 +7891,7 @@ class _SettingsPageState extends State<_SettingsPage> {
           adminId = userProvider.currentUser!.id;
         }
       }
-      
+
       // Fallback: If still not found, try to find an admin user from the database
       if (adminId == null) {
         try {
@@ -7936,9 +7912,11 @@ class _SettingsPageState extends State<_SettingsPage> {
           }
         } catch (e) {
           // If we can't fetch users, continue with error handling below
+
+          print('Error fetching users for fallback admin ID: $e');
         }
       }
-      
+
       if (adminId == null) {
         setState(() {
           _error = 'Admin user ID not found. Please login again.';
@@ -7946,7 +7924,7 @@ class _SettingsPageState extends State<_SettingsPage> {
         });
         return;
       }
-      
+
       // Fetch user data from database
       final user = await UserApiService.getUserById(int.parse(adminId));
       setState(() {
@@ -7983,7 +7961,11 @@ class _SettingsPageState extends State<_SettingsPage> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.settings, size: 32, color: Color(0xFF3E4795)),
+                      const Icon(
+                        Icons.settings,
+                        size: 32,
+                        color: Color(0xFF3E4795),
+                      ),
                       const SizedBox(width: 12),
                       const Text(
                         'Settings',
@@ -8007,7 +7989,9 @@ class _SettingsPageState extends State<_SettingsPage> {
                                 title: 'Account Settings',
                                 subtitle: 'Manage your account preferences',
                                 isSelected: _selectedSetting == 'account',
-                                onTap: () => setState(() => _selectedSetting = 'account'),
+                                onTap: () => setState(
+                                  () => _selectedSetting = 'account',
+                                ),
                               ),
                               const SizedBox(height: 8),
                               _buildSettingCard(
@@ -8015,7 +7999,9 @@ class _SettingsPageState extends State<_SettingsPage> {
                                 title: 'Notification Settings',
                                 subtitle: 'Configure notification preferences',
                                 isSelected: _selectedSetting == 'notifications',
-                                onTap: () => setState(() => _selectedSetting = 'notifications'),
+                                onTap: () => setState(
+                                  () => _selectedSetting = 'notifications',
+                                ),
                               ),
                               const SizedBox(height: 8),
                               _buildSettingCard(
@@ -8023,7 +8009,9 @@ class _SettingsPageState extends State<_SettingsPage> {
                                 title: 'Security',
                                 subtitle: 'Password and security options',
                                 isSelected: _selectedSetting == 'security',
-                                onTap: () => setState(() => _selectedSetting = 'security'),
+                                onTap: () => setState(
+                                  () => _selectedSetting = 'security',
+                                ),
                               ),
                               const SizedBox(height: 8),
                               _buildSettingCard(
@@ -8031,7 +8019,8 @@ class _SettingsPageState extends State<_SettingsPage> {
                                 title: 'About',
                                 subtitle: 'App version and information',
                                 isSelected: _selectedSetting == 'about',
-                                onTap: () => setState(() => _selectedSetting = 'about'),
+                                onTap: () =>
+                                    setState(() => _selectedSetting = 'about'),
                               ),
                             ],
                           ),
@@ -8054,14 +8043,20 @@ class _SettingsPageState extends State<_SettingsPage> {
                                     OutlinedButton(
                                       onPressed: () => Navigator.pop(context),
                                       style: OutlinedButton.styleFrom(
-                                        foregroundColor: const Color(0xFF3E4795),
-                                        side: const BorderSide(color: Colors.grey),
+                                        foregroundColor: const Color(
+                                          0xFF3E4795,
+                                        ),
+                                        side: const BorderSide(
+                                          color: Colors.grey,
+                                        ),
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 16,
                                           vertical: 8,
                                         ),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(4),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
                                         ),
                                       ),
                                       child: const Text('Cancel'),
@@ -8069,26 +8064,44 @@ class _SettingsPageState extends State<_SettingsPage> {
                                     ElevatedButton(
                                       onPressed: () async {
                                         // Clear SharedPreferences
-                                        final prefs = await SharedPreferences.getInstance();
+                                        final prefs =
+                                            await SharedPreferences.getInstance();
                                         await prefs.remove('admin_user_id');
                                         await prefs.remove('admin_user_name');
                                         await prefs.remove('admin_user_role');
 
                                         // Update provider
-                                        await context.read<UserProvider>().logout();
+                                        await context
+                                            .read<UserProvider>()
+                                            .logout();
 
                                         // Close dialog
                                         Navigator.pop(context);
+
+                                        // Navigate to AdminLoginScreen and clear previous routes
+                                        Navigator.pushAndRemoveUntil(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const AdminLoginScreen(),
+                                          ),
+                                          (route) =>
+                                              false, // Remove all previous routes
+                                        );
                                       },
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF3E4795),
+                                        backgroundColor: const Color(
+                                          0xFF3E4795,
+                                        ),
                                         foregroundColor: Colors.white,
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 16,
                                           vertical: 8,
                                         ),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(4),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
                                         ),
                                         elevation: 0,
                                       ),
@@ -8124,9 +8137,7 @@ class _SettingsPageState extends State<_SettingsPage> {
             ),
             const SizedBox(width: 24),
             // Right Content Area
-            Expanded(
-              child: _buildContentArea(),
-            ),
+            Expanded(child: _buildContentArea()),
           ],
         ),
       ),
@@ -8141,7 +8152,9 @@ class _SettingsPageState extends State<_SettingsPage> {
     required VoidCallback onTap,
   }) {
     return Card(
-      color: isSelected ? const Color(0xFF3E4795).withOpacity(0.1) : Colors.white,
+      color: isSelected
+          ? const Color(0xFF3E4795).withOpacity(0.1)
+          : Colors.white,
       elevation: isSelected ? 2 : 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -8162,7 +8175,9 @@ class _SettingsPageState extends State<_SettingsPage> {
         subtitle: Text(
           subtitle,
           style: TextStyle(
-            color: isSelected ? const Color(0xFF3E4795).withOpacity(0.8) : Colors.black54,
+            color: isSelected
+                ? const Color(0xFF3E4795).withOpacity(0.8)
+                : Colors.black54,
           ),
         ),
         trailing: const Icon(Icons.chevron_right, color: Color(0xFF3E4795)),
@@ -8176,7 +8191,10 @@ class _SettingsPageState extends State<_SettingsPage> {
       case 'account':
         return _buildAccountSettings();
       case 'notifications':
-        return _buildPlaceholder('Notification Settings', 'Configure notification preferences');
+        return _buildPlaceholder(
+          'Notification Settings',
+          'Configure notification preferences',
+        );
       case 'security':
         return _buildSecuritySettings();
       case 'about':
@@ -8359,7 +8377,10 @@ class _SettingsPageState extends State<_SettingsPage> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF3E4795), width: 2),
+                borderSide: const BorderSide(
+                  color: Color(0xFF3E4795),
+                  width: 2,
+                ),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 12,
@@ -8406,10 +8427,7 @@ class _SettingsPageState extends State<_SettingsPage> {
       );
 
       // Update user via API
-      await UserApiService.updateUser(
-        int.parse(_adminId!),
-        updatedUser,
-      );
+      await UserApiService.updateUser(int.parse(_adminId!), updatedUser);
 
       // Update local state
       setState(() {
@@ -8465,15 +8483,9 @@ class _SettingsPageState extends State<_SettingsPage> {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              subtitle,
-              style: TextStyle(color: Colors.grey[600]),
-            ),
+            Text(subtitle, style: TextStyle(color: Colors.grey[600])),
             const SizedBox(height: 24),
-            Text(
-              'Coming soon...',
-              style: TextStyle(color: Colors.grey[400]),
-            ),
+            Text('Coming soon...', style: TextStyle(color: Colors.grey[400])),
           ],
         ),
       ),
@@ -8559,7 +8571,10 @@ class _SettingsPageState extends State<_SettingsPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF3E4795),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -8589,7 +8604,10 @@ class _SettingsPageState extends State<_SettingsPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF3E4795),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -8619,7 +8637,10 @@ class _SettingsPageState extends State<_SettingsPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF3E4795),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -8745,7 +8766,8 @@ class _SettingsPageState extends State<_SettingsPage> {
                             if (!dialogClosed) {
                               setDialogState(() {
                                 if (!isValid) {
-                                  currentPasswordError = 'Current password is incorrect';
+                                  currentPasswordError =
+                                      'Current password is incorrect';
                                 } else {
                                   currentPasswordError = null;
                                 }
@@ -8757,7 +8779,8 @@ class _SettingsPageState extends State<_SettingsPage> {
                             if (!dialogClosed) {
                               setDialogState(() {
                                 isVerifyingCurrentPassword = false;
-                                currentPasswordError = 'Unable to verify current password. Please try again.';
+                                currentPasswordError =
+                                    'Unable to verify current password. Please try again.';
                               });
                             }
                           }
@@ -8788,7 +8811,8 @@ class _SettingsPageState extends State<_SettingsPage> {
                               ),
                               onPressed: () {
                                 setDialogState(() {
-                                  obscureCurrentPassword = !obscureCurrentPassword;
+                                  obscureCurrentPassword =
+                                      !obscureCurrentPassword;
                                 });
                               },
                             ),
@@ -8845,7 +8869,8 @@ class _SettingsPageState extends State<_SettingsPage> {
                         generalError = null;
                       });
 
-                      if (value.isNotEmpty && newPasswordController.text.isNotEmpty) {
+                      if (value.isNotEmpty &&
+                          newPasswordController.text.isNotEmpty) {
                         if (value != newPasswordController.text) {
                           setDialogState(() {
                             confirmPasswordError = 'Passwords do not match';
@@ -8934,27 +8959,29 @@ class _SettingsPageState extends State<_SettingsPage> {
                     : () async {
                         final currentPassword = currentPasswordController.text;
                         final newPassword = newPasswordController.text;
-                        final confirmPassword =
-                            confirmPasswordController.text;
+                        final confirmPassword = confirmPasswordController.text;
 
                         currentPasswordDebounce?.cancel();
 
-                      if (!dialogClosed) {
-                        setDialogState(() {
-                          currentPasswordError = null;
-                          newPasswordError = null;
-                          confirmPasswordError = null;
-                          generalError = null;
-                        });
-                      }
+                        if (!dialogClosed) {
+                          setDialogState(() {
+                            currentPasswordError = null;
+                            newPasswordError = null;
+                            confirmPasswordError = null;
+                            generalError = null;
+                          });
+                        }
 
                         bool hasError = false;
                         if (currentPassword.isEmpty) {
-                          currentPasswordError = 'Please enter your current password';
+                          currentPasswordError =
+                              'Please enter your current password';
                           hasError = true;
                         }
 
-                        final passwordValidation = validateNewPassword(newPassword);
+                        final passwordValidation = validateNewPassword(
+                          newPassword,
+                        );
                         if (passwordValidation != null) {
                           newPasswordError = passwordValidation;
                           hasError = true;
@@ -8969,30 +8996,30 @@ class _SettingsPageState extends State<_SettingsPage> {
                           hasError = true;
                         }
 
-                      if (hasError) {
-                        if (!dialogClosed) {
-                          setDialogState(() {});
-                        }
+                        if (hasError) {
+                          if (!dialogClosed) {
+                            setDialogState(() {});
+                          }
                           return;
                         }
 
                         try {
                           if (_adminId == null) {
-                          if (!dialogClosed) {
-                            setDialogState(() {
-                              generalError = 'Admin user ID not found';
-                            });
-                          }
+                            if (!dialogClosed) {
+                              setDialogState(() {
+                                generalError = 'Admin user ID not found';
+                              });
+                            }
                             return;
                           }
 
                           final adminUserId = int.parse(_adminId!);
 
-                        if (!dialogClosed) {
-                          setDialogState(() {
-                            isUpdatingPassword = true;
-                          });
-                        }
+                          if (!dialogClosed) {
+                            setDialogState(() {
+                              isUpdatingPassword = true;
+                            });
+                          }
 
                           try {
                             final isValid = await UserApiService.verifyPassword(
@@ -9001,23 +9028,23 @@ class _SettingsPageState extends State<_SettingsPage> {
                             );
 
                             if (!isValid) {
-                            if (!dialogClosed) {
-                              setDialogState(() {
-                                currentPasswordError =
-                                    'Current password is incorrect';
-                                isUpdatingPassword = false;
-                              });
-                            }
+                              if (!dialogClosed) {
+                                setDialogState(() {
+                                  currentPasswordError =
+                                      'Current password is incorrect';
+                                  isUpdatingPassword = false;
+                                });
+                              }
                               return;
                             }
                           } catch (e) {
-                          if (!dialogClosed) {
-                            setDialogState(() {
-                              generalError =
-                                  'Unable to verify current password. Please try again.';
-                              isUpdatingPassword = false;
-                            });
-                          }
+                            if (!dialogClosed) {
+                              setDialogState(() {
+                                generalError =
+                                    'Unable to verify current password. Please try again.';
+                                isUpdatingPassword = false;
+                              });
+                            }
                             return;
                           }
 
@@ -9035,53 +9062,56 @@ class _SettingsPageState extends State<_SettingsPage> {
                             password: newPassword,
                           );
 
-                        if (!dialogClosed) {
-                          setDialogState(() {
-                            isUpdatingPassword = false;
+                          if (!dialogClosed) {
+                            setDialogState(() {
+                              isUpdatingPassword = false;
+                            });
+                          }
+
+                          dialogClosed = true;
+                          currentPasswordDebounce?.cancel();
+                          // Pop dialog first, then dispose controllers after frame to avoid rebuilds
+                          Navigator.pop(dialogContext);
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            try {
+                              currentPasswordController.dispose();
+                              newPasswordController.dispose();
+                              confirmPasswordController.dispose();
+                            } catch (_) {}
                           });
-                        }
 
-                        dialogClosed = true;
-                        currentPasswordDebounce?.cancel();
-                        // Pop dialog first, then dispose controllers after frame to avoid rebuilds
-                        Navigator.pop(dialogContext);
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          try {
-                            currentPasswordController.dispose();
-                            newPasswordController.dispose();
-                            confirmPasswordController.dispose();
-                          } catch (_) {}
-                        });
-
-                        if (!mounted) return;
-                        // Show success modal
-                        await showDialog(
-                          context: context,
-                          barrierDismissible: true,
-                          builder: (ctx) => AlertDialog(
-                            backgroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            title: const Row(
-                              children: [
-                                Icon(Icons.check_circle, color: Colors.green),
-                                SizedBox(width: 8),
-                                Text('Success'),
+                          if (!mounted) return;
+                          // Show success modal
+                          await showDialog(
+                            context: context,
+                            barrierDismissible: true,
+                            builder: (ctx) => AlertDialog(
+                              backgroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              title: const Row(
+                                children: [
+                                  Icon(Icons.check_circle, color: Colors.green),
+                                  SizedBox(width: 8),
+                                  Text('Success'),
+                                ],
+                              ),
+                              content: const Text(
+                                'Password changed successfully.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                  child: const Text('OK'),
+                                ),
                               ],
                             ),
-                            content: const Text('Password changed successfully.'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(),
-                                child: const Text('OK'),
-                              ),
-                            ],
-                          ),
-                        );
+                          );
                         } catch (e) {
                           setDialogState(() {
-                            generalError = 'Failed to change password. Please try again.';
+                            generalError =
+                                'Failed to change password. Please try again.';
                             isUpdatingPassword = false;
                           });
                         }
@@ -9089,7 +9119,10 @@ class _SettingsPageState extends State<_SettingsPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF3E4795),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -9100,7 +9133,9 @@ class _SettingsPageState extends State<_SettingsPage> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : const Text('Save Changes'),
@@ -9191,7 +9226,8 @@ class _SettingsPageState extends State<_SettingsPage> {
                         errorText: currentPasswordError,
                       ),
                       onChanged: (_) {
-                        if (currentPasswordError != null || generalError != null) {
+                        if (currentPasswordError != null ||
+                            generalError != null) {
                           setDialogState(() {
                             currentPasswordError = null;
                             generalError = null;
@@ -9227,15 +9263,20 @@ class _SettingsPageState extends State<_SettingsPage> {
 
                           if (newEmail.isEmpty || password.isEmpty) {
                             setDialogState(() {
-                              emailError = newEmail.isEmpty ? 'Please enter your new email' : null;
-                              currentPasswordError = password.isEmpty ? 'Please enter your current password' : null;
+                              emailError = newEmail.isEmpty
+                                  ? 'Please enter your new email'
+                                  : null;
+                              currentPasswordError = password.isEmpty
+                                  ? 'Please enter your current password'
+                                  : null;
                             });
                             return;
                           }
 
                           // Basic email validation
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                              .hasMatch(newEmail)) {
+                          if (!RegExp(
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                          ).hasMatch(newEmail)) {
                             setDialogState(() {
                               emailError = 'Please enter a valid email address';
                             });
@@ -9261,7 +9302,8 @@ class _SettingsPageState extends State<_SettingsPage> {
                             );
                             if (!valid) {
                               setDialogState(() {
-                                currentPasswordError = 'Current password is incorrect';
+                                currentPasswordError =
+                                    'Current password is incorrect';
                                 isUpdating = false;
                               });
                               return;
@@ -9269,23 +9311,32 @@ class _SettingsPageState extends State<_SettingsPage> {
 
                             // Send OTP to the new email first
                             final otpRes = await http.post(
-                              Uri.parse('$baseUrl/api/users/forgot-password'),
+                              Uri.parse('$baseUrl/users/change-email-otp'),
                               headers: {'Content-Type': 'application/json'},
-                              body: jsonEncode({'username': newEmail}),
+                              body: jsonEncode({
+                                'userId': adminUserId,
+                                'username': newEmail,
+                              }),
                             );
                             if (otpRes.statusCode != 200) {
                               final err = jsonDecode(otpRes.body);
                               setDialogState(() {
-                                generalError = err['error'] ?? 'Failed to send verification code to the new email.';
+                                generalError =
+                                    err['error'] ??
+                                    'Failed to send verification code to the new email.';
                               });
                               return;
                             }
 
                             if (!mounted) return;
-                            Navigator.of(context).pop(); // close change email dialog
+                            Navigator.of(
+                              context,
+                            ).pop(); // close change email dialog
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Verification code sent to the new email.'),
+                                content: Text(
+                                  'Verification code sent to the new email.',
+                                ),
                                 backgroundColor: Colors.green,
                               ),
                             );
@@ -9294,6 +9345,34 @@ class _SettingsPageState extends State<_SettingsPage> {
                               newEmail,
                               onVerified: (otp) async {
                                 try {
+                                  // Verify OTP with backend
+                                  final res = await http.post(
+                                    Uri.parse('$baseUrl/users/change-email'),
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                    },
+                                    body: jsonEncode({
+                                      'userId': adminUserId,
+                                      'username': newEmail,
+                                      'otp': otp,
+                                    }),
+                                  );
+
+                                  if (res.statusCode != 200) {
+                                    final err = jsonDecode(res.body);
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          err['error'] ?? 'Invalid OTP',
+                                        ),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  // On otp verified, update user email
                                   final updatedUser = UserAccount(
                                     userId: adminUserId,
                                     fullName: _adminName,
@@ -9301,14 +9380,19 @@ class _SettingsPageState extends State<_SettingsPage> {
                                     username: newEmail,
                                     active: true,
                                   );
-                                  await UserApiService.updateUser(adminUserId, updatedUser);
+                                  await UserApiService.updateUser(
+                                    adminUserId,
+                                    updatedUser,
+                                  );
                                   if (!mounted) return;
                                   setState(() {
                                     _username = newEmail;
                                   });
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Email updated successfully.'),
+                                      content: Text(
+                                        'Email updated successfully.',
+                                      ),
                                       backgroundColor: Colors.green,
                                     ),
                                   );
@@ -9316,7 +9400,9 @@ class _SettingsPageState extends State<_SettingsPage> {
                                   if (!mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('Failed to update email: ${e.toString()}'),
+                                      content: Text(
+                                        'Failed to update email: ${e.toString()}',
+                                      ),
                                       backgroundColor: Colors.red,
                                     ),
                                   );
@@ -9326,7 +9412,8 @@ class _SettingsPageState extends State<_SettingsPage> {
                           } catch (e) {
                             if (mounted) {
                               setDialogState(() {
-                                generalError = 'Failed to update email: ${e.toString()}';
+                                generalError =
+                                    'Failed to update email: ${e.toString()}';
                               });
                             }
                           } finally {
@@ -9345,8 +9432,9 @@ class _SettingsPageState extends State<_SettingsPage> {
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : const Text('Change Email'),
@@ -9395,10 +9483,7 @@ class _SettingsPageState extends State<_SettingsPage> {
                     const SizedBox(height: 12),
                     const Text(
                       'Enter your email to receive a 6-digit OTP.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF808899),
-                      ),
+                      style: TextStyle(fontSize: 14, color: Color(0xFF808899)),
                     ),
                     const SizedBox(height: 20),
                     TextField(
@@ -9409,15 +9494,21 @@ class _SettingsPageState extends State<_SettingsPage> {
                         hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE5E7EB),
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE5E7EB),
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF3E4795)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF3E4795),
+                          ),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -9433,7 +9524,9 @@ class _SettingsPageState extends State<_SettingsPage> {
                           onPressed: () => Navigator.of(context).pop(),
                           style: TextButton.styleFrom(
                             foregroundColor: const Color(0xFF6B7280),
-                            textStyle: const TextStyle(fontWeight: FontWeight.w500),
+                            textStyle: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                           child: const Text('Cancel'),
                         ),
@@ -9452,8 +9545,12 @@ class _SettingsPageState extends State<_SettingsPage> {
 
                                   try {
                                     final res = await http.post(
-                                      Uri.parse('$baseUrl/api/users/forgot-password'),
-                                      headers: {'Content-Type': 'application/json'},
+                                      Uri.parse(
+                                        '$baseUrl/api/users/forgot-password',
+                                      ),
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                      },
                                       body: jsonEncode({'username': email}),
                                     );
 
@@ -9462,24 +9559,33 @@ class _SettingsPageState extends State<_SettingsPage> {
                                     if (res.statusCode == 200) {
                                       if (!mounted) return;
                                       Navigator.of(context).pop();
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         const SnackBar(
-                                          content: Text('Verification code sent to your email'),
+                                          content: Text(
+                                            'Verification code sent to your email',
+                                          ),
                                           backgroundColor: Colors.green,
                                         ),
                                       );
                                       Future.microtask(() {
                                         if (mounted) {
-                                          _showSettingsOtpVerificationDialog(email);
+                                          _showSettingsOtpVerificationDialog(
+                                            email,
+                                          );
                                         }
                                       });
                                     } else {
                                       final err = jsonDecode(res.body);
                                       if (!mounted) return;
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                            err['error'] ?? 'Failed to send OTP.',
+                                            err['error'] ??
+                                                'Failed to send OTP.',
                                           ),
                                           backgroundColor: Colors.red,
                                         ),
@@ -9514,8 +9620,9 @@ class _SettingsPageState extends State<_SettingsPage> {
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor:
-                                        AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                   ),
                                 )
                               : const Text(
@@ -9552,12 +9659,15 @@ class _SettingsPageState extends State<_SettingsPage> {
   }
 
   // OTP dialog reused for email change; verification is UI-only, then we execute onVerified.
-  void _showSettingsOtpVerificationDialogForEmailChange(String email, {required Function(String) onVerified}) {
+  void _showSettingsOtpVerificationDialogForEmailChange(
+    String email, {
+    required Function(String) onVerified,
+  }) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        return _SettingsOtpVerificationDialog(
+        return _SettingsOtpVerificationDialogChangeEmail(
           email: email,
           onVerified: (otp) {
             Navigator.of(context).pop();
@@ -9567,6 +9677,7 @@ class _SettingsPageState extends State<_SettingsPage> {
       },
     );
   }
+
   void _showResetPasswordDialogSettings(String email, String otp) {
     final otpController = TextEditingController();
     final newPasswordController = TextEditingController();
@@ -9577,11 +9688,16 @@ class _SettingsPageState extends State<_SettingsPage> {
     String? validatePassword(String password) {
       if (password.isEmpty) return null;
       if (password.length < 8) return 'Password must be at least 8 characters';
-      if (password.length > 128) return 'Password must be at most 128 characters';
-      if (!RegExp(r'[A-Z]').hasMatch(password)) return 'Password must contain at least one uppercase letter';
-      if (!RegExp(r'[a-z]').hasMatch(password)) return 'Password must contain at least one lowercase letter';
-      if (!RegExp(r'[0-9]').hasMatch(password)) return 'Password must contain at least one number';
-      if (!RegExp(r'[!@#\$%^&*(),.?":{}|<>]').hasMatch(password)) return 'Password must contain at least one symbol (!@#\$%^&*...)';
+      if (password.length > 128)
+        return 'Password must be at most 128 characters';
+      if (!RegExp(r'[A-Z]').hasMatch(password))
+        return 'Password must contain at least one uppercase letter';
+      if (!RegExp(r'[a-z]').hasMatch(password))
+        return 'Password must contain at least one lowercase letter';
+      if (!RegExp(r'[0-9]').hasMatch(password))
+        return 'Password must contain at least one number';
+      if (!RegExp(r'[!@#\$%^&*(),.?":{}|<>]').hasMatch(password))
+        return 'Password must contain at least one symbol (!@#\$%^&*...)';
       return null;
     }
 
@@ -9638,7 +9754,9 @@ class _SettingsPageState extends State<_SettingsPage> {
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            obscureNewPassword ? Icons.visibility : Icons.visibility_off,
+                            obscureNewPassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
                           ),
                           onPressed: () {
                             setModalState(() {
@@ -9736,7 +9854,9 @@ class _SettingsPageState extends State<_SettingsPage> {
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : const Text('Verify & Reset'),
@@ -9748,20 +9868,27 @@ class _SettingsPageState extends State<_SettingsPage> {
       },
     );
   }
-
 }
 
 class _SettingsOtpVerificationDialog extends StatefulWidget {
   final String email;
   final Function(String) onVerified;
-  const _SettingsOtpVerificationDialog({required this.email, required this.onVerified});
+  const _SettingsOtpVerificationDialog({
+    required this.email,
+    required this.onVerified,
+  });
 
   @override
-  State<_SettingsOtpVerificationDialog> createState() => _SettingsOtpVerificationDialogState();
+  State<_SettingsOtpVerificationDialog> createState() =>
+      _SettingsOtpVerificationDialogState();
 }
 
-class _SettingsOtpVerificationDialogState extends State<_SettingsOtpVerificationDialog> {
-  final List<TextEditingController> _controllers = List.generate(6, (index) => TextEditingController());
+class _SettingsOtpVerificationDialogState
+    extends State<_SettingsOtpVerificationDialog> {
+  final List<TextEditingController> _controllers = List.generate(
+    6,
+    (index) => TextEditingController(),
+  );
   final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
   int _secondsRemaining = 120;
   bool _hasError = false;
@@ -9780,8 +9907,12 @@ class _SettingsOtpVerificationDialogState extends State<_SettingsOtpVerification
   @override
   void dispose() {
     _timer?.cancel();
-    for (var c in _controllers) { c.dispose(); }
-    for (var f in _focusNodes) { f.dispose(); }
+    for (var c in _controllers) {
+      c.dispose();
+    }
+    for (var f in _focusNodes) {
+      f.dispose();
+    }
     super.dispose();
   }
 
@@ -9806,7 +9937,11 @@ class _SettingsOtpVerificationDialogState extends State<_SettingsOtpVerification
 
   void _onDigitChanged(int index, String value) {
     if (value.length > 1) {
-      final digits = value.replaceAll(RegExp(r'[^0-9]'), '').split('').take(6).toList();
+      final digits = value
+          .replaceAll(RegExp(r'[^0-9]'), '')
+          .split('')
+          .take(6)
+          .toList();
       for (int i = 0; i < digits.length && (index + i) < 6; i++) {
         _controllers[index + i].text = digits[i];
         if (i < digits.length - 1 && (index + i + 1) < 6) {
@@ -9830,7 +9965,9 @@ class _SettingsOtpVerificationDialogState extends State<_SettingsOtpVerification
       _canResend = false;
       _secondsRemaining = 120;
       _hasError = false;
-      for (var c in _controllers) { c.clear(); }
+      for (var c in _controllers) {
+        c.clear();
+      }
       _focusNodes[0].requestFocus();
     });
     _timer?.cancel();
@@ -9843,18 +9980,33 @@ class _SettingsOtpVerificationDialogState extends State<_SettingsOtpVerification
       );
       if (res.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('OTP sent successfully'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('OTP sent successfully'),
+            backgroundColor: Colors.green,
+          ),
         );
       } else {
         Map<String, dynamic> err;
-        try { err = jsonDecode(res.body); } catch (_) { err = {'error': res.body}; }
+        try {
+          err = jsonDecode(res.body);
+        } catch (_) {
+          err = {'error': res.body};
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(err['error'] ?? err['message'] ?? 'Failed to send OTP'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(
+              err['error'] ?? err['message'] ?? 'Failed to send OTP',
+            ),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -9864,11 +10016,17 @@ class _SettingsOtpVerificationDialogState extends State<_SettingsOtpVerification
     return AlertDialog(
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text('Verification code', style: TextStyle(fontWeight: FontWeight.bold)),
+      title: const Text(
+        'Verification code',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Enter the 6-digit code sent to your email.', style: TextStyle(fontSize: 14, color: Colors.black54)),
+          const Text(
+            'Enter the 6-digit code sent to your email.',
+            style: TextStyle(fontSize: 14, color: Colors.black54),
+          ),
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -9884,7 +10042,11 @@ class _SettingsOtpVerificationDialogState extends State<_SettingsOtpVerification
                     textAlign: TextAlign.center,
                     keyboardType: TextInputType.number,
                     maxLength: 1,
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: _hasError ? Colors.red : Colors.black),
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: _hasError ? Colors.red : Colors.black,
+                    ),
                     decoration: InputDecoration(
                       counterText: '',
                       border: OutlineInputBorder(
@@ -9893,18 +10055,24 @@ class _SettingsOtpVerificationDialogState extends State<_SettingsOtpVerification
                           color: _hasError
                               ? Colors.red
                               : _focusNodes[index].hasFocus
-                                  ? const Color(0xFF3E4795)
-                                  : Colors.grey[300]!,
+                              ? const Color(0xFF3E4795)
+                              : Colors.grey[300]!,
                           width: _focusNodes[index].hasFocus ? 2 : 1,
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: _hasError ? Colors.red : Colors.grey[300]!, width: 1),
+                        borderSide: BorderSide(
+                          color: _hasError ? Colors.red : Colors.grey[300]!,
+                          width: 1,
+                        ),
                       ),
                       focusedBorder: const OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(8)),
-                        borderSide: BorderSide(color: Color(0xFF3E4795), width: 2),
+                        borderSide: BorderSide(
+                          color: Color(0xFF3E4795),
+                          width: 2,
+                        ),
                       ),
                       errorBorder: const OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -9913,8 +10081,10 @@ class _SettingsOtpVerificationDialogState extends State<_SettingsOtpVerification
                     ),
                     onChanged: (v) => _onDigitChanged(index, v),
                     onTap: () {
-                      _controllers[index].selection =
-                          TextSelection.fromPosition(TextPosition(offset: _controllers[index].text.length));
+                      _controllers[index]
+                          .selection = TextSelection.fromPosition(
+                        TextPosition(offset: _controllers[index].text.length),
+                      );
                     },
                   ),
                 ),
@@ -9923,8 +10093,11 @@ class _SettingsOtpVerificationDialogState extends State<_SettingsOtpVerification
           ),
           const SizedBox(height: 16),
           if (_hasError)
-            const Text('The code you entered is incorrect. Please try again.',
-                style: TextStyle(color: Colors.red, fontSize: 12), textAlign: TextAlign.center),
+            const Text(
+              'The code you entered is incorrect. Please try again.',
+              style: TextStyle(color: Colors.red, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
           if (_hasError) const SizedBox(height: 16),
           Align(
             alignment: Alignment.centerLeft,
@@ -9942,11 +10115,25 @@ class _SettingsOtpVerificationDialogState extends State<_SettingsOtpVerification
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text("Didn't receive a code? ", style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                Text(
+                  "Didn't receive a code? ",
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                ),
                 TextButton(
                   onPressed: _resendCode,
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                  child: const Text('Resend Code', style: TextStyle(fontSize: 14, color: Color(0xFF3E4795), fontWeight: FontWeight.w600)),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Resend Code',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF3E4795),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -9954,16 +10141,333 @@ class _SettingsOtpVerificationDialogState extends State<_SettingsOtpVerification
         ],
       ),
       actions: [
-        TextButton(onPressed: () { _timer?.cancel(); Navigator.of(context).pop(); }, child: const Text('Cancel')),
+        TextButton(
+          onPressed: () {
+            _timer?.cancel();
+            Navigator.of(context).pop();
+          },
+          child: const Text('Cancel'),
+        ),
         ElevatedButton(
-          onPressed: _getOtp().length != 6 ? null : () => widget.onVerified(_getOtp()),
+          onPressed: _getOtp().length != 6
+              ? null
+              : () => widget.onVerified(_getOtp()),
           style: ElevatedButton.styleFrom(
-            backgroundColor: _getOtp().length == 6 ? const Color(0xFF3E4795) : Colors.grey[300],
+            backgroundColor: _getOtp().length == 6
+                ? const Color(0xFF3E4795)
+                : Colors.grey[300],
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
-          child: const Text('Verify', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          child: const Text(
+            'Verify',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SettingsOtpVerificationDialogChangeEmail extends StatefulWidget {
+  final String email;
+  final Function(String) onVerified;
+  const _SettingsOtpVerificationDialogChangeEmail({
+    required this.email,
+    required this.onVerified,
+  });
+
+  @override
+  State<_SettingsOtpVerificationDialogChangeEmail> createState() =>
+      _SettingsOtpVerificationDialogChangeEmailState();
+}
+
+class _SettingsOtpVerificationDialogChangeEmailState
+    extends State<_SettingsOtpVerificationDialogChangeEmail> {
+  final List<TextEditingController> _controllers = List.generate(
+    6,
+    (index) => TextEditingController(),
+  );
+  final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
+  int _secondsRemaining = 120;
+  bool _hasError = false;
+  bool _canResend = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNodes[0].requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    for (var c in _controllers) {
+      c.dispose();
+    }
+    for (var f in _focusNodes) {
+      f.dispose();
+    }
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsRemaining > 0) {
+        setState(() => _secondsRemaining--);
+      } else {
+        setState(() => _canResend = true);
+        timer.cancel();
+      }
+    });
+  }
+
+  String _formatTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final secs = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+
+  String _getOtp() => _controllers.map((c) => c.text).join();
+
+  void _onDigitChanged(int index, String value) {
+    if (value.length > 1) {
+      final digits = value
+          .replaceAll(RegExp(r'[^0-9]'), '')
+          .split('')
+          .take(6)
+          .toList();
+      for (int i = 0; i < digits.length && (index + i) < 6; i++) {
+        _controllers[index + i].text = digits[i];
+        if (i < digits.length - 1 && (index + i + 1) < 6) {
+          _focusNodes[index + i + 1].requestFocus();
+        }
+      }
+      return;
+    }
+    if (value.isNotEmpty && index < 5) {
+      _focusNodes[index + 1].requestFocus();
+    }
+    final otp = _getOtp();
+    if (otp.length == 6) {
+      widget.onVerified(otp);
+    }
+    setState(() => _hasError = false);
+  }
+
+  Future<void> _resendCode() async {
+    setState(() {
+      _canResend = false;
+      _secondsRemaining = 120;
+      _hasError = false;
+      for (var c in _controllers) {
+        c.clear();
+      }
+      _focusNodes[0].requestFocus();
+    });
+    _timer?.cancel();
+    _startTimer();
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/api/users/change-email'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'username': widget.email}),
+      );
+      if (res.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('OTP sent successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        Map<String, dynamic> err;
+        try {
+          err = jsonDecode(res.body);
+        } catch (_) {
+          err = {'error': res.body};
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              err['error'] ?? err['message'] ?? 'Failed to send OTP',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text(
+        'Verification code',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Enter the 6-digit code sent to your email.',
+            style: TextStyle(fontSize: 14, color: Colors.black54),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(6, (index) {
+              return Padding(
+                padding: EdgeInsets.only(right: index < 5 ? 8 : 0),
+                child: SizedBox(
+                  width: 45,
+                  height: 55,
+                  child: TextField(
+                    controller: _controllers[index],
+                    focusNode: _focusNodes[index],
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
+                    maxLength: 1,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: _hasError ? Colors.red : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      counterText: '',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: _hasError
+                              ? Colors.red
+                              : _focusNodes[index].hasFocus
+                              ? const Color(0xFF3E4795)
+                              : Colors.grey[300]!,
+                          width: _focusNodes[index].hasFocus ? 2 : 1,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: _hasError ? Colors.red : Colors.grey[300]!,
+                          width: 1,
+                        ),
+                      ),
+                      focusedBorder: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
+                        borderSide: BorderSide(
+                          color: Color(0xFF3E4795),
+                          width: 2,
+                        ),
+                      ),
+                      errorBorder: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
+                        borderSide: BorderSide(color: Colors.red, width: 1),
+                      ),
+                    ),
+                    onChanged: (v) => _onDigitChanged(index, v),
+                    onTap: () {
+                      _controllers[index]
+                          .selection = TextSelection.fromPosition(
+                        TextPosition(offset: _controllers[index].text.length),
+                      );
+                    },
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 16),
+          if (_hasError)
+            const Text(
+              'The code you entered is incorrect. Please try again.',
+              style: TextStyle(color: Colors.red, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+          if (_hasError) const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              _formatTime(_secondsRemaining),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: _canResend ? Colors.grey[600] : const Color(0xFF3E4795),
+              ),
+            ),
+          ),
+          if (_canResend) ...[
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Didn't receive a code? ",
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                ),
+                TextButton(
+                  onPressed: _resendCode,
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Resend Code',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF3E4795),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            _timer?.cancel();
+            Navigator.of(context).pop();
+          },
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _getOtp().length != 6
+              ? null
+              : () => widget.onVerified(_getOtp()),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _getOtp().length == 6
+                ? const Color(0xFF3E4795)
+                : Colors.grey[300],
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: const Text(
+            'Verify',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
         ),
       ],
     );
