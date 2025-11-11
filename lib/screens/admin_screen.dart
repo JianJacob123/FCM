@@ -9372,18 +9372,6 @@ class _SettingsPageState extends State<_SettingsPage> {
                                     return;
                                   }
 
-                                  // On otp verified, update user email
-                                  final updatedUser = UserAccount(
-                                    userId: adminUserId,
-                                    fullName: _adminName,
-                                    userRole: _userRole,
-                                    username: newEmail,
-                                    active: true,
-                                  );
-                                  await UserApiService.updateUser(
-                                    adminUserId,
-                                    updatedUser,
-                                  );
                                   if (!mounted) return;
                                   setState(() {
                                     _username = newEmail;
