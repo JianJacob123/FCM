@@ -1055,18 +1055,6 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                               ),
                               if (_showActions)
                                 const Expanded(
-                                  flex: 2,
-                                  child: Text(
-                                    'Password',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                              if (_showActions)
-                                const Expanded(
                                   flex: 1,
                                   child: Text(
                                     'Actions',
@@ -1125,17 +1113,6 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                                   ),
                                 ),
                               ),
-                              if (_showActions)
-                                const Expanded(
-                                  flex: 2,
-                                  child: Text(
-                                    'Password',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
                               if (_showActions)
                                 const Expanded(
                                   flex: 1,
@@ -1209,23 +1186,6 @@ class _AccountManagementScreenState extends State<AccountManagementScreen> {
                                         ),
                                       ),
                                     ),
-                                    if (_showActions)
-                                      Expanded(
-                                        flex: 2,
-                                        child: Row(
-                                          children: [
-                                            const Text('••••••••'),
-                                            const SizedBox(width: 8),
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.remove_red_eye,
-                                              ),
-                                              onPressed: () => _reveal(u),
-                                              tooltip: 'Reveal password',
-                                            ),
-                                          ],
-                                        ),
-                                      ),
                                     if (_showActions)
                                       Expanded(
                                         flex: 1,

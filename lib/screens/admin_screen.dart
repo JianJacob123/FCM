@@ -7554,7 +7554,7 @@ class _ArchivePageState extends State<_ArchivePage> {
     try {
       if (archivedAt == null) {
         return const Text(
-          'Expires 30 days after archive',
+          'Date archived: —',
           style: TextStyle(
             color: Color(0xFF6B7280),
             fontSize: 12,
@@ -7598,6 +7598,66 @@ class _ArchivePageState extends State<_ArchivePage> {
     }
   }
 
+  // Selection mode state for archived list
+  bool _selectionMode = false;
+  final Set<int> _selectedUserIds = <int>{};
+
+  Future<void> _confirmBulkPermanentDelete() async {
+    final count = _selectedUserIds.length;
+    if (count == 0) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Archived Accounts'),
+        content: Text(
+          'Are you sure you want to permanently delete $count selected '
+          '${count == 1 ? 'account' : 'accounts'}? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.tonal(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red[600],
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    try {
+      // Delete sequentially
+      for (final id in _selectedUserIds) {
+        await UserApiService.deleteUser(id);
+      }
+      await _load();
+      if (!mounted) return;
+      setState(() {
+        _selectionMode = false;
+        _selectedUserIds.clear();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Deleted $count archived ${count == 1 ? 'account' : 'accounts'}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete selected accounts: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   List<UserAccount> get _filteredUsers {
     if (_searchQuery.isEmpty) return _archivedUsers;
     return _archivedUsers.where((u) {
@@ -7630,11 +7690,46 @@ class _ArchivePageState extends State<_ArchivePage> {
                   ),
                 ),
                 const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: _load,
-                  tooltip: 'Refresh',
-                ),
+                if (!_selectionMode) ...[
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: _load,
+                    tooltip: 'Refresh',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () {
+                      setState(() {
+                        _selectionMode = true;
+                        _selectedUserIds.clear();
+                      });
+                    },
+                    tooltip: 'Select to delete',
+                  ),
+                ] else ...[
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectionMode = false;
+                        _selectedUserIds.clear();
+                      });
+                    },
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _selectedUserIds.isEmpty
+                        ? null
+                        : () async {
+                            await _confirmBulkPermanentDelete();
+                          },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.red[600],
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Delete'),
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 24),
@@ -7691,32 +7786,7 @@ class _ArchivePageState extends State<_ArchivePage> {
                               onExit: (_) => setState(() => _hoveredIndex = null),
                               child: GestureDetector(
                                 behavior: HitTestBehavior.opaque,
-                                onSecondaryTapDown: (details) async {
-                                  final selection = await showMenu<String>(
-                                    context: context,
-                                    position: RelativeRect.fromLTRB(
-                                      details.globalPosition.dx,
-                                      details.globalPosition.dy,
-                                      details.globalPosition.dx,
-                                      details.globalPosition.dy,
-                                    ),
-                                    items: const [
-                                      PopupMenuItem<String>(
-                                        value: 'delete',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.delete_outline, color: Colors.red),
-                                            SizedBox(width: 8),
-                                            Text('Delete permanently'),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                  if (selection == 'delete') {
-                                    _confirmPermanentDelete(u);
-                                  }
-                                },
+                                // Right-click context action removed per request
                                 child: Card(
                                   color: _hoveredIndex == index
                                       ? const Color(0xFFF4F6FF)
@@ -7724,11 +7794,24 @@ class _ArchivePageState extends State<_ArchivePage> {
                                   elevation: _hoveredIndex == index ? 2 : 0,
                                   margin: const EdgeInsets.only(bottom: 12),
                                   child: ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundColor: Colors.orange[100],
-                                      child: Icon(Icons.archive,
-                                          color: Colors.orange[700]),
-                                    ),
+                                    leading: _selectionMode
+                                        ? Checkbox(
+                                            value: _selectedUserIds.contains(u.userId),
+                                            onChanged: (v) {
+                                              setState(() {
+                                                if (v == true) {
+                                                  _selectedUserIds.add(u.userId);
+                                                } else {
+                                                  _selectedUserIds.remove(u.userId);
+                                                }
+                                              });
+                                            },
+                                          )
+                                        : CircleAvatar(
+                                            backgroundColor: Colors.orange[100],
+                                            child: Icon(Icons.archive,
+                                                color: Colors.orange[700]),
+                                          ),
                                     title: Text(
                                       u.fullName,
                                       style: const TextStyle(
@@ -7744,6 +7827,18 @@ class _ArchivePageState extends State<_ArchivePage> {
                                         _buildExpirationInfo(u.archivedAt),
                                       ],
                                     ),
+                                    onTap: _selectionMode
+                                        ? () {
+                                            setState(() {
+                                              final id = u.userId;
+                                              if (_selectedUserIds.contains(id)) {
+                                                _selectedUserIds.remove(id);
+                                              } else {
+                                                _selectedUserIds.add(id);
+                                              }
+                                            });
+                                          }
+                                        : null,
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
@@ -9030,6 +9125,7 @@ class _SettingsPageState extends State<_SettingsPage> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
