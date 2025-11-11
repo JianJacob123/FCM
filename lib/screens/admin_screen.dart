@@ -9117,6 +9117,9 @@ class _SettingsPageState extends State<_SettingsPage> {
     final passwordController = TextEditingController();
     bool obscurePassword = true;
     bool isUpdating = false;
+    String? emailError;
+    String? currentPasswordError;
+    String? generalError;
 
     showDialog(
       context: context,
@@ -9152,7 +9155,16 @@ class _SettingsPageState extends State<_SettingsPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         prefixIcon: const Icon(Icons.email_outlined),
+                        errorText: emailError,
                       ),
+                      onChanged: (_) {
+                        if (emailError != null || generalError != null) {
+                          setDialogState(() {
+                            emailError = null;
+                            generalError = null;
+                          });
+                        }
+                      },
                     ),
                     const SizedBox(height: 16),
                     TextField(
@@ -9176,8 +9188,24 @@ class _SettingsPageState extends State<_SettingsPage> {
                             });
                           },
                         ),
+                        errorText: currentPasswordError,
                       ),
+                      onChanged: (_) {
+                        if (currentPasswordError != null || generalError != null) {
+                          setDialogState(() {
+                            currentPasswordError = null;
+                            generalError = null;
+                          });
+                        }
+                      },
                     ),
+                    if (generalError != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        generalError!,
+                        style: const TextStyle(color: Colors.red, fontSize: 13),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -9198,52 +9226,108 @@ class _SettingsPageState extends State<_SettingsPage> {
                           final password = passwordController.text.trim();
 
                           if (newEmail.isEmpty || password.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please fill in all fields'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
+                            setDialogState(() {
+                              emailError = newEmail.isEmpty ? 'Please enter your new email' : null;
+                              currentPasswordError = password.isEmpty ? 'Please enter your current password' : null;
+                            });
                             return;
                           }
 
                           // Basic email validation
                           if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                               .hasMatch(newEmail)) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please enter a valid email address'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
+                            setDialogState(() {
+                              emailError = 'Please enter a valid email address';
+                            });
                             return;
                           }
 
                           setDialogState(() => isUpdating = true);
 
                           try {
-                            // TODO: Replace with actual API endpoint when backend is ready
-                            // For now, show a placeholder message
-                            await Future.delayed(const Duration(seconds: 1));
-
-                            if (mounted) {
-                              Navigator.of(context).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                      'Email change functionality will be available soon'),
-                                  backgroundColor: Colors.orange,
-                                ),
-                              );
+                            if (_adminId == null) {
+                              setDialogState(() {
+                                generalError = 'Admin user ID not found';
+                                isUpdating = false;
+                              });
+                              return;
                             }
+                            final adminUserId = int.parse(_adminId!);
+
+                            // Verify password (bcrypt-aware verification)
+                            final valid = await UserApiService.verifyPassword(
+                              userId: adminUserId,
+                              password: password,
+                            );
+                            if (!valid) {
+                              setDialogState(() {
+                                currentPasswordError = 'Current password is incorrect';
+                                isUpdating = false;
+                              });
+                              return;
+                            }
+
+                            // Send OTP to the new email first
+                            final otpRes = await http.post(
+                              Uri.parse('$baseUrl/api/users/forgot-password'),
+                              headers: {'Content-Type': 'application/json'},
+                              body: jsonEncode({'username': newEmail}),
+                            );
+                            if (otpRes.statusCode != 200) {
+                              final err = jsonDecode(otpRes.body);
+                              setDialogState(() {
+                                generalError = err['error'] ?? 'Failed to send verification code to the new email.';
+                              });
+                              return;
+                            }
+
+                            if (!mounted) return;
+                            Navigator.of(context).pop(); // close change email dialog
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Verification code sent to the new email.'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                            // Open OTP dialog; on verified, update username to new email
+                            _showSettingsOtpVerificationDialogForEmailChange(
+                              newEmail,
+                              onVerified: (otp) async {
+                                try {
+                                  final updatedUser = UserAccount(
+                                    userId: adminUserId,
+                                    fullName: _adminName,
+                                    userRole: _userRole,
+                                    username: newEmail,
+                                    active: true,
+                                  );
+                                  await UserApiService.updateUser(adminUserId, updatedUser);
+                                  if (!mounted) return;
+                                  setState(() {
+                                    _username = newEmail;
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Email updated successfully.'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                } catch (e) {
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Failed to update email: ${e.toString()}'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              },
+                            );
                           } catch (e) {
                             if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error: ${e.toString()}'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
+                              setDialogState(() {
+                                generalError = 'Failed to update email: ${e.toString()}';
+                              });
                             }
                           } finally {
                             if (mounted) {
@@ -9368,7 +9452,7 @@ class _SettingsPageState extends State<_SettingsPage> {
 
                                   try {
                                     final res = await http.post(
-                                      Uri.parse('$baseUrl/users/forgot-password'),
+                                      Uri.parse('$baseUrl/api/users/forgot-password'),
                                       headers: {'Content-Type': 'application/json'},
                                       body: jsonEncode({'username': email}),
                                     );
@@ -9467,6 +9551,22 @@ class _SettingsPageState extends State<_SettingsPage> {
     );
   }
 
+  // OTP dialog reused for email change; verification is UI-only, then we execute onVerified.
+  void _showSettingsOtpVerificationDialogForEmailChange(String email, {required Function(String) onVerified}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return _SettingsOtpVerificationDialog(
+          email: email,
+          onVerified: (otp) {
+            Navigator.of(context).pop();
+            onVerified(otp);
+          },
+        );
+      },
+    );
+  }
   void _showResetPasswordDialogSettings(String email, String otp) {
     final otpController = TextEditingController();
     final newPasswordController = TextEditingController();
@@ -9737,7 +9837,7 @@ class _SettingsOtpVerificationDialogState extends State<_SettingsOtpVerification
     _startTimer();
     try {
       final res = await http.post(
-        Uri.parse('$baseUrl/users/forgot-password'),
+        Uri.parse('$baseUrl/api/users/forgot-password'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'username': widget.email}),
       );
