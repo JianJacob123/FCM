@@ -51,7 +51,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
         home: kIsWeb
-            ? const AdminScreen()
+            ? const LandingScreen()
             : const SplashScreen(), //kIsWeb ? const SplashScreen() : const SplashScreen(), //const AdminLoginScreen(),
       ),
     );

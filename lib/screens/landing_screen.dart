@@ -193,7 +193,6 @@ class _LandingScreenState extends State<LandingScreen> {
           ),
           child: SafeArea(
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Logo (click to go Home and scroll to top)
                 InkWell(
@@ -231,8 +230,9 @@ class _LandingScreenState extends State<LandingScreen> {
                 else
                   Expanded(
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
+                        const SizedBox(width: 32),
                         _NavLink(
                           text: 'Home',
                           isActive: _currentIndex == 0 && !_aboutInView,
@@ -245,6 +245,7 @@ class _LandingScreenState extends State<LandingScreen> {
                             });
                           }),
                         ),
+                        const SizedBox(width: 48),
                         _NavLink(
                           text: 'About',
                           isActive:
@@ -268,6 +269,7 @@ class _LandingScreenState extends State<LandingScreen> {
                             }
                           },
                         ),
+                        const SizedBox(width: 48),
                         _NavLink(
                           text: 'Map',
                           isActive: _currentIndex == 3,
@@ -276,6 +278,7 @@ class _LandingScreenState extends State<LandingScreen> {
                             _homePageScrollOffset = 0.0;
                           }),
                         ),
+                        const SizedBox(width: 24),
                       ],
                     ),
                   ),
@@ -1293,73 +1296,6 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                     ),
-                  ),
-                ),
-                // Stats Cards Section
-                Container(
-                  width: double.infinity,
-                  padding: _getResponsivePadding(context),
-                  color: Colors.white,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _isMobile(context)
-                          ? Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _StatCard(
-                                  number: '15',
-                                  label: 'Buses in operation',
-                                ),
-                                const SizedBox(height: 16),
-                                _StatCard(
-                                  number: '1',
-                                  label: 'Operational Route',
-                                ),
-                                const SizedBox(height: 16),
-                                _StatCard(
-                                  number: '92%',
-                                  label: 'On-time performance',
-                                ),
-                                const SizedBox(height: 16),
-                                _StatCard(
-                                  number: '250k',
-                                  label: 'Monthly rides',
-                                ),
-                              ],
-                            )
-                          : Row(
-                              children: [
-                                Expanded(
-                                  child: _StatCard(
-                                    number: '15',
-                                    label: 'Buses in operation',
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _StatCard(
-                                    number: '1',
-                                    label: 'Operational Route',
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _StatCard(
-                                    number: '92%',
-                                    label: 'On-time performance',
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _StatCard(
-                                    number: '3k',
-                                    label: 'Daily rides',
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ],
                   ),
                 ),
                 // About Our Services Section
@@ -2859,81 +2795,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String number;
-  final String label;
-
-  const _StatCard({required this.number, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final isTablet = width < 1024 && width >= 600;
-    final isMobile = width < 600;
-    final numSize = isMobile ? 24.0 : (isTablet ? 28.0 : 32.0);
-    final labelSize = isMobile ? 12.0 : (isTablet ? 13.0 : 14.0);
-    final paddingV = isMobile ? 16.0 : 24.0;
-    final paddingH = isMobile ? 16.0 : 20.0;
-
-    return _Hoverable(
-      builder: (hover) {
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          margin: const EdgeInsets.symmetric(horizontal: 8.0),
-          padding: EdgeInsets.symmetric(
-            horizontal: paddingH,
-            vertical: paddingV,
-          ),
-          transform: Matrix4.identity()..translate(0.0, hover ? -4.0 : 0.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: hover
-                  ? const Color(0xFF3E4795).withOpacity(0.15)
-                  : Colors.transparent,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(hover ? 0.12 : 0.08),
-                blurRadius: hover ? 14 : 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                number,
-                style: TextStyle(
-                  fontSize: numSize,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF333333),
-                  height: 1.2,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: labelSize,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF666666),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }
