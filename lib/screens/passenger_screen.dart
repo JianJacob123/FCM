@@ -1291,7 +1291,7 @@ class _MapScreenState extends State<MapScreen> {
                         children: [
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
+                            children: [
                               Text(
                                 "Plate Number",
                                 style: TextStyle(
@@ -1301,7 +1301,7 @@ class _MapScreenState extends State<MapScreen> {
                               ),
                               SizedBox(height: 2),
                               Text(
-                                'DAL 1234',
+                                '${_selectedVehicle?["plate_number"] ?? "---"}',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -1534,7 +1534,7 @@ class _MapScreenState extends State<MapScreen> {
                                 _routePolyline,
                               );
 
-                              if (!isDropoffValid) {
+                              if (!isPickupValid || !isDropoffValid) {
                                 //Remove pickup valid to bypass.
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
