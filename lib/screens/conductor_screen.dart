@@ -884,9 +884,37 @@ class NotificationsTab extends StatefulWidget {
 }
 
 class _NotificationsTabState extends State<NotificationsTab> {
-  late Future<List<dynamic>> notifications;
+  List<dynamic> _notifications = [];
   final SocketService _socketService = SocketService();
 
+  @override
+  void initState() {
+    super.initState();
+    _loadLocalNotifications();
+
+    // Listen for new notifications via socket
+    _socketService.onNewNotification(_loadLocalNotifications);
+  }
+
+  @override
+  void dispose() {
+    _socketService.removeNotificationCallback(_loadLocalNotifications);
+    super.dispose();
+  }
+
+  /// Load notifications from SharedPreferences
+  Future<void> _loadLocalNotifications() async {
+    final stored = await SocketService.getStoredNotifications();
+    setState(() {
+      _notifications = stored;
+    });
+  }
+
+  Future<void> refreshNotifications() async {
+    await _loadLocalNotifications();
+  }
+
+  /// Format time ago
   String timeAgo(String isoDate) {
     final date = DateTime.parse(isoDate).toLocal();
     final diff = DateTime.now().difference(date);
@@ -896,43 +924,6 @@ class _NotificationsTabState extends State<NotificationsTab> {
     if (diff.inHours < 24) return '${diff.inHours} hours ago';
     if (diff.inDays < 7) return '${diff.inDays} days ago';
     return DateFormat('MMM dd').format(date);
-  }
-
-  /// Refresh notifications
-  Future<void> _refreshNotifications() async {
-    final updatedNotifications = await fetchNotifications('All FCM Unit');
-    setState(() {
-      notifications = Future.value(updatedNotifications);
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    notifications = fetchNotifications('All FCM Unit');
-
-    // Register callback to refresh notifications when a new one arrives
-    _socketService.onNewNotification(_refreshNotifications);
-  }
-
-  @override
-  void dispose() {
-    // Remove callback when screen is disposed
-    _socketService.removeNotificationCallback(_refreshNotifications);
-    super.dispose();
-  }
-
-  IconData mapIcon(String iconName) {
-    switch (iconName) {
-      case "directions_bus":
-        return Icons.directions_bus;
-      case "location_on":
-        return Icons.location_on;
-      case "star":
-        return Icons.star;
-      default:
-        return Icons.notifications;
-    }
   }
 
   @override
@@ -945,7 +936,7 @@ class _NotificationsTabState extends State<NotificationsTab> {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 24,
-            color: Color(0xFF3E4795), //Change the color here
+            color: Color(0xFF3E4795),
           ),
         ),
         backgroundColor: Colors.white,
@@ -953,36 +944,22 @@ class _NotificationsTabState extends State<NotificationsTab> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: FutureBuilder<List<dynamic>>(
-                future: notifications,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text("Error: ${snapshot.error}"));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text("No notifications"));
-                  } else {
-                    return ListView.builder(
-                      itemCount: snapshot.data!.length,
-                      itemBuilder: (context, index) {
-                        final notif = snapshot.data![index];
-                        return _ExpandableNotificationCard(
-                          title: notif["notif_title"],
-                          content: notif["content"],
-                          timeAgo: timeAgo(notif["notif_date"]),
-                        );
-                      },
+        child: RefreshIndicator(
+          onRefresh: _loadLocalNotifications,
+          child: _notifications.isEmpty
+              ? const Center(child: Text("No notifications yet"))
+              : ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: _notifications.length,
+                  itemBuilder: (context, index) {
+                    final notif = _notifications[index];
+                    return _ExpandableNotificationCard(
+                      title: notif["notif_title"],
+                      content: notif["content"],
+                      timeAgo: timeAgo(notif["notif_date"]),
                     );
-                  }
-                },
-              ),
-            ),
-          ],
+                  },
+                ),
         ),
       ),
     );
