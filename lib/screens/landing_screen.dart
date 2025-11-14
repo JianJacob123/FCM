@@ -3890,7 +3890,7 @@ class _MapPageState extends State<MapPage> {
                           style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                         Text(
-                          '${_selectedVehicle?["current_passenger_count"] ?? "--"}/20',
+                          '${_selectedVehicle?["current_passenger_count"] ?? "--"}/26',
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,

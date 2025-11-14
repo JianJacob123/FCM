@@ -198,7 +198,7 @@ class _ConductorScreenState extends State<ConductorScreen> {
                       ValueListenableBuilder<int>(
                         valueListenable: vehicleCapacityNotifier,
                         builder: (context, currentCapacity, _) {
-                          const totalSeats = 20; // or dynamically fetched later
+                          const totalSeats = 26; // or dynamically fetched later
                           return Text(
                             '$currentCapacity/$totalSeats',
                             style: const TextStyle(
@@ -769,7 +769,7 @@ class _MapScreenState extends State<MapScreen> {
                             style: TextStyle(fontSize: 14, color: Colors.grey),
                           ),
                           Text(
-                            '${_selectedVehicle?["current_passenger_count"] ?? "--"}/20',
+                            '${_selectedVehicle?["current_passenger_count"] ?? "--"}/26',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -1148,7 +1148,7 @@ class _PassengerPickupTabState extends State<PassengerPickupTab> {
                           valueListenable: vehicleCapacityNotifier,
                           builder: (context, currentCapacity, _) {
                             const totalSeats =
-                                20; // or dynamically fetched later
+                                26; // or dynamically fetched later
                             return Text(
                               '$currentCapacity/$totalSeats',
                               style: const TextStyle(
