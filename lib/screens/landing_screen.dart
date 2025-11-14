@@ -3907,7 +3907,7 @@ class _MapPageState extends State<MapPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Column(
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
@@ -3919,7 +3919,7 @@ class _MapPageState extends State<MapPage> {
                             ),
                             SizedBox(height: 2),
                             Text(
-                              'DAL 1234',
+                              '${_selectedVehicle?["plate_number"] ?? "---"}',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,

@@ -1083,7 +1083,7 @@ class _MapScreenState extends State<MapScreen> {
                         children: [
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
+                            children: [
                               Text(
                                 "Plate Number",
                                 style: TextStyle(
@@ -1093,7 +1093,7 @@ class _MapScreenState extends State<MapScreen> {
                               ),
                               SizedBox(height: 2),
                               Text(
-                                'DAL 1234',
+                                '${_selectedVehicle?["plate_number"] ?? "---"}',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -9182,9 +9182,11 @@ class _SettingsPageState extends State<_SettingsPage> {
                           emailError = null;
                           generalError = null;
                           // Real-time validation: check if same as current email
-                          if (value.trim().isNotEmpty && 
-                              value.trim().toLowerCase() == _username.toLowerCase()) {
-                            emailError = 'New email must be different from your current email';
+                          if (value.trim().isNotEmpty &&
+                              value.trim().toLowerCase() ==
+                                  _username.toLowerCase()) {
+                            emailError =
+                                'New email must be different from your current email';
                           }
                         });
                       },
@@ -9272,9 +9274,11 @@ class _SettingsPageState extends State<_SettingsPage> {
                           }
 
                           // Check if new email is the same as current email
-                          if (newEmail.toLowerCase() == _username.toLowerCase()) {
+                          if (newEmail.toLowerCase() ==
+                              _username.toLowerCase()) {
                             setDialogState(() {
-                              emailError = 'New email must be different from your current email';
+                              emailError =
+                                  'New email must be different from your current email';
                             });
                             return;
                           }
@@ -9720,7 +9724,9 @@ class _SettingsPageState extends State<_SettingsPage> {
                           // live check confirm match if already typed
                           if (confirmPasswordController.text.isNotEmpty) {
                             confirmPasswordError =
-                                value == confirmPasswordController.text ? null : 'Passwords do not match';
+                                value == confirmPasswordController.text
+                                ? null
+                                : 'Passwords do not match';
                           }
                         });
                       },
@@ -9754,7 +9760,9 @@ class _SettingsPageState extends State<_SettingsPage> {
                       onChanged: (value) {
                         setModalState(() {
                           confirmPasswordError =
-                              value == newPasswordController.text ? null : 'Passwords do not match';
+                              value == newPasswordController.text
+                              ? null
+                              : 'Passwords do not match';
                         });
                       },
                       decoration: InputDecoration(
@@ -9765,7 +9773,9 @@ class _SettingsPageState extends State<_SettingsPage> {
                         ),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                            obscureConfirmPassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
                           ),
                           onPressed: () {
                             setModalState(() {
@@ -9790,7 +9800,8 @@ class _SettingsPageState extends State<_SettingsPage> {
                       ? null
                       : () async {
                           final newPassword = newPasswordController.text.trim();
-                          final confirmPassword = confirmPasswordController.text.trim();
+                          final confirmPassword = confirmPasswordController.text
+                              .trim();
 
                           if (newPassword.isEmpty || confirmPassword.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
