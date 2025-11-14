@@ -2720,16 +2720,11 @@ class _HomePageState extends State<HomePage> {
                           builder: (context) {
                             final bool isMobile =
                                 MediaQuery.of(context).size.width < 600;
-                            final copyright = InkWell(
-                              onTap: () {
-                                //Removed link to FCM site
-                              },
-                              child: Text(
-                                '© 2025 FCM Transport Corporation. All rights reserved.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[500],
-                                ),
+                            final copyright = Text(
+                              '© 2025 FCM Transport Corporation. All rights reserved.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[500],
                               ),
                             );
 
