@@ -864,61 +864,68 @@ class _MapScreenState extends State<MapScreen> {
 
                     //Scrollable list, limited by constraints above
                     Expanded(
-                      child: ListView.builder(
-                        itemCount: _pendingPickups.length,
-                        itemBuilder: (context, index) {
-                          final pickup = _pendingPickups[index];
-                          final lat =
-                              double.tryParse(
-                                pickup['pickup_lat'].toString(),
-                              ) ??
-                              0.0;
-                          final lng =
-                              double.tryParse(
-                                pickup['pickup_lng'].toString(),
-                              ) ??
-                              0.0;
+                      child: _pendingPickups.isEmpty
+                          ? const Center(
+                              child: Text(
+                                "No pickups yet",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              itemCount: _pendingPickups.length,
+                              itemBuilder: (context, index) {
+                                final pickup = _pendingPickups[index];
+                                final lat =
+                                    double.tryParse(
+                                      pickup['pickup_lat'].toString(),
+                                    ) ??
+                                    0.0;
+                                final lng =
+                                    double.tryParse(
+                                      pickup['pickup_lng'].toString(),
+                                    ) ??
+                                    0.0;
 
-                          return Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: ListTile(
-                              leading: const Icon(
-                                Icons.location_on,
-                                color: Color(0xFF3E4795),
-                              ),
-                              title: Text("${pickup['passenger_id']}"),
-                              subtitle: Text("Going ${pickup['route_name']}"),
-                              trailing: Container(
-                                decoration: BoxDecoration(
-                                  color: Color(0xFF3E4795), // background color
-                                  borderRadius: BorderRadius.circular(
-                                    12,
-                                  ), // 👈 rounded corners
-                                ),
-                                child: IconButton(
-                                  icon: const Icon(
-                                    Icons.my_location,
-                                    color: Colors
-                                        .white, //make icon white so it stands out
+                                return Card(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
-                                  onPressed: () {
-                                    final point = LatLng(lat, lng);
-                                    setState(() {
-                                      _highlightedPickup = point;
-                                    });
-                                    _mapController.move(
-                                      point,
-                                      16.0,
-                                    ); // zoom to point
-                                  },
-                                ),
-                              ),
+                                  child: ListTile(
+                                    leading: const Icon(
+                                      Icons.location_on,
+                                      color: Color(0xFF3E4795),
+                                    ),
+                                    title: Text("${pickup['passenger_id']}"),
+                                    subtitle: Text(
+                                      "Going ${pickup['route_name']}",
+                                    ),
+                                    trailing: Container(
+                                      decoration: BoxDecoration(
+                                        color: Color(0xFF3E4795),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: IconButton(
+                                        icon: const Icon(
+                                          Icons.my_location,
+                                          color: Colors.white,
+                                        ),
+                                        onPressed: () {
+                                          final point = LatLng(lat, lng);
+                                          setState(() {
+                                            _highlightedPickup = point;
+                                          });
+                                          _mapController.move(point, 16.0);
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
-                      ),
                     ),
                   ],
                 ),
