@@ -998,7 +998,7 @@ class _HomePageState extends State<HomePage> {
                         final url =
                             (dotenv.env['ANDROID_APK_URL'] ?? '').isNotEmpty
                             ? dotenv.env['ANDROID_APK_URL']!
-                            : '/downloads/app-release.apk';
+                            : 'https://github.com/JianJacob123/FCM/releases/download/v1.0.3/app-release.apk';
                         if (url.isNotEmpty) {
                           downloadFromUrl(url, filename: 'fcm_app.apk');
                         } else {
@@ -1083,7 +1083,7 @@ class _HomePageState extends State<HomePage> {
                       final url =
                           (dotenv.env['ANDROID_APK_URL'] ?? '').isNotEmpty
                           ? dotenv.env['ANDROID_APK_URL']!
-                          : '/downloads/app-release.apk';
+                          : 'https://github.com/JianJacob123/FCM/releases/download/v1.0.3/app-release.apk';
                       if (url.isNotEmpty) {
                         downloadFromUrl(url, filename: 'fcm_app.apk');
                       } else {
@@ -2160,7 +2160,7 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                   child: Center(
                                     child: Image.asset(
-                                      'assets/FCM App.png',
+                                      'assets/FCM Qr.png',
                                       width: 160,
                                       height: 160,
                                       fit: BoxFit.contain,
@@ -2490,7 +2490,7 @@ class _HomePageState extends State<HomePage> {
                                                 MainAxisAlignment.center,
                                             children: [
                                               Image.asset(
-                                                'assets/FCM App.png',
+                                                'assets/FCM Qr.png',
                                                 width: 160,
                                                 height: 160,
                                                 fit: BoxFit.contain,
@@ -2683,7 +2683,7 @@ class _HomePageState extends State<HomePage> {
                                                   MainAxisAlignment.center,
                                               children: [
                                                 Image.asset(
-                                                  'assets/FCM App.png',
+                                                  'assets/FCM Qr.png',
                                                   width: 200,
                                                   height: 200,
                                                   fit: BoxFit.contain,

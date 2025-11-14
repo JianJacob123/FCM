@@ -278,7 +278,7 @@ class _AdminScreenState extends State<AdminScreen> {
                           // Analytics
                           _SidebarItem(
                             icon: Icons.analytics,
-                            label: 'Analytics',
+                            label: 'Dashboard',
                             selected:
                                 _selectedSection == AdminSection.analytics,
                             onTap: () {
