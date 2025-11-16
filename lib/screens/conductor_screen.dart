@@ -1449,10 +1449,10 @@ class ProfileTab extends StatefulWidget {
 }
 
 class _ProfileTabState extends State<ProfileTab> {
-  String _busNumber = '—';
-  String _plateNumber = '—';
-  String _driverName = '—';
-  String _conductorName = '—';
+  String _busNumber = '';
+  String _plateNumber = '';
+  String _driverName = '';
+  String _conductorName = '';
   bool _loadingAssignment = true;
 
   @override
@@ -1469,45 +1469,56 @@ class _ProfileTabState extends State<ProfileTab> {
         listen: false,
       ).currentUser;
       if (user == null) {
-        setState(() => _loadingAssignment = false);
+        setState(() {
+          _loadingAssignment = false;
+        });
         return;
       }
+
+      // Set conductor's name from logged-in user
+      setState(() {
+        _conductorName = user.name;
+      });
+
       final res = await VehicleAssignmentApiService.getAllAssignments();
 
       if (!mounted) return; // <-- IMPORTANT: check again after the await
 
       final assignments = res.data ?? [];
-      final match = assignments.firstWhere(
-        (a) =>
-            a.driverId?.toString() == user.id ||
-            a.conductorId?.toString() == user.id,
-        orElse: () => assignments.isNotEmpty
-            ? assignments.first
-            : VehicleAssignment(
-                assignmentId: 0,
-                vehicleId: 0,
-                plateNumber: null,
-                driverId: null,
-                conductorId: null,
-                driverName: null,
-                conductorName: null,
-                assignedAt: DateTime.now(),
-                createdAt: DateTime.now(),
-                updatedAt: DateTime.now(),
-              ),
-      );
-      if (assignments.isEmpty) {
-        setState(() => _loadingAssignment = false);
+      
+      // Only find assignments that match the logged-in user
+      VehicleAssignment? match;
+      try {
+        match = assignments.firstWhere(
+          (a) =>
+              a.driverId?.toString() == user.id ||
+              a.conductorId?.toString() == user.id,
+        );
+      } catch (e) {
+        // No assignment found for this user
+        match = null;
+      }
+
+      // If no assignment found, leave fields blank
+      if (match == null) {
+        setState(() {
+          _busNumber = '';
+          _plateNumber = '';
+          _driverName = '';
+          // Keep conductor name from logged-in user
+          _loadingAssignment = false;
+        });
         return;
       }
 
+      // Update fields with assignment data
       setState(() {
-        _busNumber = match.vehicleId > 0
+        _busNumber = match!.vehicleId > 0
             ? 'FCM No. ${match.vehicleId.toString().padLeft(2, '0')}'
-            : '—';
-        _plateNumber = match.plateNumber ?? '—';
-        _driverName = match.driverName ?? '—';
-        _conductorName = match.conductorName ?? '—';
+            : '';
+        _plateNumber = match.plateNumber ?? '';
+        _driverName = match.driverName ?? '';
+        // Conductor name is already set from logged-in user
         _loadingAssignment = false;
       });
     } catch (e) {
