@@ -7104,6 +7104,16 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                             ],
                           ),
                         ),
+                        Expanded(
+                          flex: 1,
+                          child: Text(
+                            'Total Passengers',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -7268,6 +7278,16 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                             ],
                           ),
                         ),
+                        Expanded(
+                          flex: 1,
+                          child: Text(
+                            'Total Passengers',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -7317,6 +7337,15 @@ class _TripHistoryPageState extends State<_TripHistoryPage> {
                                     trip['start_time'],
                                     trip['end_time'],
                                   ),
+                                ),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: Text(
+                                  trip['total_passenger_accumulated'] != null
+                                      ? trip['total_passenger_accumulated'].toString()
+                                      : 'N/A',
+                                  style: TextStyle(fontWeight: FontWeight.w500),
                                 ),
                               ),
                             ],
